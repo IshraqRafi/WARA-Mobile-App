@@ -1,4 +1,4 @@
-﻿# Flutter
+# Flutter
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -12,12 +12,25 @@ build/
 **/android/local.properties
 **/android/key.properties
 **/android/app/google-services.json
+android/.kotlin/
 
 # iOS
 **/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
 
-# VS Code
-.vscode/settings.json
+# IDE & Editor files
+.idea/
+*.iml
+.metadata
+.vscode/
+
+# Build artifacts & packages
+*.apk
+*.aab
+*.ipa
 
 # Env
 .env
@@ -26,3 +39,4 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
