@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants/app_constants.dart';
+import '../../features/chat/domain/chat_models.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -317,5 +318,104 @@ class FirestoreService {
     } catch (_) {
       return null;
     }
+  }
+
+  // ── Messenger & Conversations ──────────────────────────────────────────
+
+  CollectionReference<Map<String, dynamic>> _conversationsRef(String agencyId) =>
+      _agenciesRef.doc(agencyId).collection('conversations');
+
+  CollectionReference<Map<String, dynamic>> _messagesRef(String agencyId, String conversationId) =>
+      _agenciesRef.doc(agencyId).collection('conversations').doc(conversationId).collection('messages');
+
+  /// Real-time stream of conversations in an agency ordered by most recent message
+  Stream<List<ChatConversation>> streamAgencyConversations(String agencyId) {
+    return _conversationsRef(agencyId)
+        .orderBy('lastMessageTime', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => ChatConversation.fromMap(doc.id, doc.data())).toList();
+    });
+  }
+
+  /// Real-time stream of messages in a conversation ordered chronologically
+  Stream<List<ChatMessage>> streamConversationMessages(String agencyId, String conversationId) {
+    return _messagesRef(agencyId, conversationId)
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => ChatMessage.fromMap(doc.id, doc.data())).toList();
+    });
+  }
+
+  /// Ensure a conversation document exists in Firestore
+  Future<void> createOrGetConversation(String agencyId, ChatConversation conversation) async {
+    final docRef = _conversationsRef(agencyId).doc(conversation.id);
+    final doc = await docRef.get();
+    if (!doc.exists) {
+      await docRef.set(conversation.toMap());
+    }
+  }
+
+  /// Send a message and atomically update the parent conversation's last message metadata
+  Future<void> sendChatMessage({
+    required String agencyId,
+    required String conversationId,
+    required ChatMessage message,
+  }) async {
+    final batch = _db.batch();
+    final msgDocRef = _messagesRef(agencyId, conversationId).doc(message.id);
+    batch.set(msgDocRef, message.toMap());
+
+    final convoDocRef = _conversationsRef(agencyId).doc(conversationId);
+    batch.set(convoDocRef, {
+      'lastMessage': message.text,
+      'lastSenderName': message.senderName,
+      'lastMessageTime': Timestamp.fromDate(message.createdAt),
+    }, SetOptions(merge: true));
+
+    await batch.commit();
+  }
+
+  /// Auto-seed the agency general room with initial welcome messages if empty
+  Future<void> seedInitialAgencyChatIfEmpty({
+    required String agencyId,
+    required String agencyName,
+    required String managerName,
+  }) async {
+    try {
+      final convoDocRef = _conversationsRef(agencyId).doc('agency_general');
+      final convoDoc = await convoDocRef.get();
+      if (!convoDoc.exists) {
+        final now = DateTime.now();
+        final generalConvo = ChatConversation(
+          id: 'agency_general',
+          agencyId: agencyId,
+          type: ConversationType.channel,
+          title: '# agency-room',
+          description: 'Official Agency Workspace & Production Channel for $agencyName',
+          participantIds: [],
+          participantNames: {},
+          participantPhotos: {},
+          lastMessage: 'Welcome to $agencyName team channel! Post updates, drop assets, or ask questions here.',
+          lastSenderName: managerName.isNotEmpty ? managerName : 'Director',
+          lastMessageTime: now,
+        );
+        await convoDocRef.set(generalConvo.toMap());
+
+        // First message in # general
+        final welcomeMsg = ChatMessage(
+          id: 'msg_welcome_1',
+          conversationId: 'agency_general',
+          agencyId: agencyId,
+          senderId: 'manager_director',
+          senderName: managerName.isNotEmpty ? managerName : 'Director',
+          senderRole: 'manager',
+          text: '👋 Welcome to $agencyName! All project notifications, urgent cuts, and asset drive links will be shared here. Feel free to discuss ideas or ask any questions.',
+          createdAt: now,
+        );
+        await _messagesRef(agencyId, 'agency_general').doc(welcomeMsg.id).set(welcomeMsg.toMap());
+      }
+    } catch (_) {}
   }
 }

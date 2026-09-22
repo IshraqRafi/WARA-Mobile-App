@@ -11,6 +11,9 @@ import '../../features/manager/presentation/screens/manager_workflow_screen.dart
 import '../../features/manager/presentation/screens/manager_pending_screen.dart';
 import '../../features/manager/presentation/screens/manager_finance_screen.dart';
 import '../../features/manager/presentation/screens/manager_settings_screen.dart';
+import '../../features/chat/presentation/screens/chat_inbox_screen.dart';
+import '../../features/chat/presentation/screens/chat_room_screen.dart';
+import '../../features/chat/domain/chat_models.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 
@@ -50,23 +53,39 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const EditorProfileSetupScreen(),
       ),
 
-      // Editor Navigation Shell (3 Tabs)
+      GoRoute(
+        path: '/chat/:conversationId',
+        builder: (context, state) {
+          final convoId = state.pathParameters['conversationId'] ?? 'agency_general';
+          final title = state.uri.queryParameters['title'] ?? (convoId == 'agency_general' ? '# agency-room' : 'Direct Message');
+          final isChannel = convoId == 'agency_general';
+          return ChatRoomScreen(
+            conversationId: convoId,
+            title: title,
+            type: isChannel ? ConversationType.channel : ConversationType.direct,
+          );
+        },
+      ),
+
+      // Editor Navigation Shell (4 Tabs)
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => _EditorShell(shell: shell),
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/editor/available', builder: (c, s) => const EditorAvailableScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/editor/workspace', builder: (c, s) => const EditorWorkspaceScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/editor/messages', builder: (c, s) => const ChatInboxScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/editor/settings', builder: (c, s) => const EditorSettingsScreen())]),
         ],
       ),
 
-      // Manager Navigation Shell (4 Tabs)
+      // Manager Navigation Shell (5 Tabs)
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => _ManagerShell(shell: shell),
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/manager/workflow', builder: (c, s) => const ManagerWorkflowScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/manager/pending', builder: (c, s) => const ManagerPendingScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/manager/finance', builder: (c, s) => const ManagerFinanceScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/manager/messages', builder: (c, s) => const ChatInboxScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/manager/settings', builder: (c, s) => const ManagerSettingsScreen())]),
         ],
       ),
@@ -105,6 +124,11 @@ class _EditorShell extends StatelessWidget {
               icon: Icon(Icons.work_outline_rounded),
               selectedIcon: Icon(Icons.work_rounded),
               label: 'My Workspace',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.chat_bubble_outline_rounded),
+              selectedIcon: Icon(Icons.chat_bubble_rounded),
+              label: 'Messenger',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),
@@ -154,6 +178,11 @@ class _ManagerShell extends StatelessWidget {
               icon: Icon(Icons.account_balance_outlined),
               selectedIcon: Icon(Icons.account_balance_rounded),
               label: 'Finance',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.chat_bubble_outline_rounded),
+              selectedIcon: Icon(Icons.chat_bubble_rounded),
+              label: 'Messenger',
             ),
             NavigationDestination(
               icon: Icon(Icons.admin_panel_settings_outlined),

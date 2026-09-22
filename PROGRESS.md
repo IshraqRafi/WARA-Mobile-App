@@ -15,6 +15,7 @@ timeline
     2026-09-22 : Profile Engine & Navigation Polish : Initials Avatar, Tab Persistence Fix
     2026-09-22 : Celestial Fluid Theme Engine : ThemeExtension lerp, Physics Sun/Moon Toggle
     2026-09-22 : Multi-Tenant Agency Workspaces : Open Manager Sign-up, Room Isolation, Join Keys
+    2026-09-23 : In-App Agency Messenger : Group Room & DMs, Team Presence, Media Link Sharing
 ```
 
 ---
@@ -117,10 +118,38 @@ timeline
 
 ---
 
+### 🔹 Milestone 8: Full In-App Agency Messenger & Direct Messaging System
+- **Objective:** Eliminate communication silos and replace external apps (WhatsApp/Slack) with a native, real-time messenger tab connecting the entire agency in group discussions and private 1-on-1 DMs.
+- **Key Deliverables:**
+  - **Dedicated Navigation Branch for Both Roles:**
+    - **Editor Shell** expanded from 3 to **4 Tabs**: `Available Pool` | `My Workspace` | **`Messenger`** | `Profile`.
+    - **Manager Shell** expanded from 4 to **5 Tabs**: `Global Workflow` | `Pending` | `Finance` | **`Messenger`** | `Agency OS`.
+  - **Agency Room Channel (`# agency-room`):**
+    - High-altitude agency broadcast and discussion channel automatically provisioned for every agency workspace.
+    - All verified managers and creative editors within the agency share a single room for drop alerts, timeline discussions, and creative banter.
+  - **1-on-1 Direct Messages (DMs):**
+    - Private messaging between any two members of the agency (Manager $\leftrightarrow$ Editor, Editor $\leftrightarrow$ Editor).
+    - Deterministic ID formula (`dm_${[uid1, uid2]..sort().join('_')}`) guarantees both users always share the exact same thread without duplicates or race conditions.
+  - **Team Presence & Quick DM Strip (`ChatMemberStrip`):**
+    - Horizontal avatar strip displaying all active team members in the agency room with live online green dot indicators.
+    - 1-tap on any avatar opens or provisions a private 1-on-1 chat room instantly.
+  - **Interactive Chat Room Experience (`ChatRoomScreen` & `ChatBubble`):**
+    - Theme-adaptive chat bubbles with smooth rounded corners, right-aligned for current user, left-aligned for others with sender role tags (`DIRECTOR` vs `EDITOR`).
+    - Smart asset link detection: automatically detects Google Drive, Dropbox, Vimeo, and Frame.io URLs and renders an interactive cloud asset pill with 1-tap copy.
+    - Floating link attachment sheet for quick asset dispatch with notes.
+  - **Multi-Tenant Firestore Backend:**
+    - All conversations and messages are stored under `agencies/{agencyId}/conversations/{convoId}/messages`, scoped strictly to the user's agency.
+    - Pre-seeded realistic agency welcome communications in demo mode (`agency_demo_wara`) for instant hands-on testing.
+
+---
+
 ## 🛠️ Technical Problem Solving Highlights
 
 | Problem Encountered | Root Cause | Engineering Solution |
 | :--- | :--- | :--- |
+| External communication silos (WhatsApp/Discord) | Project discussions and asset sharing occurred outside the app | Built native in-app Messenger tab with Agency Group Channel (`# agency-room`) and 1-on-1 Direct Messages. |
+| Duplicate DM thread race conditions | Uncoordinated thread creation when two users message concurrently | Implemented deterministic conversation IDs (`dm_uid1_uid2`) using alphabetically sorted participant UIDs. |
+| Cumbersome asset link copying in chat | Plain text URLs easily get lost in chat streams | Created regex-driven `hasAssetLink` detector rendering interactive cloud asset pills with 1-tap clipboard copy. |
 | Hardcoded single manager email constraint | Legacy hardcoded email checks prevented any new manager from registering | Built dynamic manager registration with Firestore-backed agency workspaces and join keys. |
 | Cross-agency project and team leakage | Single flat Firestore queries returned all data globally | Added `agencyId` indexing and scoped real-time query filtering across projects and editor seats. |
 | Unverified editor onboarding | Anyone could join without organization permission | Implemented mandatory Agency Join Key validation before onboarding completion. |
