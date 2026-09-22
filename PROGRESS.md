@@ -16,6 +16,7 @@ timeline
     2026-09-22 : Celestial Fluid Theme Engine : ThemeExtension lerp, Physics Sun/Moon Toggle
     2026-09-22 : Multi-Tenant Agency Workspaces : Open Manager Sign-up, Room Isolation, Join Keys
     2026-09-23 : In-App Agency Messenger : Group Room & DMs, Team Presence, Media Link Sharing
+    2026-09-23 : Session Persistence & UI Polish : Instant Auto-Login, Ghost Data Purge, 6 Fresh Posts, Icon-Only Dock
 ```
 
 ---
@@ -143,10 +144,34 @@ timeline
 
 ---
 
+### 🔹 Milestone 9: Persistent Session Engine, Ghost Data Purge & Minimal Navigation Dock
+- **Objective:** Eliminate repetitive sign-in requirements upon app launch, purge all placeholder/dummy profiles and ghost-assigned works, seed 6 fresh unassigned marketplace opportunities, and create an uncluttered, icon-only navigation dock.
+- **Key Deliverables:**
+  - **Instant Local Auto-Login (`AuthProvider`):**
+    - Stored serialized `UserSession` in `SharedPreferences` (`wara_auth_user_session_json`, `_keyIsLoggedIn`, `_keyUserRole`).
+    - Overhauled `_loadInitialState()` to restore cached session immediately on startup without network roundtrips or forcing users back to the auth screen.
+    - Updated authentication workflows (`login`, `registerManager`, `registerEditor`, `signInWithGoogle`, `updateProfile`) to keep local storage in sync, and `logout` to thoroughly wipe cached credentials.
+  - **Purge of Dummy Profiles & Fallbacks:**
+    - Cleaned `ChatMemberStrip` to remove hardcoded demo users (`Walid Islam`, `Alex Chen`, etc.), streaming only verified Firestore team members.
+    - Updated `ManagerSettingsScreen` to eliminate static editor placeholders, showing an intuitive empty state when no team members have joined yet.
+  - **Marketplace Reset & 6 Fresh Video Projects:**
+    - Purged outdated and ghost-assigned video projects from database collections.
+    - Seeded 6 fresh, diverse, high-value commercial video projects (`p_fresh_1` through `p_fresh_6`) into `kInitialProjectsData` and Cloud Firestore via `resetAndSeedFreshProjects()`.
+    - All 6 projects are completely open, unassigned, and claimable by editors.
+  - **Minimalist Icon-Only Bottom Navigation Dock:**
+    - Configured `labelBehavior: NavigationDestinationLabelBehavior.alwaysHide` on navigation bars across both Manager and Editor shells.
+    - Removed text labels for a clean, distraction-free aesthetic with 60px height and responsive indicator pills.
+
+---
+
 ## 🛠️ Technical Problem Solving Highlights
 
 | Problem Encountered | Root Cause | Engineering Solution |
 | :--- | :--- | :--- |
+| Forced re-login on every app cold start | `_loadInitialState()` always reset state to unauthenticated | Added local session serialization in `SharedPreferences` for instant ~2ms restoration on launch. |
+| Cluttered bottom navigation with crowded text | Navigation bar labels occupied excessive vertical space | Configured `labelBehavior: NavigationDestinationLabelBehavior.alwaysHide` for a clean icon-only dock. |
+| Ghost editor assignments & dummy chat members | Fallback mock arrays persisted in chat strips and settings | Purged hardcoded lists; wired screens exclusively to live, verified Firestore streams. |
+| Outdated marketplace with pre-assigned projects | Test database contained legacy posts assigned to nonexistent editors | Built `resetAndSeedFreshProjects()` to clear old data and seed 6 brand-new unassigned jobs. |
 | External communication silos (WhatsApp/Discord) | Project discussions and asset sharing occurred outside the app | Built native in-app Messenger tab with Agency Group Channel (`# agency-room`) and 1-on-1 Direct Messages. |
 | Duplicate DM thread race conditions | Uncoordinated thread creation when two users message concurrently | Implemented deterministic conversation IDs (`dm_uid1_uid2`) using alphabetically sorted participant UIDs. |
 | Cumbersome asset link copying in chat | Plain text URLs easily get lost in chat streams | Created regex-driven `hasAssetLink` detector rendering interactive cloud asset pills with 1-tap clipboard copy. |

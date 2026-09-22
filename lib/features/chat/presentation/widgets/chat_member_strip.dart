@@ -26,41 +26,36 @@ class ChatMemberStrip extends ConsumerWidget {
         final editors = snapshot.data ?? [];
         final otherEditors = editors.where((e) => e['uid'] != currentUser?.id).toList();
 
-        // Build list of team members to display (always show at least demo/fallback members if list is empty)
-        final List<Map<String, dynamic>> members = [];
+        // Strictly real registered members
+        final List<Map<String, dynamic>> members = List.from(otherEditors);
 
-        // If current user is an editor, include the Agency Director/Manager in the strip!
-        if (currentUser?.role != UserRole.manager) {
-          members.add({
-            'uid': 'manager_agency_director',
-            'name': 'Ishraq Rafi',
-            'role': 'Agency Director',
-            'isManager': true,
-          });
-        }
-
-        if (otherEditors.isNotEmpty) {
-          members.addAll(otherEditors);
-        } else if (currentUser?.role == UserRole.manager) {
-          // Demo fallback team members for managers
-          members.add({
-            'uid': 'demo_editor_walid',
-            'name': 'Walid Islam',
-            'role': 'Lead Video Editor',
-            'isManager': false,
-          });
-          members.add({
-            'uid': 'demo_editor_alex',
-            'name': 'Alex Morgan',
-            'role': 'Colorist & Sound',
-            'isManager': false,
-          });
-          members.add({
-            'uid': 'demo_editor_zack',
-            'name': 'Zack Snyder',
-            'role': 'VFX & 3D Motion',
-            'isManager': false,
-          });
+        if (members.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: Container(
+              height: 54,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colors.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.group_outlined, color: colors.muted, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      currentUser?.role == UserRole.manager
+                          ? 'No editors connected yet. Share your Agency Join Key to invite your team.'
+                          : 'No other editors in this room yet. You are all set to claim projects!',
+                      style: TextStyle(color: colors.muted, fontSize: 11.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
         return SizedBox(

@@ -21,9 +21,9 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   }
 
   void _init() {
-    // Seed initial projects to Cloud Firestore if empty for demo agency
+    // Reset old posts and populate 6 fresh unassigned projects in Cloud Firestore
     if (_agencyId == 'agency_demo_wara' || _agencyId == null) {
-      _firestoreService.seedInitialProjectsIfEmpty();
+      _firestoreService.resetAndSeedFreshProjects();
     }
 
     // Listen to real-time updates from Cloud Firestore scoped by agencyId

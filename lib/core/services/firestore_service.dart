@@ -122,17 +122,28 @@ class FirestoreService {
     });
   }
 
+  /// Reset all projects in Firestore and populate with the 6 fresh unassigned projects
+  Future<void> resetAndSeedFreshProjects() async {
+    try {
+      final snapshot = await _projectsRef.get();
+      final batch = _db.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      for (final project in kInitialProjectsData) {
+        final docRef = _projectsRef.doc(project.id);
+        batch.set(docRef, project.toMap());
+      }
+      await batch.commit();
+    } catch (_) {}
+  }
+
   /// Automatically seeds initial projects if the Firestore collection is empty
   Future<void> seedInitialProjectsIfEmpty() async {
     try {
       final snapshot = await _projectsRef.limit(1).get();
       if (snapshot.docs.isEmpty) {
-        final batch = _db.batch();
-        for (final project in kInitialProjectsData) {
-          final docRef = _projectsRef.doc(project.id);
-          batch.set(docRef, project.toMap());
-        }
-        await batch.commit();
+        await resetAndSeedFreshProjects();
       }
     } catch (e) {
       // In case of offline or rules error, log silently

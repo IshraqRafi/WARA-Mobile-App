@@ -89,40 +89,26 @@ class ManagerSettingsScreen extends ConsumerWidget {
                       return ListView(
                         controller: scrollController,
                         children: [
-                          _EditorCard(
-                            name: 'Walid Islam',
-                            specialization: 'Lead Video Editor & Colorist',
-                            skills: const ['Video Editing', 'Color Grading', 'Sound Design'],
-                            hoursPerWeek: 35,
-                            activeDays: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-                            isDemo: true,
-                          ),
-                          const SizedBox(height: 12),
-                          _EditorCard(
-                            name: 'Ishraq Rafi',
-                            specialization: '3D Animator & VFX Specialist',
-                            skills: const ['3D Motion', 'VFX', 'Animation'],
-                            hoursPerWeek: 30,
-                            activeDays: const ['Mon', 'Wed', 'Fri'],
-                            isDemo: true,
-                          ),
-                          const SizedBox(height: 16),
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
                               color: colors.surface,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: colors.border),
                             ),
-                            child: Row(
+                            child: Column(
                               children: [
-                                Icon(Icons.cloud_sync_outlined, color: colors.muted, size: 18),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    'When new editors register via Google or Email, their profiles and skills sync here in real-time.',
-                                    style: TextStyle(color: colors.muted, fontSize: 11, height: 1.3),
-                                  ),
+                                Icon(Icons.people_outline_rounded, color: colors.muted, size: 36),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No editors in this room yet',
+                                  style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Share your Agency Join Key with editors. Once they enter your room, their live profiles will appear here.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: colors.muted, fontSize: 12, height: 1.4),
                                 ),
                               ],
                             ),

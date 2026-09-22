@@ -113,7 +113,8 @@ class _EditorShell extends StatelessWidget {
           onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
           backgroundColor: colors.surface,
           indicatorColor: colors.primary.withValues(alpha: 0.15),
-          height: 64,
+          height: 60,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.storefront_outlined),
@@ -162,7 +163,8 @@ class _ManagerShell extends StatelessWidget {
           onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
           backgroundColor: colors.surface,
           indicatorColor: colors.primary.withValues(alpha: 0.15),
-          height: 64,
+          height: 60,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.dashboard_outlined),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -37,6 +38,44 @@ class UserSession {
     this.portfolioLink,
     this.isProfileComplete = true,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'email': email,
+      'name': name,
+      'role': role.name,
+      'agencyName': agencyName,
+      if (agencyId != null) 'agencyId': agencyId,
+      if (agencyJoinKey != null) 'agencyJoinKey': agencyJoinKey,
+      'skills': skills,
+      'hoursPerWeek': hoursPerWeek,
+      'activeDays': activeDays,
+      if (photoUrl != null) 'photoUrl': photoUrl,
+      if (specialization != null) 'specialization': specialization,
+      if (portfolioLink != null) 'portfolioLink': portfolioLink,
+      'isProfileComplete': isProfileComplete,
+    };
+  }
+
+  factory UserSession.fromMap(Map<String, dynamic> map) {
+    return UserSession(
+      id: map['id'] as String? ?? 'user_1',
+      email: map['email'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      role: map['role'] == 'manager' ? UserRole.manager : UserRole.editor,
+      agencyName: map['agencyName'] as String? ?? 'Agency Workspace',
+      agencyId: map['agencyId'] as String?,
+      agencyJoinKey: map['agencyJoinKey'] as String?,
+      skills: List<String>.from(map['skills'] ?? []),
+      hoursPerWeek: (map['hoursPerWeek'] as num?)?.toInt() ?? 35,
+      activeDays: List<String>.from(map['activeDays'] ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']),
+      photoUrl: map['photoUrl'] as String?,
+      specialization: map['specialization'] as String?,
+      portfolioLink: map['portfolioLink'] as String?,
+      isProfileComplete: map['isProfileComplete'] as bool? ?? true,
+    );
+  }
 
   UserSession copyWith({
     String? name,
@@ -84,6 +123,7 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   static const _keyIsLoggedIn = 'wara_auth_is_logged_in';
   static const _keyUserRole = 'wara_auth_user_role';
+  static const _keyUserSessionJson = 'wara_auth_user_session_json';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -96,8 +136,58 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _loadInitialState() async {
-    // Default to unauthenticated so the app always starts on the Login Page
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedIn = prefs.getBool(_keyIsLoggedIn) ?? false;
+      final sessionJson = prefs.getString(_keyUserSessionJson);
+
+      // 1. Instant local restore from SharedPreferences (Runs in ~2ms)
+      if (isLoggedIn && sessionJson != null && sessionJson.isNotEmpty) {
+        final map = jsonDecode(sessionJson) as Map<String, dynamic>;
+        final session = UserSession.fromMap(map);
+        state = AuthState(isAuthenticated: true, user: session);
+        return;
+      }
+
+      // 2. Check active Firebase Auth user session
+      final fbUser = _auth.currentUser;
+      if (fbUser != null) {
+        final profile = await _firestoreService.getUserProfile(fbUser.uid);
+        if (profile != null) {
+          final role = profile['role'] == 'manager' ? UserRole.manager : UserRole.editor;
+          final session = _buildSessionForRole(
+            role,
+            email: fbUser.email,
+            name: profile['name'] as String?,
+            uid: fbUser.uid,
+            photoUrl: profile['photoUrl'] as String? ?? fbUser.photoURL,
+            specialization: profile['specialization'] as String?,
+            portfolioLink: profile['portfolioLink'] as String?,
+            agencyId: profile['agencyId'] as String?,
+            agencyName: profile['agencyName'] as String?,
+            agencyJoinKey: profile['agencyJoinKey'] as String?,
+            skills: profile['skills'] != null ? List<String>.from(profile['skills']) : null,
+            hoursPerWeek: (profile['hoursPerWeek'] as num?)?.toInt(),
+            activeDays: profile['activeDays'] != null ? List<String>.from(profile['activeDays']) : null,
+            isProfileComplete: profile['isProfileComplete'] == true || role == UserRole.manager,
+          );
+          await _persistSession(session);
+          state = AuthState(isAuthenticated: true, user: session);
+          return;
+        }
+      }
+    } catch (_) {}
+
     state = const AuthState(isAuthenticated: false);
+  }
+
+  Future<void> _persistSession(UserSession session) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyIsLoggedIn, true);
+      await prefs.setString(_keyUserRole, session.role.name);
+      await prefs.setString(_keyUserSessionJson, jsonEncode(session.toMap()));
+    } catch (_) {}
   }
 
   UserSession _buildSessionForRole(
@@ -169,34 +259,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // 1. Check Demo Accounts First for instant testing convenience
     if (cleanEmail == 'manager@gmail.com' && cleanPassword == 'manager') {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_keyIsLoggedIn, true);
-      await prefs.setString(_keyUserRole, 'manager');
-      state = AuthState(
-        isAuthenticated: true,
-        user: _buildSessionForRole(
-          UserRole.manager,
-          agencyName: 'Wara Media Group',
-          agencyId: 'agency_demo_wara',
-          agencyJoinKey: 'WARA-7742',
-          isProfileComplete: true,
-        ),
+      final session = _buildSessionForRole(
+        UserRole.manager,
+        agencyName: 'Wara Media Group',
+        agencyId: 'agency_demo_wara',
+        agencyJoinKey: 'WARA-7742',
+        isProfileComplete: true,
       );
+      await _persistSession(session);
+      state = AuthState(isAuthenticated: true, user: session);
       return (success: true, error: null);
     } else if (cleanEmail == 'editor@gmail.com' && cleanPassword == 'editor') {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_keyIsLoggedIn, true);
-      await prefs.setString(_keyUserRole, 'editor');
-      state = AuthState(
-        isAuthenticated: true,
-        user: _buildSessionForRole(
-          UserRole.editor,
-          agencyName: 'Wara Media Group',
-          agencyId: 'agency_demo_wara',
-          agencyJoinKey: 'WARA-7742',
-          isProfileComplete: true,
-        ),
+      final session = _buildSessionForRole(
+        UserRole.editor,
+        agencyName: 'Wara Media Group',
+        agencyId: 'agency_demo_wara',
+        agencyJoinKey: 'WARA-7742',
+        isProfileComplete: true,
       );
+      await _persistSession(session);
+      state = AuthState(isAuthenticated: true, user: session);
       return (success: true, error: null);
     }
 
@@ -289,10 +371,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isProfileComplete: profileComplete,
         );
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool(_keyIsLoggedIn, true);
-        await prefs.setString(_keyUserRole, userRole == UserRole.editor ? 'editor' : 'manager');
-
+        await _persistSession(session);
         state = AuthState(isAuthenticated: true, user: session);
         return (success: true, error: null);
       }
@@ -372,10 +451,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isProfileComplete: true,
         );
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool(_keyIsLoggedIn, true);
-        await prefs.setString(_keyUserRole, 'manager');
-
+        await _persistSession(session);
         state = AuthState(isAuthenticated: true, user: session);
         return (success: true, error: null);
       }
@@ -430,10 +506,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isProfileComplete: false, // Triggers Profile Setup!
         );
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool(_keyIsLoggedIn, true);
-        await prefs.setString(_keyUserRole, 'editor');
-
+        await _persistSession(session);
         state = AuthState(isAuthenticated: true, user: session);
         return (success: true, error: null);
       }
@@ -549,10 +622,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isProfileComplete: profileComplete,
         );
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool(_keyIsLoggedIn, true);
-        await prefs.setString(_keyUserRole, userRole == UserRole.editor ? 'editor' : 'manager');
-
+        await _persistSession(session);
         state = AuthState(isAuthenticated: true, user: session);
         return (success: true, error: null);
       }
@@ -604,21 +674,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
         agencyJoinKey: validJoinKey,
       );
 
+      final updated = current.copyWith(
+        name: name,
+        specialization: specialization,
+        skills: skills,
+        hoursPerWeek: hoursPerWeek,
+        activeDays: activeDays,
+        portfolioLink: portfolioLink,
+        photoUrl: photo,
+        agencyId: agencyId,
+        agencyName: agencyName,
+        agencyJoinKey: validJoinKey,
+        isProfileComplete: true,
+      );
+
+      await _persistSession(updated);
       state = AuthState(
         isAuthenticated: true,
-        user: current.copyWith(
-          name: name,
-          specialization: specialization,
-          skills: skills,
-          hoursPerWeek: hoursPerWeek,
-          activeDays: activeDays,
-          portfolioLink: portfolioLink,
-          photoUrl: photo,
-          agencyId: agencyId,
-          agencyName: agencyName,
-          agencyJoinKey: validJoinKey,
-          isProfileComplete: true,
-        ),
+        user: updated,
       );
     }
   }
@@ -633,9 +706,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user.agencyId!,
         user.agencyName,
       );
+      final updated = user.copyWith(agencyJoinKey: newKey);
+      await _persistSession(updated);
       state = AuthState(
         isAuthenticated: true,
-        user: user.copyWith(agencyJoinKey: newKey),
+        user: updated,
       );
       await _firestoreService.updateUserProfile(user.id, {'agencyJoinKey': newKey});
       return newKey;
@@ -646,9 +721,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void updateEditorSkills(List<String> newSkills) {
     if (state.user != null) {
+      final updated = state.user!.copyWith(skills: newSkills);
+      _persistSession(updated);
       state = AuthState(
         isAuthenticated: true,
-        user: state.user!.copyWith(skills: newSkills),
+        user: updated,
       );
       _firestoreService.updateUserProfile(state.user!.id, {'skills': newSkills});
     }
@@ -656,9 +733,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void updateEditorSchedule(int hours, List<String> days) {
     if (state.user != null) {
+      final updated = state.user!.copyWith(hoursPerWeek: hours, activeDays: days);
+      _persistSession(updated);
       state = AuthState(
         isAuthenticated: true,
-        user: state.user!.copyWith(hoursPerWeek: hours, activeDays: days),
+        user: updated,
       );
       _firestoreService.updateUserProfile(state.user!.id, {'hoursPerWeek': hours, 'activeDays': days});
     }
@@ -672,13 +751,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
           ? null
           : (photoUrl != null && photoUrl.trim().isNotEmpty ? photoUrl.trim() : state.user!.photoUrl);
 
+      final updated = state.user!.copyWith(
+        name: updatedName,
+        photoUrl: updatedPhoto,
+        clearPhotoUrl: shouldClearPhoto,
+      );
+
+      await _persistSession(updated);
       state = AuthState(
         isAuthenticated: true,
-        user: state.user!.copyWith(
-          name: updatedName,
-          photoUrl: updatedPhoto,
-          clearPhotoUrl: shouldClearPhoto,
-        ),
+        user: updated,
       );
 
       await _firestoreService.updateUserProfile(state.user!.id, {
@@ -694,7 +776,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _googleSignIn.signOut();
     } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyIsLoggedIn, false);
+    await prefs.remove(_keyIsLoggedIn);
+    await prefs.remove(_keyUserRole);
+    await prefs.remove(_keyUserSessionJson);
     state = const AuthState(isAuthenticated: false);
   }
 }
