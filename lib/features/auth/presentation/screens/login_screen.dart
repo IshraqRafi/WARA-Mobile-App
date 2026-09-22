@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/wara_logo.dart';
 import '../../domain/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -111,31 +112,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // ── wara.io Logo & Header ────────────────────────────────
-                  Center(
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: colors.border, width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: colors.isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 24,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Image.asset(
-                        AppInfo.logoPath,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, _, _) => Center(
-                          child: Text('W', style: TextStyle(color: colors.primary, fontSize: 32, fontWeight: FontWeight.w900)),
-                        ),
-                      ),
-                    ),
+                  const Center(
+                    child: WaraLogo(size: 72),
                   ),
                   const SizedBox(height: 20),
                   Text(

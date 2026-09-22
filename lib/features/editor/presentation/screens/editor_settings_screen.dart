@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
+import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_theme_toggle.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
@@ -221,17 +221,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
               // Header with Sun/Moon Theme Toggle
               Row(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: colors.border),
-                    ),
-                    child: Image.asset(AppInfo.logoPath, fit: BoxFit.contain),
-                  ),
+                  const WaraLogo(),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
