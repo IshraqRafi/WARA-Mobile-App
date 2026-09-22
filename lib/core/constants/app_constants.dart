@@ -21,8 +21,51 @@ enum UserRole { manager, editor }
 
 enum ProjectStatus { open, claimed, submitted, approved }
 
+class AgencyModel {
+  final String id;
+  final String name;
+  final String managerUid;
+  final String managerName;
+  final String joinKey;
+  final DateTime createdAt;
+
+  const AgencyModel({
+    required this.id,
+    required this.name,
+    required this.managerUid,
+    required this.managerName,
+    required this.joinKey,
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'managerUid': managerUid,
+      'managerName': managerName,
+      'joinKey': joinKey,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory AgencyModel.fromMap(String id, Map<String, dynamic> map) {
+    return AgencyModel(
+      id: id,
+      name: map['name'] as String? ?? 'Agency',
+      managerUid: map['managerUid'] as String? ?? '',
+      managerName: map['managerName'] as String? ?? 'Manager',
+      joinKey: (map['joinKey'] as String? ?? '').toUpperCase(),
+      createdAt: map['createdAt'] != null
+          ? DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
+}
+
 class ProjectItem {
   final String id;
+  final String? agencyId;
   final String title;
   final String clientName;
   final double clientBudget;
@@ -42,6 +85,7 @@ class ProjectItem {
 
   const ProjectItem({
     required this.id,
+    this.agencyId,
     required this.title,
     required this.clientName,
     required this.clientBudget,
@@ -63,6 +107,7 @@ class ProjectItem {
   bool get canReturn => status == ProjectStatus.claimed && deadlineHoursLeft > 72;
 
   ProjectItem copyWith({
+    String? agencyId,
     double? editorPayout,
     String? deadlineStr,
     int? deadlineHoursLeft,
@@ -77,6 +122,7 @@ class ProjectItem {
   }) {
     return ProjectItem(
       id: id,
+      agencyId: agencyId ?? this.agencyId,
       title: title,
       clientName: clientName,
       clientBudget: clientBudget,
@@ -98,6 +144,7 @@ class ProjectItem {
 
   Map<String, dynamic> toMap() {
     return {
+      if (agencyId != null) 'agencyId': agencyId,
       'title': title,
       'clientName': clientName,
       'clientBudget': clientBudget,
@@ -120,6 +167,7 @@ class ProjectItem {
   factory ProjectItem.fromMap(String id, Map<String, dynamic> map) {
     return ProjectItem(
       id: id,
+      agencyId: map['agencyId'] as String?,
       title: map['title'] as String? ?? '',
       clientName: map['clientName'] as String? ?? '',
       clientBudget: (map['clientBudget'] as num?)?.toDouble() ?? 0.0,

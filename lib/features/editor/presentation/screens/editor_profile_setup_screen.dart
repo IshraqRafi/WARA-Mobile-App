@@ -18,6 +18,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
   late TextEditingController _photoCtrl;
   late TextEditingController _specializationCtrl;
   late TextEditingController _portfolioCtrl;
+  late TextEditingController _agencyKeyCtrl;
 
   final List<String> _availableSkills = [
     'Video Editing',
@@ -45,6 +46,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
     _photoCtrl = TextEditingController(text: user?.photoUrl ?? '');
     _specializationCtrl = TextEditingController(text: user?.specialization ?? 'Video Editor & Colorist');
     _portfolioCtrl = TextEditingController(text: user?.portfolioLink ?? '');
+    _agencyKeyCtrl = TextEditingController(text: user?.agencyJoinKey ?? '');
     _selectedSkills = user?.skills.isNotEmpty == true
         ? user!.skills.toSet()
         : {'Video Editing', 'Color Grading', 'Sound Design'};
@@ -57,6 +59,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
     _photoCtrl.dispose();
     _specializationCtrl.dispose();
     _portfolioCtrl.dispose();
+    _agencyKeyCtrl.dispose();
     super.dispose();
   }
 
@@ -78,6 +81,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
             activeDays: _selectedDays.toList(),
             portfolioLink: _portfolioCtrl.text.trim(),
             photoUrl: _photoCtrl.text.trim(),
+            agencyJoinKey: _agencyKeyCtrl.text.trim(),
           );
 
       if (mounted) {
@@ -142,6 +146,63 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Agency Join Key / Server Room Key
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            margin: const EdgeInsets.only(bottom: 20),
+                            decoration: BoxDecoration(
+                              color: colors.card,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.vpn_key_rounded, color: colors.primary, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Agency Room Join Key',
+                                      style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.bold),
+                                    ),
+                                    const Spacer(),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: colors.primary.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'Required',
+                                        style: TextStyle(color: colors.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Ask your Agency Manager for their room join key to enter their workspace.',
+                                  style: TextStyle(color: colors.muted, fontSize: 11),
+                                ),
+                                const SizedBox(height: 10),
+                                TextFormField(
+                                  controller: _agencyKeyCtrl,
+                                  textCapitalization: TextCapitalization.characters,
+                                  style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your agency join key' : null,
+                                  decoration: InputDecoration(
+                                    hintText: 'e.g. WARA-7742',
+                                    hintStyle: TextStyle(color: colors.muted.withValues(alpha: 0.5), fontSize: 13, letterSpacing: 1.0),
+                                    prefixIcon: Icon(Icons.meeting_room_outlined, color: colors.primary, size: 20),
+                                    fillColor: colors.surface,
+                                    filled: true,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                           // Full Name
                           Text('Full Name', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 8),

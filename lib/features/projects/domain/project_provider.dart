@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firestore_service.dart';
+import '../../auth/domain/auth_provider.dart';
 
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
   return FirestoreService();
@@ -9,21 +10,29 @@ final firestoreServiceProvider = Provider<FirestoreService>((ref) {
 
 class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   final FirestoreService _firestoreService;
+  final String? _agencyId;
   StreamSubscription<List<ProjectItem>>? _subscription;
 
-  ProjectsNotifier(this._firestoreService) : super(kInitialProjectsData) {
+  ProjectsNotifier(this._firestoreService, [this._agencyId])
+      : super(_agencyId == 'agency_demo_wara' || _agencyId == null
+            ? kInitialProjectsData
+            : []) {
     _init();
   }
 
   void _init() {
-    // Seed initial projects to Cloud Firestore if empty
-    _firestoreService.seedInitialProjectsIfEmpty();
+    // Seed initial projects to Cloud Firestore if empty for demo agency
+    if (_agencyId == 'agency_demo_wara' || _agencyId == null) {
+      _firestoreService.seedInitialProjectsIfEmpty();
+    }
 
-    // Listen to real-time updates from Cloud Firestore
-    _subscription = _firestoreService.streamProjects().listen(
+    // Listen to real-time updates from Cloud Firestore scoped by agencyId
+    _subscription = _firestoreService.streamProjects(agencyId: _agencyId).listen(
       (projects) {
         if (projects.isNotEmpty) {
           state = projects;
+        } else if (_agencyId != 'agency_demo_wara' && _agencyId != null) {
+          state = [];
         }
       },
       onError: (err) {
@@ -51,6 +60,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     final deadlineHours = deadlineDays * 24;
     final newItem = ProjectItem(
       id: newId,
+      agencyId: _agencyId,
       title: title,
       clientName: clientName,
       clientBudget: clientBudget,
@@ -279,5 +289,6 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
 
 final projectsProvider = StateNotifierProvider<ProjectsNotifier, List<ProjectItem>>((ref) {
   final firestoreService = ref.watch(firestoreServiceProvider);
-  return ProjectsNotifier(firestoreService);
+  final agencyId = ref.watch(authProvider.select((s) => s.user?.agencyId));
+  return ProjectsNotifier(firestoreService, agencyId);
 });

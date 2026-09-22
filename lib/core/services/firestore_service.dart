@@ -10,18 +10,109 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> get _usersRef =>
       _db.collection('users');
 
-  /// Real-time stream of all projects
-  Stream<List<ProjectItem>> streamProjects() {
-    return _projectsRef.snapshots().map((snapshot) {
+  CollectionReference<Map<String, dynamic>> get _agenciesRef =>
+      _db.collection('agencies');
+
+  /// Generate a memorable, human-friendly agency join key (e.g. WARA-4829, APEX-9281)
+  static String generateJoinKey(String agencyName) {
+    final clean = agencyName.trim().replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+    final prefix = clean.length >= 4 ? clean.substring(0, 4) : clean.padRight(4, 'X');
+    final randSuffix = (1000 + (DateTime.now().microsecondsSinceEpoch % 9000)).toString();
+    return '$prefix-$randSuffix';
+  }
+
+  /// Create a new Agency in Firestore
+  Future<AgencyModel> createAgency({
+    required String name,
+    required String managerUid,
+    required String managerName,
+  }) async {
+    final suffix = managerUid.length > 5 ? managerUid.substring(0, 5) : managerUid;
+    final agencyId = 'agency_${DateTime.now().millisecondsSinceEpoch}_$suffix';
+    final joinKey = generateJoinKey(name);
+    final agency = AgencyModel(
+      id: agencyId,
+      name: name.trim().isNotEmpty ? name.trim() : 'My Agency',
+      managerUid: managerUid,
+      managerName: managerName,
+      joinKey: joinKey,
+      createdAt: DateTime.now(),
+    );
+
+    await _agenciesRef.doc(agencyId).set(agency.toMap());
+    return agency;
+  }
+
+  /// Verify and lookup an agency by its Join Key
+  Future<AgencyModel?> validateAndGetAgencyByKey(String joinKey) async {
+    final cleanKey = joinKey.trim().toUpperCase();
+    if (cleanKey.isEmpty) return null;
+
+    try {
+      final query = await _agenciesRef
+          .where('joinKey', isEqualTo: cleanKey)
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        final doc = query.docs.first;
+        return AgencyModel.fromMap(doc.id, doc.data());
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Retrieve an agency by its ID
+  Future<AgencyModel?> getAgencyById(String agencyId) async {
+    try {
+      final doc = await _agenciesRef.doc(agencyId).get();
+      if (doc.exists && doc.data() != null) {
+        return AgencyModel.fromMap(doc.id, doc.data()!);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Live stream of an agency document
+  Stream<AgencyModel?> streamAgency(String agencyId) {
+    return _agenciesRef.doc(agencyId).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return AgencyModel.fromMap(doc.id, doc.data()!);
+      }
+      return null;
+    });
+  }
+
+  /// Regenerate a join key for an existing agency
+  Future<String> regenerateAgencyKey(String agencyId, String agencyName) async {
+    final newKey = generateJoinKey(agencyName);
+    await _agenciesRef.doc(agencyId).set({
+      'joinKey': newKey,
+      'keyUpdatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    return newKey;
+  }
+
+  /// Real-time stream of projects, optionally scoped by agencyId
+  Stream<List<ProjectItem>> streamProjects({String? agencyId}) {
+    Query<Map<String, dynamic>> query = _projectsRef;
+    if (agencyId != null && agencyId.isNotEmpty) {
+      query = query.where('agencyId', isEqualTo: agencyId);
+    }
+    return query.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         return ProjectItem.fromMap(doc.id, doc.data());
       }).toList();
     });
   }
 
-  /// Real-time stream of all registered editors for Manager assignment
-  Stream<List<Map<String, dynamic>>> streamEditors() {
-    return _usersRef.where('role', isEqualTo: 'editor').snapshots().map((snapshot) {
+  /// Real-time stream of registered editors, optionally scoped by agencyId
+  Stream<List<Map<String, dynamic>>> streamEditors({String? agencyId}) {
+    Query<Map<String, dynamic>> query = _usersRef.where('role', isEqualTo: 'editor');
+    if (agencyId != null && agencyId.isNotEmpty) {
+      query = query.where('agencyId', isEqualTo: agencyId);
+    }
+    return query.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = doc.data();
         data['uid'] = doc.id;
@@ -152,8 +243,11 @@ class FirestoreService {
     bool isProfileComplete = false,
     String? specialization,
     String? portfolioLink,
+    String? agencyId,
+    String? agencyName,
+    String? agencyJoinKey,
   }) async {
-    await _usersRef.doc(uid).set({
+    final data = <String, dynamic>{
       'email': email,
       'name': name,
       'role': role.name,
@@ -164,7 +258,12 @@ class FirestoreService {
       'specialization': specialization,
       'portfolioLink': portfolioLink,
       'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+    if (agencyId != null) data['agencyId'] = agencyId;
+    if (agencyName != null) data['agencyName'] = agencyName;
+    if (agencyJoinKey != null) data['agencyJoinKey'] = agencyJoinKey;
+
+    await _usersRef.doc(uid).set(data, SetOptions(merge: true));
   }
 
   /// Complete full onboarding profile for an editor
@@ -177,6 +276,9 @@ class FirestoreService {
     required List<String> activeDays,
     required String portfolioLink,
     String? photoUrl,
+    String? agencyId,
+    String? agencyName,
+    String? agencyJoinKey,
   }) async {
     final data = <String, dynamic>{
       'name': name,
@@ -191,6 +293,10 @@ class FirestoreService {
     if (photoUrl != null && photoUrl.trim().isNotEmpty) {
       data['photoUrl'] = photoUrl.trim();
     }
+    if (agencyId != null) data['agencyId'] = agencyId;
+    if (agencyName != null) data['agencyName'] = agencyName;
+    if (agencyJoinKey != null) data['agencyJoinKey'] = agencyJoinKey;
+
     await _usersRef.doc(uid).set(data, SetOptions(merge: true));
   }
 

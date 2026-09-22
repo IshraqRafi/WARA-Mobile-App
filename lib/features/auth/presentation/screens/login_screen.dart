@@ -15,6 +15,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController(text: '');
   final _passwordCtrl = TextEditingController(text: '');
+  final _nameCtrl = TextEditingController(text: '');
+  final _agencyNameCtrl = TextEditingController(text: '');
   bool _obscurePassword = true;
   UserRole _selectedRole = UserRole.manager;
   bool _isSignUpMode = false;
@@ -26,6 +28,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void dispose() {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _nameCtrl.dispose();
+    _agencyNameCtrl.dispose();
     super.dispose();
   }
 
@@ -36,6 +40,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorMessage = null;
       _emailCtrl.clear();
       _passwordCtrl.clear();
+      _nameCtrl.clear();
+      _agencyNameCtrl.clear();
     });
   }
 
@@ -45,19 +51,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorMessage = null;
     });
 
-    if (_isSignUpMode && _selectedRole == UserRole.editor) {
-      // Create new Editor Account
-      final res = await ref.read(authProvider.notifier).registerEditor(
-            _emailCtrl.text,
-            _passwordCtrl.text,
-          );
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          if (!res.success) {
-            _errorMessage = res.error ?? 'Registration failed. Please try again.';
-          }
-        });
+    if (_isSignUpMode) {
+      if (_selectedRole == UserRole.manager) {
+        // Create new Manager Account & Agency Workspace
+        final res = await ref.read(authProvider.notifier).registerManager(
+              email: _emailCtrl.text,
+              password: _passwordCtrl.text,
+              name: _nameCtrl.text,
+              agencyName: _agencyNameCtrl.text,
+            );
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            if (!res.success) {
+              _errorMessage = res.error ?? 'Agency creation failed. Please try again.';
+            }
+          });
+        }
+      } else {
+        // Create new Editor Account
+        final res = await ref.read(authProvider.notifier).registerEditor(
+              _emailCtrl.text,
+              _passwordCtrl.text,
+            );
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            if (!res.success) {
+              _errorMessage = res.error ?? 'Registration failed. Please try again.';
+            }
+          });
+        }
       }
     } else {
       // Regular Login
@@ -237,16 +261,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       children: [
                         Text(
                           _selectedRole == UserRole.manager
-                              ? 'Agency Manager Access'
+                              ? (_isSignUpMode ? 'Register Agency Workspace' : 'Agency Manager Access')
                               : (_isSignUpMode ? 'Create Editor Account' : 'Editor Workspace Sign In'),
                           style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           _selectedRole == UserRole.manager
-                              ? 'Restricted to authorized agency administrators'
+                              ? (_isSignUpMode
+                                  ? 'Set up your agency server & get your team invite key'
+                                  : 'Sign in to your agency command deck')
                               : (_isSignUpMode
-                                  ? 'Register to join the creative team and claim projects'
+                                  ? 'Register to join an agency team and claim projects'
                                   : 'Open access: Sign in with your Google account or email'),
                           style: TextStyle(color: colors.muted, fontSize: 12),
                         ),
@@ -272,6 +298,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Extra Manager Registration Fields
+                        if (_isSignUpMode && _selectedRole == UserRole.manager) ...[
+                          Text('Your Full Name', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _nameCtrl,
+                            style: TextStyle(color: colors.text, fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. Ishraq Rafi',
+                              hintStyle: TextStyle(color: colors.muted, fontSize: 13),
+                              prefixIcon: Icon(Icons.person_outline_rounded, color: colors.muted, size: 20),
+                              fillColor: colors.card,
+                              filled: true,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          Text('Agency / Studio Name', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _agencyNameCtrl,
+                            style: TextStyle(color: colors.text, fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. Apex Media Group',
+                              hintStyle: TextStyle(color: colors.muted, fontSize: 13),
+                              prefixIcon: Icon(Icons.business_outlined, color: colors.muted, size: 20),
+                              fillColor: colors.card,
+                              filled: true,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -328,7 +387,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: colors.isDark ? Colors.black : Colors.white, strokeWidth: 2.5))
                                 : Text(
                                     _selectedRole == UserRole.manager
-                                        ? 'Sign In as Manager'
+                                        ? (_isSignUpMode ? 'Create Agency Workspace' : 'Sign In as Manager')
                                         : (_isSignUpMode ? 'Create Account & Setup Profile' : 'Sign In as Editor'),
                                     style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                                   ),
@@ -372,31 +431,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
 
-                        // Editor Sign In / Sign Up Mode Toggle
-                        if (_selectedRole == UserRole.editor) ...[
-                          const SizedBox(height: 20),
-                          Center(
-                            child: TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  _isSignUpMode = !_isSignUpMode;
-                                  _errorMessage = null;
-                                });
-                              },
-                              child: Text(
-                                _isSignUpMode
-                                    ? 'Already have an account? Sign In'
-                                    : "New editor? Create an account",
-                                style: TextStyle(
-                                  color: colors.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.underline,
-                                ),
+                        // Sign In / Sign Up Mode Toggle (Available for both Manager & Editor)
+                        const SizedBox(height: 20),
+                        Center(
+                          child: TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _isSignUpMode = !_isSignUpMode;
+                                _errorMessage = null;
+                              });
+                            },
+                            child: Text(
+                              _selectedRole == UserRole.manager
+                                  ? (_isSignUpMode
+                                      ? 'Already registered? Sign In as Manager'
+                                      : 'New Agency Director? Create Workspace')
+                                  : (_isSignUpMode
+                                      ? 'Already have an account? Sign In'
+                                      : 'New editor? Create an account'),
+                              style: TextStyle(
+                                color: colors.primary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.underline,
                               ),
                             ),
                           ),
-                        ],
+                        ),
                       ],
                     ),
                   ),

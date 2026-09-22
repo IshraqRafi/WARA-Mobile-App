@@ -12,9 +12,9 @@ timeline
     2026-07-24 : Project Scaffold & Clean Architecture : Flutter 3.x, Riverpod 2.x, GoRouter
     2026-08-10 : Firebase Backend & Dual Auth : Firestore Rules, Manager & Editor Roles
     2026-08-11 : Marketplace & Workflow Deck : Project Claim/Locking, Pipeline Management
-    2026-09-21 : Financial Tracking & Review Deck : Submission Reviews, Payout Ledger
     2026-09-22 : Profile Engine & Navigation Polish : Initials Avatar, Tab Persistence Fix
     2026-09-22 : Celestial Fluid Theme Engine : ThemeExtension lerp, Physics Sun/Moon Toggle
+    2026-09-22 : Multi-Tenant Agency Workspaces : Open Manager Sign-up, Room Isolation, Join Keys
 ```
 
 ---
@@ -95,10 +95,35 @@ timeline
 
 ---
 
+### 🔹 Milestone 7: Multi-Tenant Agency Rooms & Security Join Key Architecture
+- **Objective:** Enable open registration for any Agency Manager to create private agency rooms/servers, and mandate unique security join keys for creative editors to enter the room.
+- **Key Deliverables:**
+  - **Open Manager Self-Registration:**
+    - Removed hardcoded email whitelist restrictions. Any creative director or studio owner can register directly via email/password or Google Sign-In.
+    - Dynamically prompts for Full Name and Agency / Studio Name during manager sign-up.
+  - **Dynamic Agency Room Auto-Provisioning:**
+    - Upon manager registration, automatically generates a unique `agencies` document in Cloud Firestore containing the manager's UID, agency branding, and an auto-generated unique Join Key.
+    - Added readable key generation logic (`e.g. WARA-7742`, `APEX-9123`) combining prefix uppercase initials and a pseudo-random hash.
+  - **Mandatory Editor Join Key Validation:**
+    - Updated `EditorProfileSetupScreen` with an **Agency Room Join Key** input field.
+    - Verifies the provided key against Firestore `agencies` collection. If invalid, shows user-friendly error guidance; if valid, binds editor to the manager's agency room.
+  - **Manager Control Deck & Key Management:**
+    - Added an **Agency Workspace & Room Key** card to `ManagerSettingsScreen` displaying the active agency name, join key badge, one-tap clipboard copy, and a confirmation modal to regenerate keys on demand.
+    - Team seats modal automatically filters to show only live editors connected to this manager's agency room via `streamEditors(agencyId)`.
+  - **Scoped Workspace Project Pipelines:**
+    - Updated `project_provider.dart` to scope real-time Firestore listeners by `agencyId`.
+    - Newly created projects by managers are automatically stamped with the manager's `agencyId`, ensuring zero data leakage between different agencies.
+    - Preserved seamless demo accounts (`manager@gmail.com` / `manager` and `editor@gmail.com` / `editor`) pre-linked to demo agency (`agency_demo_wara`) for instant testing.
+
+---
+
 ## 🛠️ Technical Problem Solving Highlights
 
 | Problem Encountered | Root Cause | Engineering Solution |
 | :--- | :--- | :--- |
+| Hardcoded single manager email constraint | Legacy hardcoded email checks prevented any new manager from registering | Built dynamic manager registration with Firestore-backed agency workspaces and join keys. |
+| Cross-agency project and team leakage | Single flat Firestore queries returned all data globally | Added `agencyId` indexing and scoped real-time query filtering across projects and editor seats. |
+| Unverified editor onboarding | Anyone could join without organization permission | Implemented mandatory Agency Join Key validation before onboarding completion. |
 | Tab reset on profile update | Provider re-evaluation caused navigation rebuild to index 0 | Preserved shell navigation state and decoupled tab index from profile stream triggers. |
 | Abrupt screen flashing on theme change | Hardcoded color swaps without interpolation | Implemented Flutter `ThemeExtension<AppColors>` with custom `lerp()` and root `AnimatedTheme`. |
 | WARA eye logo invisible in light mode | White line art logo blended into dynamic white surface container | Created universal `WaraLogo` badge preserving iconic dark background and subtle drop shadow in both themes. |
