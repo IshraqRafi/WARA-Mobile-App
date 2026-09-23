@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
 import '../../../../shared/widgets/wara_logo.dart';
-import '../../../../shared/widgets/wara_theme_toggle.dart';
+import '../../../notifications/presentation/widgets/notification_center_modal.dart';
+import '../../../projects/domain/project_provider.dart';
 import '../../../auth/domain/auth_provider.dart';
 import '../../domain/chat_models.dart';
 import '../../domain/chat_provider.dart';
@@ -108,7 +109,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const WaraThemeToggle(),
+                  const NotificationBellButton(),
                 ],
               ),
             ),
@@ -132,31 +133,38 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
             ),
             const SizedBox(height: 4),
             ChatMemberStrip(onSelectMember: _startDirectMessage),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
-            // ── Search & Filter Bar ──────────────────────────────────────
+            // ── Professional Search Bar ──────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
-                height: 42,
+                height: 46,
                 decoration: BoxDecoration(
                   color: colors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.border),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: colors.border.withValues(alpha: 0.8)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.isDark ? Colors.black.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: TextField(
                   controller: _searchCtrl,
                   onChanged: (v) => ref.read(chatProvider.notifier).setSearchQuery(v),
                   style: TextStyle(color: colors.text, fontSize: 13),
                   decoration: InputDecoration(
-                    hintText: 'Search conversations or messages...',
+                    hintText: 'Search messages, channels, or team members...',
                     hintStyle: TextStyle(color: colors.muted, fontSize: 12),
-                    prefixIcon: Icon(Icons.search_rounded, color: colors.muted, size: 18),
+                    prefixIcon: Icon(Icons.search_rounded, color: colors.primary, size: 20),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 13),
                     suffixIcon: _searchCtrl.text.isNotEmpty
                         ? IconButton(
-                            icon: Icon(Icons.clear_rounded, color: colors.muted, size: 16),
+                            icon: Icon(Icons.close_rounded, color: colors.muted, size: 18),
                             onPressed: () {
                               _searchCtrl.clear();
                               ref.read(chatProvider.notifier).setSearchQuery('');
@@ -201,6 +209,125 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                 children: [
+                  // 0. Database Members Search Matches
+                  if (chatState.searchQuery.trim().isNotEmpty) ...[
+                    StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: ref.watch(firestoreServiceProvider).streamEditors(agencyId: user?.agencyId),
+                      builder: (context, snapshot) {
+                        final editors = snapshot.data ?? [];
+                        final q = chatState.searchQuery.trim().toLowerCase();
+                        final matches = editors.where((e) {
+                          if (e['uid'] == user?.id) return false;
+                          final name = (e['name'] as String? ?? '').toLowerCase();
+                          final email = (e['email'] as String? ?? '').toLowerCase();
+                          final spec = (e['specialization'] as String? ?? '').toLowerCase();
+                          return name.contains(q) || email.contains(q) || spec.contains(q);
+                        }).toList();
+
+                        if (matches.isEmpty) return const SizedBox.shrink();
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.person_search_rounded, color: colors.primary, size: 16),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'CREATIVE TEAM (${matches.length})',
+                                    style: TextStyle(
+                                      color: colors.primary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              ...matches.map((m) {
+                                final uid = m['uid'] as String? ?? '';
+                                final name = m['name'] as String? ?? 'Creative Editor';
+                                final photo = m['photoUrl'] as String?;
+                                final spec = m['specialization'] as String? ?? 'Video Editor';
+                                final rating = (m['rating'] as num?)?.toDouble() ?? 5.0;
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: colors.surface,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      WaraAvatar(name: name, photoUrl: photo, radius: 18),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              name,
+                                              style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              spec,
+                                              style: TextStyle(color: colors.muted, fontSize: 11),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: colors.card,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.star_rounded, color: Colors.amber, size: 13),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              rating.toStringAsFixed(1),
+                                              style: TextStyle(color: colors.text, fontSize: 11, fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      ElevatedButton(
+                                        onPressed: () => _startDirectMessage(uid, name, photo),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: colors.primary,
+                                          foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          elevation: 0,
+                                        ),
+                                        child: const Text('Chat', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                              const Divider(height: 16),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+
                   // 1. Pinned Agency Room Card (Always accessible)
                   if (chatState.activeFilter != ChatFilter.direct) ...[
                     GestureDetector(

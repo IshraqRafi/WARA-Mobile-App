@@ -7,6 +7,7 @@ import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
+import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 
 class EditorAvailableScreen extends ConsumerWidget {
   const EditorAvailableScreen({super.key});
@@ -173,6 +174,8 @@ class EditorAvailableScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  const NotificationBellButton(),
                 ],
               ),
               const SizedBox(height: 20),

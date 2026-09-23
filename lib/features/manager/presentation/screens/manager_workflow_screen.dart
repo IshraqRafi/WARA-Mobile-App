@@ -6,6 +6,8 @@ import '../../../../shared/widgets/wara_avatar.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../projects/domain/project_provider.dart';
+import '../../../notifications/presentation/widgets/notification_center_modal.dart';
+import '../widgets/rate_editor_dialog.dart';
 
 class ManagerWorkflowScreen extends ConsumerWidget {
   const ManagerWorkflowScreen({super.key});
@@ -757,6 +759,8 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  const NotificationBellButton(),
+                  const SizedBox(width: 8),
 
                   ElevatedButton.icon(
                     onPressed: () => _showCreateOfferModal(context, ref),
@@ -990,12 +994,24 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                                       const SizedBox(width: 6),
                                       ElevatedButton(
                                         onPressed: () {
-                                          ref.read(projectsProvider.notifier).approveProject(project.id);
-                                          WaraToast.show(
-                                            context,
-                                            message: '✅ Deliverable validated & payout approved!',
-                                            icon: Icons.check_circle_rounded,
-                                          );
+                                          if (project.claimedByEditorId != null) {
+                                            showRateEditorSheet(
+                                              context: context,
+                                              ref: ref,
+                                              editorId: project.claimedByEditorId!,
+                                              editorName: project.claimedByEditorName ?? 'Editor',
+                                              projectId: project.id,
+                                              projectTitle: project.title,
+                                              isProjectApproval: true,
+                                            );
+                                          } else {
+                                            ref.read(projectsProvider.notifier).approveProject(project.id);
+                                            WaraToast.show(
+                                              context,
+                                              message: '✅ Deliverable validated & payout approved!',
+                                              icon: Icons.check_circle_rounded,
+                                            );
+                                          }
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: colors.primary,

@@ -6,6 +6,7 @@ import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_theme_toggle.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
+import '../../../leaderboard/presentation/widgets/agency_leaderboard_sheet.dart';
 
 class EditorSettingsScreen extends ConsumerStatefulWidget {
   const EditorSettingsScreen({super.key});
@@ -358,6 +359,8 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 20),
+              const AgencyLeaderboardCard(),
               const SizedBox(height: 24),
 
               // Skills Customizer

@@ -200,6 +200,30 @@ timeline
 
 ---
 
+### 🔹 Milestone 12: Real-Time Alerts Center, Editor Rating Engine & Agency Creative Leaderboard
+- **Objective:** Build an end-to-end performance tracking and alerting ecosystem comprising real-time in-app notifications, manager-driven editor ratings per project, and a live agency creative leaderboard.
+- **Key Deliverables:**
+  - **In-App Notification Center & Quick Alerts (`NotificationBellButton` & `showNotificationCenter`):**
+    - Created `lib/features/notifications/domain/notification_models.dart` & `notification_provider.dart` streaming real-time alerts (`AppNotification`) with unread badge counters.
+    - Built draggable notification sheet with categorized event icons (project drops, claim alerts, submission reviews, ratings), relative timestamps, and 1-tap "Mark all as read".
+    - Embedded `NotificationBellButton` across Manager Workflow, Manager Pending, and Editor Available headers.
+  - **Manager-Driven Editor Rating Engine (`showRateEditorSheet` & `rateEditor`):**
+    - Added atomic cumulative rating calculations (`rating`, `ratingCount`, `totalStars`, `completedProjects`) in Firestore.
+    - Designed interactive 1-5 star selector with animated scale feedback, quick review tags (*Flawless Cut*, *Fast Turnaround*, *Superb Color*, etc.), and review notes.
+    - Integrated rating prompt directly into "Approve & Pay" actions in Manager Workflow and Manager Pending screens, automatically alerting editors upon approval.
+  - **Agency Creative Leaderboard (`AgencyLeaderboardCard` & `showAgencyLeaderboardModal`):**
+    - Built live performance leaderboard ordered by star rating and completed deliverables.
+    - Designed distinctive podium badges: 🥇 #1 Gold Leader, 🥈 #2 Silver Top, 🥉 #3 Bronze Rising, plus rank indicators for all active editors.
+    - Highlighted current user with an accent outline and `YOU` badge.
+    - Embedded personal standing summary card directly into the Editor's Profile screen and accessible from Manager Agency OS settings.
+  - **Messenger & Database Refinements:**
+    - Purged theme toggle from Messenger header (retaining theme switching strictly in Profile tabs).
+    - Redesigned search bar with 46px pill aesthetics, live Firestore member querying, and 1-tap direct messaging.
+    - Resolved "No editors in this room yet" seat bug by incorporating display name fallback to email handles for fresh Gmail signups.
+    - Added `resetAgencyRoom()` ensuring `# agency-room` initializes with an official director welcome post.
+
+---
+
 ## 🛠️ Technical Problem Solving Highlights
 
 | Problem Encountered | Root Cause | Engineering Solution |
@@ -220,6 +244,8 @@ timeline
 | WARA eye logo invisible in light mode | White line art logo blended into dynamic white surface container | Created universal `WaraLogo` badge preserving iconic dark background and subtle drop shadow in both themes. |
 | Race conditions on video claiming | Concurrent editor taps on the same post | Atomically locked project records in Firestore using transaction rules. |
 | Inflexible avatar rendering | Hardcoded asset paths scattered across screens | Created universal `WaraAvatar` with network caching, error boundaries, and smart initials generation. |
+| "No editors in this room yet" despite registered editors | Null name fields on Gmail registrations and overly strict agencyId filters silently excluded valid accounts | Relaxed stream matching to include unassigned editors, auto-fallback blank names to email prefixes, defaulted initial ratings to 5.0. |
+| Untracked editor performance and lack of merit rankings | Agency managers had no mechanism to rate delivered projects or recognize top creative talent | Built atomic rating calculations (`rateEditor`), interactive 5-star review modal upon approval, and live Agency Creative Leaderboard. |
 
 ---
 

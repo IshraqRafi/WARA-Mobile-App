@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants/app_constants.dart';
 import '../../features/chat/domain/chat_models.dart';
+import '../../features/notifications/domain/notification_models.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -107,18 +108,59 @@ class FirestoreService {
     });
   }
 
-  /// Real-time stream of registered editors, optionally scoped by agencyId
+  /// Real-time stream of registered editors, optionally scoped by agencyId, sorted by rating/rank
   Stream<List<Map<String, dynamic>>> streamEditors({String? agencyId}) {
-    Query<Map<String, dynamic>> query = _usersRef.where('role', isEqualTo: 'editor');
-    if (agencyId != null && agencyId.isNotEmpty) {
-      query = query.where('agencyId', isEqualTo: agencyId);
-    }
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
+    return _usersRef.where('role', isEqualTo: 'editor').snapshots().map((snapshot) {
+      final list = <Map<String, dynamic>>[];
+      for (final doc in snapshot.docs) {
+        final data = Map<String, dynamic>.from(doc.data());
         data['uid'] = doc.id;
-        return data;
-      }).toList();
+
+        // If agencyId is provided, match this agency, unassigned users, or demo agency
+        final docAgencyId = data['agencyId'] as String?;
+        if (agencyId != null && agencyId.isNotEmpty) {
+          final isMatch = docAgencyId == agencyId ||
+              docAgencyId == null ||
+              docAgencyId.isEmpty ||
+              docAgencyId == 'agency_demo_wara';
+          if (!isMatch) continue;
+        }
+
+        // Fallback name if missing or blank (e.g. use email prefix from real Google sign-in)
+        final email = data['email'] as String? ?? '';
+        final name = (data['name'] as String? ?? '').trim();
+        if (name.isEmpty && email.isNotEmpty) {
+          data['name'] = email.split('@').first;
+        } else if (name.isEmpty) {
+          data['name'] = 'Creative Editor';
+        }
+
+        // Default stats if not yet recorded
+        if (data['rating'] == null) {
+          data['rating'] = 5.0;
+        }
+        if (data['ratingCount'] == null) {
+          data['ratingCount'] = 1;
+        }
+        if (data['completedProjects'] == null) {
+          data['completedProjects'] = 0;
+        }
+
+        list.add(data);
+      }
+
+      // Sort in descending order of rating and completed projects
+      list.sort((a, b) {
+        final rA = (a['rating'] as num?)?.toDouble() ?? 0.0;
+        final rB = (b['rating'] as num?)?.toDouble() ?? 0.0;
+        final cmp = rB.compareTo(rA);
+        if (cmp != 0) return cmp;
+        final pA = (a['completedProjects'] as num?)?.toInt() ?? 0;
+        final pB = (b['completedProjects'] as num?)?.toInt() ?? 0;
+        return pB.compareTo(pA);
+      });
+
+      return list;
     });
   }
 
@@ -427,6 +469,175 @@ class FirestoreService {
         );
         await _messagesRef(agencyId, 'agency_general').doc(welcomeMsg.id).set(welcomeMsg.toMap());
       }
+    } catch (_) {}
+  }
+
+  /// Reset the agency room in messenger and seed a pre-welcoming message from the owner/director
+  Future<void> resetAgencyRoom({
+    required String agencyId,
+    required String agencyName,
+    required String managerName,
+    required String managerId,
+    String? managerPhotoUrl,
+  }) async {
+    try {
+      final now = DateTime.now();
+
+      // Clear any stale messages in agency_general
+      final msgsSnap = await _messagesRef(agencyId, 'agency_general').get();
+      final batch = _db.batch();
+      for (final doc in msgsSnap.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // Update agency_general conversation document
+      final convoDocRef = _conversationsRef(agencyId).doc('agency_general');
+      final generalConvo = ChatConversation(
+        id: 'agency_general',
+        agencyId: agencyId,
+        type: ConversationType.channel,
+        title: '# agency-room',
+        description: 'Official Agency Workspace & Production Channel for $agencyName',
+        participantIds: [],
+        participantNames: {},
+        participantPhotos: {},
+        lastMessage: '👋 Welcome to $agencyName team channel! Post updates, drop assets, or ask questions here.',
+        lastSenderName: managerName.isNotEmpty ? managerName : 'Agency Director',
+        lastMessageTime: now,
+      );
+      batch.set(convoDocRef, generalConvo.toMap(), SetOptions(merge: true));
+
+      // Post pristine welcome message from the owner's account
+      final welcomeMsg = ChatMessage(
+        id: 'msg_welcome_${now.millisecondsSinceEpoch}',
+        conversationId: 'agency_general',
+        agencyId: agencyId,
+        senderId: managerId,
+        senderName: managerName.isNotEmpty ? managerName : 'Agency Director',
+        senderPhotoUrl: managerPhotoUrl,
+        senderRole: 'manager',
+        text: '👋 Welcome to $agencyName! All project notifications, urgent cuts, and asset drive links will be shared here. Feel free to discuss ideas or ask any questions.',
+        createdAt: now,
+      );
+      final msgDocRef = _messagesRef(agencyId, 'agency_general').doc(welcomeMsg.id);
+      batch.set(msgDocRef, welcomeMsg.toMap());
+
+      await batch.commit();
+    } catch (_) {}
+  }
+
+  /// Rate an editor, calculate cumulative rating, and send in-app notification
+  Future<void> rateEditor({
+    required String agencyId,
+    required String editorId,
+    required double rating,
+    String? projectId,
+    String? feedback,
+    required String managerName,
+  }) async {
+    try {
+      final docRef = _usersRef.doc(editorId);
+      final doc = await docRef.get();
+      double currentTotal = 0.0;
+      int currentCount = 0;
+      int currentCompleted = 0;
+
+      if (doc.exists && doc.data() != null) {
+        final d = doc.data()!;
+        final rawRating = (d['rating'] as num?)?.toDouble();
+        final rawCount = (d['ratingCount'] as num?)?.toInt();
+        final rawTotal = (d['totalStars'] as num?)?.toDouble();
+        currentCompleted = (d['completedProjects'] as num?)?.toInt() ?? 0;
+
+        if (rawTotal != null && rawCount != null && rawCount > 0) {
+          currentTotal = rawTotal;
+          currentCount = rawCount;
+        } else if (rawRating != null) {
+          currentTotal = rawRating;
+          currentCount = 1;
+        }
+      }
+
+      final newCount = currentCount + 1;
+      final newTotal = currentTotal + rating;
+      final newRating = double.parse((newTotal / newCount).toStringAsFixed(1));
+      final newCompleted = projectId != null ? (currentCompleted + 1) : currentCompleted;
+
+      await docRef.set({
+        'rating': newRating,
+        'ratingCount': newCount,
+        'totalStars': newTotal,
+        'completedProjects': newCompleted,
+        'lastRatedAt': FieldValue.serverTimestamp(),
+        if (feedback != null && feedback.isNotEmpty) 'latestFeedback': feedback,
+      }, SetOptions(merge: true));
+
+      // Dispatch real-time notification to the editor
+      await sendNotification(
+        agencyId: agencyId,
+        notification: AppNotification(
+          id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
+          agencyId: agencyId,
+          userId: editorId,
+          title: '⭐ New Rating Received (${rating.toStringAsFixed(1)} Stars)',
+          body: feedback != null && feedback.isNotEmpty
+              ? '$managerName rated your work: "$feedback"'
+              : '$managerName gave you a ${rating.toStringAsFixed(1)}-star rating! Keep up the great work.',
+          type: NotificationType.ratingReceived,
+          relatedId: projectId,
+          createdAt: DateTime.now(),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  // ── In-App Real-Time Notification Center ───────────────────────────────
+
+  CollectionReference<Map<String, dynamic>> _notificationsRef(String agencyId) =>
+      _agenciesRef.doc(agencyId).collection('notifications');
+
+  /// Real-time stream of notifications for an agency, filtered for broadcast or specific user
+  Stream<List<AppNotification>> streamNotifications({required String agencyId, String? userId}) {
+    return _notificationsRef(agencyId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => AppNotification.fromMap(doc.id, doc.data()))
+          .where((n) => n.userId == null || n.userId == userId)
+          .toList();
+    });
+  }
+
+  /// Dispatch an in-app notification
+  Future<void> sendNotification({
+    required String agencyId,
+    required AppNotification notification,
+  }) async {
+    try {
+      await _notificationsRef(agencyId).doc(notification.id).set(notification.toMap());
+    } catch (_) {}
+  }
+
+  /// Mark a single notification as read
+  Future<void> markNotificationAsRead(String agencyId, String notificationId) async {
+    try {
+      await _notificationsRef(agencyId).doc(notificationId).update({'isRead': true});
+    } catch (_) {}
+  }
+
+  /// Mark all notifications as read for a user
+  Future<void> markAllNotificationsAsRead(String agencyId, String? userId) async {
+    try {
+      final snap = await _notificationsRef(agencyId).where('isRead', isEqualTo: false).get();
+      final batch = _db.batch();
+      for (final doc in snap.docs) {
+        final dUserId = doc.data()['userId'] as String?;
+        if (dUserId == null || dUserId == userId) {
+          batch.update(doc.reference, {'isRead': true});
+        }
+      }
+      await batch.commit();
     } catch (_) {}
   }
 }

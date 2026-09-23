@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firestore_service.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../projects/domain/project_provider.dart';
@@ -72,11 +73,17 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final agencyId = _currentUser?.agencyId;
     if (agencyId == null || agencyId.isEmpty) return;
 
-    // Seed default agency general chat if not existing
-    _firestoreService.seedInitialAgencyChatIfEmpty(
+    // Reset agency general chat with owner welcome message
+    _firestoreService.resetAgencyRoom(
       agencyId: agencyId,
-      agencyName: _currentUser?.agencyName ?? 'Agency Workspace',
-      managerName: _currentUser?.name ?? 'Director',
+      agencyName: _currentUser?.agencyName ?? 'Wara Media Group',
+      managerName: _currentUser?.role == UserRole.manager
+          ? (_currentUser?.name.isNotEmpty == true ? _currentUser!.name : 'Ishraq Rafi')
+          : 'Ishraq Rafi',
+      managerId: _currentUser?.role == UserRole.manager
+          ? (_currentUser?.id ?? 'manager_1')
+          : 'manager_1',
+      managerPhotoUrl: _currentUser?.role == UserRole.manager ? _currentUser?.photoUrl : null,
     );
 
     // Stream real-time conversations for this agency

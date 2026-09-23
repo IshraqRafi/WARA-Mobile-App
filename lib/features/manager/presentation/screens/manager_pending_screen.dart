@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_logo.dart';
+import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../../../projects/domain/project_provider.dart';
+import '../widgets/rate_editor_dialog.dart';
 
 class ManagerPendingScreen extends ConsumerStatefulWidget {
   const ManagerPendingScreen({super.key});
@@ -56,6 +58,8 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  const NotificationBellButton(),
                 ],
               ),
               const SizedBox(height: 20),
@@ -191,6 +195,60 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                                     ),
                                   ],
                                 ),
+                                if (item.status == ProjectStatus.submitted) ...[
+                                  const SizedBox(height: 14),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: colors.surface,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.cloud_done_rounded, color: Colors.greenAccent, size: 18),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text('Deliverable Ready for Review', style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.bold)),
+                                              if (item.submissionLink != null)
+                                                Text(item.submissionLink!, style: TextStyle(color: colors.muted, fontSize: 11), overflow: TextOverflow.ellipsis),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton.icon(
+                                          onPressed: () {
+                                            if (item.claimedByEditorId != null) {
+                                              showRateEditorSheet(
+                                                context: context,
+                                                ref: ref,
+                                                editorId: item.claimedByEditorId!,
+                                                editorName: item.claimedByEditorName ?? 'Editor',
+                                                projectId: item.id,
+                                                projectTitle: item.title,
+                                                isProjectApproval: true,
+                                              );
+                                            } else {
+                                              ref.read(projectsProvider.notifier).approveProject(item.id);
+                                            }
+                                          },
+                                          icon: Icon(Icons.star_rounded, size: 14, color: colors.isDark ? Colors.black : Colors.white),
+                                          label: Text('Approve & Rate', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: colors.primary,
+                                            foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                            minimumSize: Size.zero,
+                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           );

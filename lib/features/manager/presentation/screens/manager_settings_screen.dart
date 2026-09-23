@@ -7,7 +7,9 @@ import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_theme_toggle.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
+import '../../../leaderboard/presentation/widgets/agency_leaderboard_sheet.dart';
 import '../../../projects/domain/project_provider.dart';
+import '../widgets/rate_editor_dialog.dart';
 
 class ManagerSettingsScreen extends ConsumerWidget {
   const ManagerSettingsScreen({super.key});
@@ -21,8 +23,8 @@ class ManagerSettingsScreen extends ConsumerWidget {
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
+        initialChildSize: 0.75,
+        maxChildSize: 0.92,
         minChildSize: 0.5,
         expand: false,
         builder: (_, scrollController) => Padding(
@@ -43,7 +45,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Editors connected to ${user?.agencyName ?? "your agency room"}',
+                'Editors connected to ${user?.agencyName ?? "your agency room"} • Ranked by performance',
                 style: TextStyle(color: colors.muted, fontSize: 12),
               ),
               const SizedBox(height: 14),
@@ -80,10 +82,9 @@ class ManagerSettingsScreen extends ConsumerWidget {
 
               Expanded(
                 child: StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: ref.read(firestoreServiceProvider).streamEditors(agencyId: user?.agencyId),
+                  stream: ref.watch(firestoreServiceProvider).streamEditors(agencyId: user?.agencyId),
                   builder: (context, snapshot) {
-                    final cloudEditors = snapshot.data ?? [];
-                    final activeEditors = cloudEditors.where((e) => e['name'] != null && (e['name'] as String).isNotEmpty).toList();
+                    final activeEditors = snapshot.data ?? [];
 
                     if (activeEditors.isEmpty) {
                       return ListView(
@@ -123,9 +124,17 @@ class ManagerSettingsScreen extends ConsumerWidget {
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final e = activeEditors[index];
+                        final editorId = e['id'] as String? ?? '';
+                        final editorName = e['name'] as String? ?? 'Editor';
+                        final photoUrl = e['photoUrl'] as String?;
+                        final rating = (e['rating'] as num?)?.toDouble() ?? 5.0;
+                        final ratingCount = (e['ratingCount'] as num?)?.toInt() ?? 0;
+                        final completedProjects = (e['completedProjects'] as num?)?.toInt() ?? 0;
+
                         return _EditorCard(
-                          name: e['name'] as String? ?? 'Editor',
-                          photoUrl: e['photoUrl'] as String?,
+                          rank: index + 1,
+                          name: editorName,
+                          photoUrl: photoUrl,
                           specialization: e['specialization'] as String? ?? 'Video Editor',
                           skills: List<String>.from(e['skills'] ?? ['Video Editing']),
                           hoursPerWeek: (e['hoursPerWeek'] as num?)?.toInt() ?? 35,
@@ -133,6 +142,18 @@ class ManagerSettingsScreen extends ConsumerWidget {
                           portfolioLink: e['portfolioLink'] as String?,
                           email: e['email'] as String?,
                           isDemo: false,
+                          rating: rating,
+                          ratingCount: ratingCount,
+                          completedProjects: completedProjects,
+                          onRate: () {
+                            showRateEditorSheet(
+                              context: context,
+                              ref: ref,
+                              editorId: editorId,
+                              editorName: editorName,
+                              editorPhotoUrl: photoUrl,
+                            );
+                          },
                         );
                       },
                     );
@@ -409,6 +430,12 @@ class ManagerSettingsScreen extends ConsumerWidget {
                 onTap: () => _showTeamModal(context, ref),
               ),
               _SettingsTile(
+                icon: Icons.emoji_events_outlined,
+                title: 'Agency Creative Leaderboard',
+                subtitle: 'Track editor rankings, star ratings, and project outputs',
+                onTap: () => showAgencyLeaderboardModal(context, ref),
+              ),
+              _SettingsTile(
                 icon: Icons.domain_rounded,
                 title: 'Agency Profile & Branding',
                 subtitle: '${user?.agencyName ?? "Wara Media Group"} (wara.io)',
@@ -473,6 +500,7 @@ class _SettingsTile extends StatelessWidget {
 }
 
 class _EditorCard extends StatelessWidget {
+  final int rank;
   final String name;
   final String? photoUrl;
   final String specialization;
@@ -482,8 +510,13 @@ class _EditorCard extends StatelessWidget {
   final String? portfolioLink;
   final String? email;
   final bool isDemo;
+  final double rating;
+  final int ratingCount;
+  final int completedProjects;
+  final VoidCallback? onRate;
 
   const _EditorCard({
+    required this.rank,
     required this.name,
     this.photoUrl,
     required this.specialization,
@@ -493,11 +526,82 @@ class _EditorCard extends StatelessWidget {
     this.portfolioLink,
     this.email,
     required this.isDemo,
+    required this.rating,
+    required this.ratingCount,
+    required this.completedProjects,
+    this.onRate,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+
+    Widget buildRankBadge() {
+      if (rank == 1) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('🥇', style: TextStyle(fontSize: 12)),
+              SizedBox(width: 4),
+              Text('#1 Leader', style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        );
+      }
+      if (rank == 2) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+          decoration: BoxDecoration(
+            color: Colors.blueGrey.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.blueGrey.shade300.withValues(alpha: 0.5)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🥈', style: TextStyle(fontSize: 12)),
+              const SizedBox(width: 4),
+              Text('#2 Top', style: TextStyle(color: Colors.blueGrey.shade200, fontSize: 10, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        );
+      }
+      if (rank == 3) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+          decoration: BoxDecoration(
+            color: Colors.brown.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.brown.shade300.withValues(alpha: 0.5)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🥉', style: TextStyle(fontSize: 12)),
+              const SizedBox(width: 4),
+              Text('#3 Rising', style: TextStyle(color: Colors.brown.shade200, fontSize: 10, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        );
+      }
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: colors.card,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: colors.border),
+        ),
+        child: Text('#$rank', style: TextStyle(color: colors.muted, fontSize: 10, fontWeight: FontWeight.bold)),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -522,23 +626,15 @@ class _EditorCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(name, style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isDemo ? colors.muted.withValues(alpha: 0.15) : Colors.green.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
+                        Flexible(
                           child: Text(
-                            isDemo ? 'Demo' : 'Online',
-                            style: TextStyle(
-                              color: isDemo ? colors.muted : Colors.greenAccent,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            name,
+                            style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        buildRankBadge(),
                       ],
                     ),
                     const SizedBox(height: 2),
@@ -546,10 +642,69 @@ class _EditorCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (onRate != null) ...[
+                const SizedBox(width: 6),
+                InkWell(
+                  onTap: onRate,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: colors.card,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Rate',
+                          style: TextStyle(color: colors.text, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
+
+          // Rating & Projects Metric Pill
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: colors.card,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.star_rounded, color: Colors.amber, size: 15),
+                const SizedBox(width: 4),
+                Text(
+                  '${rating.toStringAsFixed(1)} Stars',
+                  style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  ' ($ratingCount reviews)',
+                  style: TextStyle(color: colors.muted, fontSize: 11),
+                ),
+                const Spacer(),
+                Icon(Icons.video_library_outlined, color: colors.muted, size: 13),
+                const SizedBox(width: 4),
+                Text(
+                  '$completedProjects cuts delivered',
+                  style: TextStyle(color: colors.text, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+
           if (email != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text('Contact: $email', style: TextStyle(color: colors.muted, fontSize: 11)),
           ],
           const SizedBox(height: 12),
@@ -583,3 +738,4 @@ class _EditorCard extends StatelessWidget {
     );
   }
 }
+
