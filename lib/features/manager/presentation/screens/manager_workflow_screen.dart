@@ -760,20 +760,6 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   const NotificationBellButton(),
-                  const SizedBox(width: 8),
-
-                  ElevatedButton.icon(
-                    onPressed: () => _showCreateOfferModal(context, ref),
-                    icon: Icon(Icons.add_rounded, size: 16, color: colors.isDark ? Colors.black : Colors.white),
-                    label: Text('Post Offer', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colors.primary,
-                      foregroundColor: colors.isDark ? Colors.black : Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -1066,6 +1052,14 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreateOfferModal(context, ref),
+        backgroundColor: colors.primary,
+        foregroundColor: colors.isDark ? Colors.black : Colors.white,
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.add_rounded, size: 28),
       ),
     );
   }

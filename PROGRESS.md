@@ -224,6 +224,30 @@ timeline
 
 ---
 
+### 🔹 Milestone 13: Numerical Notification Badges, Messenger Direct Messages Overhaul, Floating Action Button & Team Card Redesign
+- **Objective:** Refine notification counter aesthetics with numerical badges, overhaul Direct Messages into an automatic single-profile stream with cleaner headers, fix search bar visual artifacts, relieve Manager header crowding with a floating action button, and redesign Editor/Staff team cards with zero horizontal overflows.
+- **Key Deliverables:**
+  - **Exact Numerical Notification Badges:**
+    - Upgraded `NotificationBellButton` with an outer Stack badge positioned at `top: -4, right: -4`.
+    - Renders high-contrast red pill with `1, 2, 3...` or `9+` count, bold white typography, and protective `colors.bg` border stroke.
+  - **Messenger Direct Messages Clean Overhaul:**
+    - Purged legacy `"Direct message started with..."` placeholder message generation upon starting direct chats.
+    - Direct Messages tab now automatically streams all verified agency team members, listing each profile **exactly once**.
+    - Removed cluttered top banner texts (`"TEAM DIRECT MESSAGES"` and `"Tap member to chat"`).
+    - Displays actual latest conversation message preview if one exists; otherwise falls back gracefully to specialization (*e.g., Video Editor / Agency Director*) and `'Active'`.
+  - **Glitched Search Bar Resolution:**
+    - Replaced nested container/theme decoration collision with a single 24px `OutlineInputBorder` directly on the `TextField`, producing a smooth, unified, glitch-free search pill.
+  - **Manager Floating Action Button:**
+    - Removed crowded "Post Offer" button from the Manager Workflow header, giving branding and title ample room to breathe.
+    - Introduced a sleek floating action button (`FloatingActionButton` with 16px rounded corners and `+` icon) positioned at the bottom right corner right above the footer dock.
+  - **Zero-Overflow Team Seats Card Redesign:**
+    - Completely overhauled `_EditorCard` in `ManagerSettingsScreen` with a modern, spacious card layout.
+    - Replaced rigid horizontal spans with responsive `Wrap` widgets for metrics (⭐ rating pill, 🎬 completed cuts count, ⏱️ weekly availability, and active working day chips).
+    - Guaranteed zero RenderFlex overflow warnings regardless of mobile viewport width.
+    - Added full-width "Rate & Review Editor" action button.
+
+---
+
 ## 🛠️ Technical Problem Solving Highlights
 
 | Problem Encountered | Root Cause | Engineering Solution |
@@ -246,6 +270,9 @@ timeline
 | Inflexible avatar rendering | Hardcoded asset paths scattered across screens | Created universal `WaraAvatar` with network caching, error boundaries, and smart initials generation. |
 | "No editors in this room yet" despite registered editors | Null name fields on Gmail registrations and overly strict agencyId filters silently excluded valid accounts | Relaxed stream matching to include unassigned editors, auto-fallback blank names to email prefixes, defaulted initial ratings to 5.0. |
 | Untracked editor performance and lack of merit rankings | Agency managers had no mechanism to rate delivered projects or recognize top creative talent | Built atomic rating calculations (`rateEditor`), interactive 5-star review modal upon approval, and live Agency Creative Leaderboard. |
+| Glitched rectangular box inside rounded search pill | Theme `inputDecorationTheme` had 16px radius conflicting with parent Container 24px border radius | Applied 24px `OutlineInputBorder` directly across all states in `TextField.decoration`. |
+| Cluttered Manager workflow header | Header row crammed logo, title, and "Post Offer" button into narrow screen space | Removed header button and introduced floating action button above footer navigation dock. |
+| RenderFlex horizontal overflow on team seats cards | Rigid `Row` with multiple fixed-width metrics and labels exceeded mobile screen widths | Implemented responsive `Wrap` metric chips and text ellipsis for names and portfolio links. |
 
 ---
 

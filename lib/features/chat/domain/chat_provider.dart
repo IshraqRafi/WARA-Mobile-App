@@ -213,8 +213,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
         if (user?.photoUrl != null) MapEntry(user!.id, user.photoUrl),
         if (otherUserPhoto != null) MapEntry(otherUserId, otherUserPhoto),
       ]),
-      lastMessage: 'Direct conversation started with $otherUserName',
-      lastSenderName: user?.name ?? 'Me',
+      lastMessage: '',
+      lastSenderName: '',
       lastMessageTime: DateTime.now(),
     );
 

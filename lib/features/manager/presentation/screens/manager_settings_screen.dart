@@ -62,11 +62,14 @@ class ManagerSettingsScreen extends ConsumerWidget {
                   children: [
                     Icon(Icons.vpn_key_rounded, color: colors.primary, size: 16),
                     const SizedBox(width: 8),
-                    Text(
-                      'Join Key: ${user?.agencyJoinKey ?? "WARA-7742"}',
-                      style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                    Expanded(
+                      child: Text(
+                        'Join Key: ${user?.agencyJoinKey ?? "WARA-7742"}',
+                        style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () {
                         final key = user?.agencyJoinKey ?? 'WARA-7742';
@@ -539,10 +542,10 @@ class _EditorCard extends StatelessWidget {
     Widget buildRankBadge() {
       if (rank == 1) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
             color: Colors.amber.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
           ),
           child: const Row(
@@ -557,10 +560,10 @@ class _EditorCard extends StatelessWidget {
       }
       if (rank == 2) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
             color: Colors.blueGrey.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.blueGrey.shade300.withValues(alpha: 0.5)),
           ),
           child: Row(
@@ -575,10 +578,10 @@ class _EditorCard extends StatelessWidget {
       }
       if (rank == 3) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
             color: Colors.brown.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.brown.shade300.withValues(alpha: 0.5)),
           ),
           child: Row(
@@ -592,13 +595,13 @@ class _EditorCard extends StatelessWidget {
         );
       }
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
           color: colors.card,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: colors.border),
         ),
-        child: Text('#$rank', style: TextStyle(color: colors.muted, fontSize: 10, fontWeight: FontWeight.bold)),
+        child: Text('#$rank', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.bold)),
       );
     }
 
@@ -606,132 +609,209 @@ class _EditorCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 1. Profile & Rank Header
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               WaraAvatar(
                 name: name,
                 photoUrl: photoUrl,
-                radius: 20,
+                radius: 22,
+                fontSize: 14,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            name,
-                            style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        buildRankBadge(),
-                      ],
+                    Text(
+                      name,
+                      style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    Text(specialization, style: TextStyle(color: colors.muted, fontSize: 12)),
+                    Text(
+                      specialization,
+                      style: TextStyle(color: colors.muted, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (email != null && email!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        email!,
+                        style: TextStyle(color: colors.muted.withValues(alpha: 0.8), fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
                 ),
               ),
-              if (onRate != null) ...[
-                const SizedBox(width: 6),
-                InkWell(
-                  onTap: onRate,
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: colors.card,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Rate',
-                          style: TextStyle(color: colors.text, fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              const SizedBox(width: 8),
+              buildRankBadge(),
             ],
           ),
+          const SizedBox(height: 14),
 
-          // Rating & Projects Metric Pill
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: colors.card,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: colors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.star_rounded, color: Colors.amber, size: 15),
-                const SizedBox(width: 4),
-                Text(
-                  '${rating.toStringAsFixed(1)} Stars',
-                  style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold),
+          // 2. Metrics Wrap (Star rating, completed deliverables, capacity)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              // Rating pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                 ),
-                Text(
-                  ' ($ratingCount reviews)',
-                  style: TextStyle(color: colors.muted, fontSize: 11),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      rating.toStringAsFixed(1),
+                      style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      ' ($ratingCount)',
+                      style: TextStyle(color: colors.muted, fontSize: 10),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                Icon(Icons.video_library_outlined, color: colors.muted, size: 13),
-                const SizedBox(width: 4),
-                Text(
-                  '$completedProjects cuts delivered',
-                  style: TextStyle(color: colors.text, fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+
+              // Deliverables count pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: colors.card,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colors.border),
                 ),
-              ],
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.video_library_outlined, color: colors.muted, size: 13),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$completedProjects cuts',
+                      style: TextStyle(color: colors.text, fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Availability hours pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: colors.card,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colors.border),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.schedule_rounded, color: colors.muted, size: 13),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$hoursPerWeek hrs/wk',
+                      style: TextStyle(color: colors.text, fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-
-          if (email != null) ...[
-            const SizedBox(height: 10),
-            Text('Contact: $email', style: TextStyle(color: colors.muted, fontSize: 11)),
-          ],
           const SizedBox(height: 12),
+
+          // 3. Working Days & Portfolio Row
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: skills.map((s) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: colors.card,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: colors.border),
-              ),
-              child: Text(s, style: TextStyle(color: colors.text, fontSize: 10)),
-            )).toList(),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('$hoursPerWeek hrs/wk availability', style: TextStyle(color: colors.muted, fontSize: 11)),
-              Text('Days: ${activeDays.join(', ')}', style: TextStyle(color: colors.muted, fontSize: 11)),
+              Text('Days:', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600)),
+              ...activeDays.map((d) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colors.card,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: colors.border),
+                ),
+                child: Text(d, style: TextStyle(color: colors.text, fontSize: 10)),
+              )),
             ],
           ),
-          if (portfolioLink != null && portfolioLink!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text('Portfolio: $portfolioLink', style: TextStyle(color: colors.muted, fontSize: 11, decoration: TextDecoration.underline)),
+
+          // 4. Skills Wrap
+          if (skills.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: skills.map((s) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: colors.card,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: colors.border),
+                ),
+                child: Text(s, style: TextStyle(color: colors.text, fontSize: 10)),
+              )).toList(),
+            ),
+          ],
+
+          // 5. Portfolio Link (Safe overflow)
+          if (portfolioLink != null && portfolioLink!.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.link_rounded, color: colors.muted, size: 14),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    portfolioLink!,
+                    style: TextStyle(color: colors.primary, fontSize: 11, decoration: TextDecoration.underline),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          // 6. Action Button Bar
+          if (onRate != null) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onRate,
+                icon: const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                label: Text(
+                  'Rate & Review Editor',
+                  style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  side: BorderSide(color: Colors.amber.withValues(alpha: 0.4)),
+                  backgroundColor: colors.card,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
           ],
         ],
       ),
