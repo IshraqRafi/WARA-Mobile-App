@@ -39,6 +39,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     // Subscribe to messages stream for this conversation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(chatProvider.notifier).subscribeToConversationMessages(widget.conversationId);
+      ref.read(chatProvider.notifier).markAsRead(widget.conversationId);
     });
   }
 

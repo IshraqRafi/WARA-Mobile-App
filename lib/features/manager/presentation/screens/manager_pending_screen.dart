@@ -35,103 +35,111 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with logo
-              Row(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const WaraLogo(),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header with logo
+                  Row(
+                    children: [
+                      const WaraLogo(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Pending Deliverables', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text(
+                              'Time-sensitive client deliverables & review status',
+                              style: TextStyle(color: colors.muted, fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const NotificationBellButton(),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Filter & Sort Control Bar
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
                       children: [
-                        Text('Pending Deliverables', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(
-                          'Time-sensitive client deliverables & review status',
-                          style: TextStyle(color: colors.muted, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
+                        Text('Sort By:', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: () => setState(() => _sortBy = 'time'),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _sortBy == 'time' ? colors.primary : colors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: _sortBy == 'time' ? colors.primary : colors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.timer_outlined, size: 14, color: _sortBy == 'time' ? (colors.isDark ? Colors.black : Colors.white) : colors.muted),
+                                const SizedBox(width: 6),
+                                Text('Urgent Deadline', style: TextStyle(color: _sortBy == 'time' ? (colors.isDark ? Colors.black : Colors.white) : colors.text, fontSize: 12, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => setState(() => _sortBy = 'money'),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _sortBy == 'money' ? colors.primary : colors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: _sortBy == 'money' ? colors.primary : colors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.account_balance_wallet_outlined, size: 14, color: _sortBy == 'money' ? (colors.isDark ? Colors.black : Colors.white) : colors.muted),
+                                const SizedBox(width: 4),
+                                Text('Payout (৳ High)', style: TextStyle(color: _sortBy == 'money' ? (colors.isDark ? Colors.black : Colors.white) : colors.text, fontSize: 12, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const NotificationBellButton(),
                 ],
               ),
-              const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 16),
 
-              // Filter & Sort Control Bar
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    Text('Sort By:', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () => setState(() => _sortBy = 'time'),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _sortBy == 'time' ? colors.primary : colors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _sortBy == 'time' ? colors.primary : colors.border),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.timer_outlined, size: 14, color: _sortBy == 'time' ? (colors.isDark ? Colors.black : Colors.white) : colors.muted),
-                            const SizedBox(width: 6),
-                            Text('Urgent Deadline', style: TextStyle(color: _sortBy == 'time' ? (colors.isDark ? Colors.black : Colors.white) : colors.text, fontSize: 12, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
+            // Pending Projects List
+            Expanded(
+              child: pendingProjects.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.verified_outlined, color: colors.muted, size: 48),
+                          const SizedBox(height: 12),
+                          Text('No pending deliverables!', style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text('All agency deliverables are approved and up to date.', style: TextStyle(color: colors.muted, fontSize: 12)),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => setState(() => _sortBy = 'money'),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _sortBy == 'money' ? colors.primary : colors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _sortBy == 'money' ? colors.primary : colors.border),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.account_balance_wallet_outlined, size: 14, color: _sortBy == 'money' ? (colors.isDark ? Colors.black : Colors.white) : colors.muted),
-                            const SizedBox(width: 4),
-                            Text('Payout (৳ High)', style: TextStyle(color: _sortBy == 'money' ? (colors.isDark ? Colors.black : Colors.white) : colors.text, fontSize: 12, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Pending Projects List
-              Expanded(
-                child: pendingProjects.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.verified_outlined, color: colors.muted, size: 48),
-                            const SizedBox(height: 12),
-                            Text('No pending deliverables!', style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text('All agency deliverables are approved and up to date.', style: TextStyle(color: colors.muted, fontSize: 12)),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: pendingProjects.length,
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      itemCount: pendingProjects.length,
                         itemBuilder: (context, index) {
                           final item = pendingProjects[index];
                           return Container(
@@ -258,7 +266,6 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
             ],
           ),
         ),
-      ),
     );
   }
 }

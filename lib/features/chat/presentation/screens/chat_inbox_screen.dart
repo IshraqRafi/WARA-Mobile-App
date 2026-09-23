@@ -37,6 +37,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
   }
 
   void _openConversation(ChatConversation convo) {
+    ref.read(chatProvider.notifier).markAsRead(convo.id);
     final currentUser = ref.read(authProvider).user;
     final otherUid = convo.getOtherParticipantId(currentUser?.id ?? '');
     final otherName = convo.getDisplayName(currentUser?.id ?? '');
@@ -196,6 +197,47 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                           return name.contains(q) || spec.contains(q) || email.contains(q);
                         }).toList();
 
+                  // Helper to match member with conversation
+                  ChatConversation? getMemberConvo(String memberId) {
+                    for (final c in directConvos) {
+                      if (c.participantIds.contains(memberId) || c.id.contains(memberId)) {
+                        return c;
+                      }
+                    }
+                    return null;
+                  }
+
+                  final currentUserId = user?.id ?? '';
+
+                  // Dynamically sort members:
+                  // 1. Unread incoming messages come to the VERY TOP (for receiver)
+                  // 2. Recent messages come next (sorted by lastMessageTime descending) for BOTH sender & receiver
+                  // 3. Inactive profiles without messages sorted alphabetically
+                  filteredMembers.sort((a, b) {
+                    final idA = a['id'] as String? ?? a['uid'] as String? ?? '';
+                    final idB = b['id'] as String? ?? b['uid'] as String? ?? '';
+                    final convoA = getMemberConvo(idA);
+                    final convoB = getMemberConvo(idB);
+
+                    final unreadA = convoA?.isUnreadFor(currentUserId) == true;
+                    final unreadB = convoB?.isUnreadFor(currentUserId) == true;
+                    if (unreadA != unreadB) {
+                      return unreadA ? -1 : 1;
+                    }
+
+                    final hasMsgA = convoA != null && convoA.lastMessage.trim().isNotEmpty;
+                    final hasMsgB = convoB != null && convoB.lastMessage.trim().isNotEmpty;
+                    if (hasMsgA && hasMsgB) {
+                      return convoB.lastMessageTime.compareTo(convoA.lastMessageTime);
+                    }
+                    if (hasMsgA) return -1;
+                    if (hasMsgB) return 1;
+
+                    final nameA = (a['name'] as String? ?? '').toLowerCase();
+                    final nameB = (b['name'] as String? ?? '').toLowerCase();
+                    return nameA.compareTo(nameB);
+                  });
+
                   // Filter Chips
                   return Column(
                     children: [
@@ -232,31 +274,40 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                           children: [
                             // 1. Pinned Agency Room Card
                             if (chatState.activeFilter != ChatFilter.direct) ...[
-                              GestureDetector(
-                                onTap: () {
-                                  final general = channelConvos.isNotEmpty
-                                      ? channelConvos.first
-                                      : ChatConversation(
-                                          id: 'agency_general',
-                                          agencyId: user?.agencyId ?? 'agency_demo_wara',
-                                          type: ConversationType.channel,
-                                          title: '# agency-room',
-                                          participantIds: [],
-                                          participantNames: {},
-                                          participantPhotos: {},
-                                          lastMessage: 'Welcome to ${user?.agencyName ?? "Agency"} room!',
-                                          lastSenderName: user?.name ?? 'Director',
-                                          lastMessageTime: DateTime.now(),
-                                        );
-                                  _openConversation(general);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: colors.surface,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: colors.primary.withValues(alpha: 0.4), width: 1.2),
-                                  ),
+                              Builder(
+                                builder: (context) {
+                                  final general = channelConvos.isNotEmpty ? channelConvos.first : null;
+                                  final isGeneralUnread = general != null && general.isUnreadFor(currentUserId);
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      final target = general ??
+                                          ChatConversation(
+                                            id: 'agency_general',
+                                            agencyId: user?.agencyId ?? 'agency_demo_wara',
+                                            type: ConversationType.channel,
+                                            title: '# agency-room',
+                                            participantIds: [],
+                                            participantNames: {},
+                                            participantPhotos: {},
+                                            lastMessage: 'Welcome to ${user?.agencyName ?? "Agency"} room!',
+                                            lastSenderName: user?.name ?? 'Director',
+                                            lastMessageTime: DateTime.now(),
+                                          );
+                                      _openConversation(target);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: isGeneralUnread
+                                            ? (colors.isDark ? colors.primary.withValues(alpha: 0.08) : colors.primary.withValues(alpha: 0.05))
+                                            : colors.surface,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: isGeneralUnread ? colors.primary : colors.primary.withValues(alpha: 0.4),
+                                          width: isGeneralUnread ? 1.8 : 1.2,
+                                        ),
+                                      ),
                                   child: Row(
                                     children: [
                                       Container(
@@ -322,8 +373,10 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                                     ],
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 16),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
                             ],
 
                             // 2. Direct Messages Section
@@ -379,13 +432,8 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                                     final specialization = member['specialization'] as String? ?? 'Creative Editor';
 
                                     // Match with existing active conversation
-                                    ChatConversation? matchedConvo;
-                                    for (final c in directConvos) {
-                                      if (c.participantIds.contains(memberId) || c.id.contains(memberId)) {
-                                        matchedConvo = c;
-                                        break;
-                                      }
-                                    }
+                                    final matchedConvo = getMemberConvo(memberId);
+                                    final isUnread = matchedConvo != null && matchedConvo.isUnreadFor(currentUserId);
 
                                     final hasRealMessage = matchedConvo != null &&
                                         matchedConvo.lastMessage.trim().isNotEmpty &&
@@ -400,17 +448,26 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                                     return GestureDetector(
                                       onTap: () {
                                         if (matchedConvo != null) {
+                                          if (isUnread) {
+                                            ref.read(chatProvider.notifier).markAsRead(matchedConvo.id);
+                                          }
                                           _openConversation(matchedConvo);
                                         } else {
                                           _startDirectMessage(memberId, memberName, memberPhoto);
                                         }
                                       },
-                                      child: Container(
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: colors.surface,
+                                          color: isUnread
+                                              ? (colors.isDark ? colors.primary.withValues(alpha: 0.08) : colors.primary.withValues(alpha: 0.05))
+                                              : colors.surface,
                                           borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(color: colors.border),
+                                          border: Border.all(
+                                            color: isUnread ? colors.primary : colors.border,
+                                            width: isUnread ? 1.8 : 1.0,
+                                          ),
                                         ),
                                         child: Row(
                                           children: [
@@ -449,16 +506,37 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                                             Column(
                                               crossAxisAlignment: CrossAxisAlignment.end,
                                               children: [
+                                                if (isUnread) ...[
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: colors.primary,
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: Text(
+                                                      'NEW',
+                                                      style: TextStyle(
+                                                        color: colors.isDark ? Colors.black : Colors.white,
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.w900,
+                                                        letterSpacing: 0.5,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                ],
                                                 Text(
                                                   timeLabel,
                                                   style: TextStyle(
-                                                    color: hasRealMessage ? colors.primary : colors.muted,
+                                                    color: isUnread
+                                                        ? colors.primary
+                                                        : (hasRealMessage ? colors.primary : colors.muted),
                                                     fontSize: 10,
-                                                    fontWeight: hasRealMessage ? FontWeight.bold : FontWeight.normal,
+                                                    fontWeight: (isUnread || hasRealMessage) ? FontWeight.bold : FontWeight.normal,
                                                   ),
                                                 ),
                                                 const SizedBox(height: 4),
-                                                Icon(Icons.chevron_right_rounded, color: colors.muted, size: 18),
+                                                Icon(Icons.chevron_right_rounded, color: isUnread ? colors.primary : colors.muted, size: 18),
                                               ],
                                             ),
                                           ],

@@ -15,6 +15,8 @@ class ChatConversation {
   final String lastSenderName;
   final DateTime lastMessageTime;
   final int unreadCount;
+  final String? lastSenderId;
+  final List<String> readBy;
 
   const ChatConversation({
     required this.id,
@@ -29,7 +31,16 @@ class ChatConversation {
     required this.lastSenderName,
     required this.lastMessageTime,
     this.unreadCount = 0,
+    this.lastSenderId,
+    this.readBy = const [],
   });
+
+  /// Check whether this conversation contains an unread incoming message for the given user
+  bool isUnreadFor(String userId) {
+    if (lastMessage.trim().isEmpty) return false;
+    if (lastSenderId == null || lastSenderId == userId) return false;
+    return !readBy.contains(userId);
+  }
 
   /// Helper to get the display title for a DM from current user's perspective
   String getDisplayName(String currentUserId) {
@@ -69,6 +80,8 @@ class ChatConversation {
       'lastSenderName': lastSenderName,
       'lastMessageTime': Timestamp.fromDate(lastMessageTime),
       'unreadCount': unreadCount,
+      if (lastSenderId != null) 'lastSenderId': lastSenderId,
+      'readBy': readBy,
     };
   }
 
@@ -95,6 +108,8 @@ class ChatConversation {
       lastSenderName: map['lastSenderName'] as String? ?? '',
       lastMessageTime: time,
       unreadCount: (map['unreadCount'] as num?)?.toInt() ?? 0,
+      lastSenderId: map['lastSenderId'] as String?,
+      readBy: List<String>.from(map['readBy'] ?? []),
     );
   }
 
@@ -103,6 +118,8 @@ class ChatConversation {
     String? lastSenderName,
     DateTime? lastMessageTime,
     int? unreadCount,
+    String? lastSenderId,
+    List<String>? readBy,
   }) {
     return ChatConversation(
       id: id,
@@ -117,6 +134,8 @@ class ChatConversation {
       lastSenderName: lastSenderName ?? this.lastSenderName,
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
       unreadCount: unreadCount ?? this.unreadCount,
+      lastSenderId: lastSenderId ?? this.lastSenderId,
+      readBy: readBy ?? this.readBy,
     );
   }
 }

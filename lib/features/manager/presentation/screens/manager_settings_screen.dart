@@ -127,7 +127,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final e = activeEditors[index];
-                        final editorId = e['id'] as String? ?? '';
+                        final editorId = e['id'] as String? ?? e['uid'] as String? ?? '';
                         final editorName = e['name'] as String? ?? 'Editor';
                         final photoUrl = e['photoUrl'] as String?;
                         final rating = (e['rating'] as num?)?.toDouble() ?? 5.0;

@@ -115,6 +115,7 @@ class FirestoreService {
       for (final doc in snapshot.docs) {
         final data = Map<String, dynamic>.from(doc.data());
         data['uid'] = doc.id;
+        data['id'] = data['id'] ?? doc.id;
 
         // If agencyId is provided, match this agency, unassigned users, or demo agency
         final docAgencyId = data['agencyId'] as String?;
@@ -425,9 +426,20 @@ class FirestoreService {
       'lastMessage': message.text,
       'lastSenderName': message.senderName,
       'lastMessageTime': Timestamp.fromDate(message.createdAt),
+      'lastSenderId': message.senderId,
+      'readBy': [message.senderId],
     }, SetOptions(merge: true));
 
     await batch.commit();
+  }
+
+  /// Mark a conversation as read by a specific user
+  Future<void> markConversationAsRead(String agencyId, String conversationId, String userId) async {
+    try {
+      await _conversationsRef(agencyId).doc(conversationId).set({
+        'readBy': FieldValue.arrayUnion([userId]),
+      }, SetOptions(merge: true));
+    } catch (_) {}
   }
 
   /// Auto-seed the agency general room with initial welcome messages if empty
@@ -526,7 +538,7 @@ class FirestoreService {
     } catch (_) {}
   }
 
-  /// Rate an editor, calculate cumulative rating, and send in-app notification
+  /// Rate an editor directly, update their rating instance in database, and send in-app notification
   Future<void> rateEditor({
     required String agencyId,
     required String editorId,
@@ -536,37 +548,37 @@ class FirestoreService {
     required String managerName,
   }) async {
     try {
-      final docRef = _usersRef.doc(editorId);
-      final doc = await docRef.get();
-      double currentTotal = 0.0;
+      DocumentReference<Map<String, dynamic>> docRef = _usersRef.doc(editorId);
+      var doc = await docRef.get();
+      if (!doc.exists) {
+        final q = await _usersRef.where('id', isEqualTo: editorId).limit(1).get();
+        if (q.docs.isNotEmpty) {
+          docRef = q.docs.first.reference;
+          doc = q.docs.first;
+        }
+      }
+
       int currentCount = 0;
       int currentCompleted = 0;
 
       if (doc.exists && doc.data() != null) {
         final d = doc.data()!;
-        final rawRating = (d['rating'] as num?)?.toDouble();
         final rawCount = (d['ratingCount'] as num?)?.toInt();
-        final rawTotal = (d['totalStars'] as num?)?.toDouble();
         currentCompleted = (d['completedProjects'] as num?)?.toInt() ?? 0;
-
-        if (rawTotal != null && rawCount != null && rawCount > 0) {
-          currentTotal = rawTotal;
+        if (rawCount != null && rawCount > 0) {
           currentCount = rawCount;
-        } else if (rawRating != null) {
-          currentTotal = rawRating;
-          currentCount = 1;
         }
       }
 
+      // Instance rating: Manager's rating directly updates the profile rating in database
+      final newRating = double.parse(rating.toStringAsFixed(1));
       final newCount = currentCount + 1;
-      final newTotal = currentTotal + rating;
-      final newRating = double.parse((newTotal / newCount).toStringAsFixed(1));
       final newCompleted = projectId != null ? (currentCompleted + 1) : currentCompleted;
 
       await docRef.set({
         'rating': newRating,
         'ratingCount': newCount,
-        'totalStars': newTotal,
+        'totalStars': newRating,
         'completedProjects': newCompleted,
         'lastRatedAt': FieldValue.serverTimestamp(),
         if (feedback != null && feedback.isNotEmpty) 'latestFeedback': feedback,

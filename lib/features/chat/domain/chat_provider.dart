@@ -181,6 +181,27 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
+  /// Mark a conversation as read by the current user
+  Future<void> markAsRead(String conversationId) async {
+    final user = _currentUser;
+    if (user == null || user.agencyId == null) return;
+
+    // Optimistic local update
+    final updatedConvos = state.conversations.map((c) {
+      if (c.id == conversationId) {
+        final currentReadBy = List<String>.from(c.readBy);
+        if (!currentReadBy.contains(user.id)) {
+          currentReadBy.add(user.id);
+        }
+        return c.copyWith(readBy: currentReadBy);
+      }
+      return c;
+    }).toList();
+    state = state.copyWith(conversations: updatedConvos);
+
+    await _firestoreService.markConversationAsRead(user.agencyId!, conversationId, user.id);
+  }
+
   /// Get or create a deterministic 1-on-1 Direct Message conversation between current user and another team member
   Future<ChatConversation> getOrCreateDirectConversation({
     required String otherUserId,

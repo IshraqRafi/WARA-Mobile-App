@@ -722,119 +722,109 @@ class ManagerWorkflowScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with logo & Post New Offer Button
-              Row(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const WaraLogo(),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 8,
-                          runSpacing: 4,
+                  // Header with logo
+                  Row(
+                    children: [
+                      const WaraLogo(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('wara.io', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                            const SizedBox(height: 4),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
+                              decoration: BoxDecoration(
+                                color: colors.surface,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: colors.border),
+                              ),
                               child: Text('Manager Control', style: TextStyle(color: colors.primary, fontSize: 10, fontWeight: FontWeight.w600)),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Overseeing all agency projects & editor allocations',
-                          style: TextStyle(color: colors.muted, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(width: 8),
+                      const NotificationBellButton(),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Summary Stats
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Open & Pool', style: TextStyle(color: colors.muted, fontSize: 11)),
+                              const SizedBox(height: 4),
+                              Text('${projects.where((p) => p.status == ProjectStatus.open).length}', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('In Production', style: TextStyle(color: colors.muted, fontSize: 11)),
+                              const SizedBox(height: 4),
+                              Text('${projects.where((p) => p.status == ProjectStatus.claimed).length}', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Submitted', style: TextStyle(color: colors.muted, fontSize: 11)),
+                              const SizedBox(height: 4),
+                              Text('${projects.where((p) => p.status == ProjectStatus.submitted).length}', style: TextStyle(color: colors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  const NotificationBellButton(),
-                ],
-              ),
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              // Summary Stats
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Open & Pool', style: TextStyle(color: colors.muted, fontSize: 11)),
-                          const SizedBox(height: 4),
-                          Text('${projects.where((p) => p.status == ProjectStatus.open).length}', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('In Production', style: TextStyle(color: colors.muted, fontSize: 11)),
-                          const SizedBox(height: 4),
-                          Text('${projects.where((p) => p.status == ProjectStatus.claimed).length}', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Submitted', style: TextStyle(color: colors.muted, fontSize: 11)),
-                          const SizedBox(height: 4),
-                          Text('${projects.where((p) => p.status == ProjectStatus.submitted).length}', style: TextStyle(color: colors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
+                  Text(
+                    'All agency projects',
+                    style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+            ),
+            const SizedBox(height: 12),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      'ALL AGENCY PROJECTS PIPELINE',
-                      style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text('Tap card to inspect / edit', style: TextStyle(color: colors.muted, fontSize: 11)),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // All Projects Feed
-              Expanded(
-                child: ListView.builder(
-                  itemCount: projects.length,
+            // All Projects Feed
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 88),
+                itemCount: projects.length,
                   itemBuilder: (context, index) {
                     final project = projects[index];
                     return GestureDetector(
@@ -1052,7 +1042,6 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateOfferModal(context, ref),
         backgroundColor: colors.primary,

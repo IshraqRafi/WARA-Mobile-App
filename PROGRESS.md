@@ -248,6 +248,33 @@ timeline
 
 ---
 
+### 🔹 Milestone 14: Header Streamlining, Footer Gap Elimination, Messenger Auto-Top & Instant Rating Reordering
+- **Objective:** Streamline Manager Home & Pending headers and layouts, eliminate the black bar gap above footer dock on Home and Pending screens, implement real-time Messenger unread and recent activity sorting bringing active threads to the top for both sender and receiver, add high-contrast receiver border highlight with `NEW` badge, and implement direct database rating instances with instant real-time list reordering.
+- **Key Deliverables:**
+  - **Header & Subheader Streamlining:**
+    - Removed `'Overseeing all agency projects & editor allocations'` on Manager Home.
+    - Positioned `'Manager Control'` badge directly below `'wara.io'` in a balanced vertical stack.
+    - Removed `'Tap card to inspect / edit'`; retained solely `'All agency projects'` as the clean section header.
+  - **Footer Black Bar Gap Elimination (Home & Pending):**
+    - Configured `SafeArea(bottom: false)` on both `ManagerWorkflowScreen` and `ManagerPendingScreen`.
+    - Localized screen padding to the top static header content, extending the `ListView.builder` viewport all the way down to the top edge of `WaraBottomBar`.
+    - Completely eliminated the clipped black gap; cards now scroll smoothly right into the bottom navigation bar.
+  - **Real-Time Messenger Auto-Top Sorting:**
+    - Engineered dynamic multi-tier sorting for Direct Messages:
+      1. Unread incoming conversations for the current user come to the very top.
+      2. Active conversations sorted by `lastMessageTime` descending, bringing threads to the top for **both sender and receiver**.
+      3. Inactive profiles without messages sorted alphabetically.
+  - **Receiver Border Highlight & NEW Badge:**
+    - Added `lastSenderId` and `readBy` user ID tracking to `ChatConversation` in Firestore.
+    - Highlighted the receiver's unread conversation tile with a 1.8px primary border, subtle background tint, and a high-contrast `NEW` badge.
+    - Integrated `markAsRead` calls upon tile tap and `ChatRoomScreen` mount to automatically clear the highlight once read.
+  - **Instant Rating Instance & Real-Time Reorder:**
+    - Updated `rateEditor` in `FirestoreService` to apply the manager's assigned rating directly to the editor's profile in Firestore (e.g. 1 star sets `rating: 1.0` directly rather than averaging with historic scores).
+    - Enhanced `streamEditors` to ensure `data['id'] = data['id'] ?? doc.id` and fallback to `doc.id` for robust user document referencing.
+    - Because `streamEditors` is a live Firestore snapshot listener, any rating change immediately re-sorts the list in real time, automatically dropping a 1-star editor to the bottom across both Team Seats and Leaderboards.
+
+---
+
 ## 🛠️ Technical Problem Solving Highlights
 
 | Problem Encountered | Root Cause | Engineering Solution |
@@ -273,6 +300,10 @@ timeline
 | Glitched rectangular box inside rounded search pill | Theme `inputDecorationTheme` had 16px radius conflicting with parent Container 24px border radius | Applied 24px `OutlineInputBorder` directly across all states in `TextField.decoration`. |
 | Cluttered Manager workflow header | Header row crammed logo, title, and "Post Offer" button into narrow screen space | Removed header button and introduced floating action button above footer navigation dock. |
 | RenderFlex horizontal overflow on team seats cards | Rigid `Row` with multiple fixed-width metrics and labels exceeded mobile screen widths | Implemented responsive `Wrap` metric chips and text ellipsis for names and portfolio links. |
+| Ugly black bar gap above footer menu on Home and Pending | Outer `Padding(all: 20)` and default `SafeArea(bottom: true)` clipped `ListView` viewport 20px+ above `WaraBottomBar` | Configured `SafeArea(bottom: false)`, scoped padding to static header, and extended `ListView` viewport directly to bottom bar. |
+| Messenger messages not bubbling to top | `filteredMembers` did not sort members by conversation activity or unread status | Implemented dynamic sorting by unread status, `lastMessageTime` descending, and alphabetical order. |
+| Lack of unread conversation indicator on Messenger | Incoming messages looked identical to inactive conversation tiles | Added `lastSenderId`/`readBy` tracking, 1.8px primary border highlight, background tint, and `NEW` badge for receivers. |
+| Editor ratings dampened by historic average preventing real-time rank drops | `(totalStars + rating) / (ratingCount + 1)` calculation prevented 1-star ratings from immediately dropping 5-star editors | Made manager rating a direct database instance (`rating = newRating`) triggering real-time `streamEditors` reordering. |
 
 ---
 

@@ -180,7 +180,7 @@ Future<void> showAgencyLeaderboardModal(BuildContext context, WidgetRef ref) {
                       final rating = (e['rating'] as num?)?.toDouble() ?? 5.0;
                       final completedProjects = (e['completedProjects'] as num?)?.toInt() ?? 0;
                       final specialization = e['specialization'] as String? ?? 'Creative Editor';
-                      final editorId = e['id'] as String? ?? '';
+                      final editorId = e['id'] as String? ?? e['uid'] as String? ?? '';
                       final isCurrentUser = editorId == currentUser?.id || (currentUser?.email != null && e['email'] == currentUser!.email);
 
                       return _LeaderboardRow(
