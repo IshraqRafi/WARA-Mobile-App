@@ -17,6 +17,7 @@ timeline
     2026-09-22 : Multi-Tenant Agency Workspaces : Open Manager Sign-up, Room Isolation, Join Keys
     2026-09-23 : In-App Agency Messenger : Group Room & DMs, Team Presence, Media Link Sharing
     2026-09-23 : Session Persistence & UI Polish : Instant Auto-Login, Ghost Data Purge, 6 Fresh Posts, Icon-Only Dock
+    2026-09-23 : Security Hardening & Secret Governance : Gitignore Policy, Untracked Credentials, Template Scaffold
 ```
 
 ---
@@ -164,10 +165,28 @@ timeline
 
 ---
 
+### 🔹 Milestone 10: Security Hardening & Secret Governance
+- **Objective:** Secure Firebase platform configurations, resolve GitHub secret scanning warnings, and prevent accidental credential exposure in public repositories.
+- **Key Deliverables:**
+  - **Comprehensive `.gitignore` Hardening:**
+    - Added `lib/firebase_options.dart` to `.gitignore`.
+    - Added Apple platform configuration paths: `**/ios/Runner/GoogleService-Info.plist` and `**/macos/Runner/GoogleService-Info.plist`.
+    - Expanded environment file ignoring with `.env.*` and `*.env` wildcards.
+  - **Sanitized Firebase Options Template:**
+    - Authored `lib/firebase_options.dart.example` containing clean placeholder variables (`YOUR_FIREBASE_API_KEY_HERE`, `YOUR_APP_ID`, etc.).
+    - Enables new team members and CI/CD pipelines to bootstrap configurations safely without leaking live project secrets.
+  - **Git Cache Untracking:**
+    - Executed `git rm --cached lib/firebase_options.dart` to purge live credentials from future commits and GitHub tree representation while preserving the physical file on local development environments.
+  - **Developer Onboarding Documentation:**
+    - Updated `README.md` file tree and installation guide with step-by-step instructions on bootstrapping Firebase credentials.
+
+---
+
 ## 🛠️ Technical Problem Solving Highlights
 
 | Problem Encountered | Root Cause | Engineering Solution |
 | :--- | :--- | :--- |
+| GitHub Secret Scanning alert on Google API key | `lib/firebase_options.dart` was tracked in git with hardcoded Firebase credentials | Untracked file via `git rm --cached`, hardened `.gitignore`, provided sanitized template `firebase_options.dart.example`. |
 | Forced re-login on every app cold start | `_loadInitialState()` always reset state to unauthenticated | Added local session serialization in `SharedPreferences` for instant ~2ms restoration on launch. |
 | Cluttered bottom navigation with crowded text | Navigation bar labels occupied excessive vertical space | Configured `labelBehavior: NavigationDestinationLabelBehavior.alwaysHide` for a clean icon-only dock. |
 | Ghost editor assignments & dummy chat members | Fallback mock arrays persisted in chat strips and settings | Purged hardcoded lists; wired screens exclusively to live, verified Firestore streams. |

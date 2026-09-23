@@ -84,7 +84,7 @@ lib/
 │   │   ├── wara_theme_toggle.dart # Physics-based celestial switch
 │   │   └── wara_toast.dart     # Custom themed snackbars & notifications
 │   └── providers/              # Shared application state providers
-├── firebase_options.dart       # FlutterFire generated platform configurations
+├── firebase_options.dart.example # Sanitized template for platform Firebase configuration
 └── main.dart                   # Application entry point with AnimatedTheme wrapper
 ```
 
@@ -123,7 +123,9 @@ lib/
    ```
 
 3. **Configure Firebase:**
-   Ensure your `android/app/google-services.json` (for Android) and `ios/Runner/GoogleService-Info.plist` (for iOS) are placed in their respective directories.
+   - Copy `lib/firebase_options.dart.example` to `lib/firebase_options.dart` and enter your Firebase credentials (or run `flutterfire configure`).
+   - Place your `android/app/google-services.json` (for Android) and `ios/Runner/GoogleService-Info.plist` (for iOS) in their respective platform directories.
+   *(Note: Platform secrets and `firebase_options.dart` are excluded via `.gitignore` to prevent credential exposure.)*
 
 4. **Verify code quality:**
    ```bash
