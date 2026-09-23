@@ -70,6 +70,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     await ref.read(chatProvider.notifier).sendMessage(
           conversationId: widget.conversationId,
           text: text,
+          recipientId: widget.otherUserId,
         );
 
     setState(() => _isSending = false);
@@ -146,6 +147,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                     conversationId: widget.conversationId,
                     text: fullText,
                     attachmentUrl: link,
+                    recipientId: widget.otherUserId,
                   );
               Navigator.pop(ctx);
               Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);

@@ -273,11 +273,34 @@ timeline
     - Enhanced `streamEditors` to ensure `data['id'] = data['id'] ?? doc.id` and fallback to `doc.id` for robust user document referencing.
     - Because `streamEditors` is a live Firestore snapshot listener, any rating change immediately re-sorts the list in real time, automatically dropping a 1-star editor to the bottom across both Team Seats and Leaderboards.
 
+### Milestone 15: Google Profile Unification, Self-Exclusion in DMs, Synthetic Director Removal & In-App Chat Notification Counter
+- **Self-Profile Exclusion in Direct Messages:**
+  - Resolved manager/editor self-visibility bug by extracting logged-in user Google account email (`FirebaseAuth.instance.currentUser?.email` & `user?.email`, lowercased) and auth UIDs (`FirebaseAuth.instance.currentUser?.uid` & `user?.id`).
+  - Filtered out any profile whose email or ID matches the current user, guaranteeing users NEVER see their own profile in Direct Messages regardless of multi-role test accounts.
+  - Deduplicated team member list by Google email, unifying multiple historical Firestore records (e.g. editor + manager logins) into a single direct message profile.
+- **Removed Synthetic "WARA Media Group Director":**
+  - Completely purged the synthetic `'manager_director'` dictionary from `ChatInboxScreen`.
+  - Created `streamAgencyTeamMembers({String? agencyId})` in `FirestoreService` to stream all real, authentic agency members (both managers and editors) directly from the Firestore `users` collection.
+- **Wired Messenger to In-App Notification Center:**
+  - Added optional `senderId` to `AppNotification` to differentiate event initiators from event receivers.
+  - Updated `FirestoreService.sendChatMessage` to dispatch an `AppNotification` (`NotificationType.chatMessage`):
+    - For Direct Messages: accurately targeted to recipient UID (`userId: recipientId`, `senderId: sender.id`), dynamically incrementing the recipient's notification bell counter (`1, 2, 3...`).
+    - For Channel Messages: broadcast to agency (`userId: null`, `senderId: sender.id`), notifying all team members while excluding the sender from receiving their own alert.
+  - Updated `streamNotifications` to filter out self-notifications (`senderId != userId`).
+  - Wired `ChatRoomScreen` to pass `recipientId: widget.otherUserId` upon message and asset link transmission.
+  - Enhanced `NotificationCenterSheet` to navigate directly to the conversation room when a chat notification tile is tapped.
+- **System Pop-Up (Push) Notifications Architecture Blueprint:**
+  - Authored comprehensive production plan for native OS heads-up banners on Android & iOS using Firebase Cloud Messaging (FCM) and `flutter_local_notifications`.
+
 ---
 
 ## 🛠️ Technical Problem Solving Highlights
 
 | Problem Encountered | Root Cause | Engineering Solution |
+| :--- | :--- | :--- |
+| Manager seeing own profile in Direct Messages | Case sensitivity, mismatch between Firestore user ID and Google Auth UID, and separate editor records created during role testing | Extracted both Google Auth email and user session email into lowercased lookup sets and excluded any profile matching email or UID. |
+| Synthetic "WARA Media group director" in messenger | Hardcoded dummy map was added to simulate managers when `streamEditors` only returned editor roles | Removed synthetic map and implemented `streamAgencyTeamMembers` to stream real managers and editors from Firestore. |
+| Chat messages not incrementing notification counter | `sendChatMessage` only wrote to conversation messages subcollection without creating an `AppNotification` | Wired `sendChatMessage` to dispatch real-time `AppNotification` (`NotificationType.chatMessage`) targeted to recipient UID with `senderId` exclusion. |
 | :--- | :--- | :--- |
 | GitHub Secret Scanning alert on Google API key | `lib/firebase_options.dart` was tracked in git with hardcoded Firebase credentials | Untracked file via `git rm --cached`, hardened `.gitignore`, provided sanitized template `firebase_options.dart.example`. |
 | Forced re-login on every app cold start | `_loadInitialState()` always reset state to unauthenticated | Added local session serialization in `SharedPreferences` for instant ~2ms restoration on launch. |

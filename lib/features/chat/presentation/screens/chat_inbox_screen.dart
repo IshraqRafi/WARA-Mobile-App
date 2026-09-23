@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_constants.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
 import '../../../../shared/widgets/wara_logo.dart';
@@ -155,35 +155,61 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
             ),
             const SizedBox(height: 10),
 
-            // ── Live Stream of Members for Direct Messages ──────────────
+            // ── Live Stream of Real Team Members for Direct Messages ────────
             Expanded(
               child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: ref.watch(firestoreServiceProvider).streamEditors(agencyId: user?.agencyId),
+                stream: ref.watch(firestoreServiceProvider).streamAgencyTeamMembers(agencyId: user?.agencyId),
                 builder: (context, snapshot) {
-                  final editors = snapshot.data ?? [];
+                  final rawMembers = snapshot.data ?? [];
 
-                  // Build list of all team member profiles (excluding current user)
+                  // Current user identification (Google email, auth UID, session ID)
+                  final fbUser = FirebaseAuth.instance.currentUser;
+                  final fbEmail = fbUser?.email?.trim().toLowerCase();
+                  final fbUid = fbUser?.uid.trim();
+                  final userEmail = user?.email.trim().toLowerCase();
+                  final userId = user?.id.trim();
+
+                  final myEmails = <String>{
+                    if (userEmail != null && userEmail.isNotEmpty) userEmail,
+                    if (fbEmail != null && fbEmail.isNotEmpty) fbEmail,
+                  };
+                  final myIds = <String>{
+                    if (userId != null && userId.isNotEmpty) userId,
+                    if (fbUid != null && fbUid.isNotEmpty) fbUid,
+                  };
+
+                  // Build list of all real team members, excluding self and deduplicating by Google profile
                   final allMembers = <Map<String, dynamic>>[];
+                  final seenEmails = <String>{};
+                  final seenIds = <String>{};
 
-                  // If logged-in user is an editor, add the Agency Director/Manager profile
-                  if (user?.role == UserRole.editor) {
-                    allMembers.add({
-                      'id': 'manager_director',
-                      'name': user?.agencyName.isNotEmpty == true ? '${user!.agencyName} Director' : 'Ishraq Rafi (Director)',
-                      'email': 'director@wara.io',
-                      'photoUrl': null,
-                      'specialization': 'Agency Director • Studio Head',
-                    });
-                  }
+                  for (final m in rawMembers) {
+                    final email = (m['email'] as String? ?? '').trim().toLowerCase();
+                    final id = (m['id'] as String? ?? '').trim();
+                    final uid = (m['uid'] as String? ?? '').trim();
 
-                  // Add editors
-                  for (final e in editors) {
-                    final eid = e['id'] as String? ?? e['uid'] as String? ?? '';
-                    final email = e['email'] as String? ?? '';
-                    if (eid == user?.id || (user?.email != null && email == user!.email)) {
-                      continue; // Skip self
+                    // 1. Exclude self: match by Google email OR user ID / auth UID
+                    final isSelfByEmail = email.isNotEmpty && myEmails.contains(email);
+                    final isSelfById = (id.isNotEmpty && myIds.contains(id)) || (uid.isNotEmpty && myIds.contains(uid));
+                    if (isSelfByEmail || isSelfById) {
+                      continue; // NEVER show self in DM list
                     }
-                    allMembers.add(e);
+
+                    // 2. Deduplicate team members by Google profile (email)
+                    if (email.isNotEmpty) {
+                      if (seenEmails.contains(email)) continue;
+                      seenEmails.add(email);
+                    }
+                    if (id.isNotEmpty) {
+                      if (seenIds.contains(id)) continue;
+                      seenIds.add(id);
+                    }
+                    if (uid.isNotEmpty) {
+                      if (seenIds.contains(uid)) continue;
+                      seenIds.add(uid);
+                    }
+
+                    allMembers.add(m);
                   }
 
                   // Apply search filter if query active

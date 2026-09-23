@@ -14,6 +14,7 @@ class AppNotification {
   final String id;
   final String agencyId;
   final String? userId; // Specific user or null for agency-wide broadcast
+  final String? senderId; // The user who triggered the event, so they don't notify themselves
   final String title;
   final String body;
   final NotificationType type;
@@ -25,6 +26,7 @@ class AppNotification {
     required this.id,
     required this.agencyId,
     this.userId,
+    this.senderId,
     required this.title,
     required this.body,
     required this.type,
@@ -38,6 +40,7 @@ class AppNotification {
       'id': id,
       'agencyId': agencyId,
       if (userId != null) 'userId': userId,
+      if (senderId != null) 'senderId': senderId,
       'title': title,
       'body': body,
       'type': type.name,
@@ -66,6 +69,7 @@ class AppNotification {
       id: id,
       agencyId: map['agencyId'] as String? ?? '',
       userId: map['userId'] as String?,
+      senderId: map['senderId'] as String?,
       title: map['title'] as String? ?? 'Notification',
       body: map['body'] as String? ?? '',
       type: nType,
@@ -79,6 +83,7 @@ class AppNotification {
     String? id,
     String? agencyId,
     String? userId,
+    String? senderId,
     String? title,
     String? body,
     NotificationType? type,
@@ -90,6 +95,7 @@ class AppNotification {
       id: id ?? this.id,
       agencyId: agencyId ?? this.agencyId,
       userId: userId ?? this.userId,
+      senderId: senderId ?? this.senderId,
       title: title ?? this.title,
       body: body ?? this.body,
       type: type ?? this.type,

@@ -137,6 +137,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     required String text,
     String? attachmentUrl,
     String? attachmentType,
+    String? recipientId,
   }) async {
     final cleanText = text.trim();
     if (cleanText.isEmpty && (attachmentUrl == null || attachmentUrl.isEmpty)) {
@@ -175,6 +176,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         agencyId: user.agencyId!,
         conversationId: conversationId,
         message: newMessage,
+        recipientId: recipientId,
       );
     } catch (_) {
       // Revert or show offline state if needed

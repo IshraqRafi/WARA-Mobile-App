@@ -165,6 +165,60 @@ class FirestoreService {
     });
   }
 
+  /// Real-time stream of all agency team members (both managers and editors) from Firestore
+  Stream<List<Map<String, dynamic>>> streamAgencyTeamMembers({String? agencyId}) {
+    return _usersRef.snapshots().map((snapshot) {
+      final list = <Map<String, dynamic>>[];
+      for (final doc in snapshot.docs) {
+        final data = Map<String, dynamic>.from(doc.data());
+        data['uid'] = doc.id;
+        data['id'] = data['id'] ?? doc.id;
+
+        // If agencyId is provided, filter by matching agency, demo agency, or unassigned
+        final docAgencyId = data['agencyId'] as String?;
+        if (agencyId != null && agencyId.isNotEmpty) {
+          final isMatch = docAgencyId == agencyId ||
+              docAgencyId == null ||
+              docAgencyId.isEmpty ||
+              docAgencyId == 'agency_demo_wara';
+          if (!isMatch) continue;
+        }
+
+        // Fallback name if missing or blank (e.g. use email prefix from Google sign-in)
+        final email = (data['email'] as String? ?? '').trim();
+        final name = (data['name'] as String? ?? '').trim();
+        if (name.isEmpty && email.isNotEmpty) {
+          data['name'] = email.split('@').first;
+        } else if (name.isEmpty) {
+          data['name'] = data['role'] == 'manager' ? 'Agency Lead' : 'Creative Editor';
+        }
+
+        // Fallback specialization display
+        final spec = (data['specialization'] as String? ?? '').trim();
+        if (spec.isEmpty) {
+          data['specialization'] = data['role'] == 'manager'
+              ? 'Agency Lead • Management'
+              : 'Creative Video Editor';
+        }
+
+        // Default stats if not yet recorded
+        if (data['rating'] == null) {
+          data['rating'] = 5.0;
+        }
+        if (data['ratingCount'] == null) {
+          data['ratingCount'] = 1;
+        }
+        if (data['completedProjects'] == null) {
+          data['completedProjects'] = 0;
+        }
+
+        list.add(data);
+      }
+
+      return list;
+    });
+  }
+
   /// Reset all projects in Firestore and populate with the 6 fresh unassigned projects
   Future<void> resetAndSeedFreshProjects() async {
     try {
@@ -411,11 +465,12 @@ class FirestoreService {
     }
   }
 
-  /// Send a message and atomically update the parent conversation's last message metadata
+  /// Send a message, update conversation metadata, and dispatch in-app notification to the recipient
   Future<void> sendChatMessage({
     required String agencyId,
     required String conversationId,
     required ChatMessage message,
+    String? recipientId,
   }) async {
     final batch = _db.batch();
     final msgDocRef = _messagesRef(agencyId, conversationId).doc(message.id);
@@ -431,6 +486,34 @@ class FirestoreService {
     }, SetOptions(merge: true));
 
     await batch.commit();
+
+    // ── Dispatch Real-Time In-App Notification ──
+    try {
+      String? targetRecipientId = recipientId;
+      if (targetRecipientId == null && conversationId.startsWith('dm_')) {
+        final parts = conversationId.replaceFirst('dm_', '').split('_');
+        for (final p in parts) {
+          if (p != message.senderId) {
+            targetRecipientId = p;
+            break;
+          }
+        }
+      }
+
+      final notif = AppNotification(
+        id: 'notif_${message.id}',
+        agencyId: agencyId,
+        userId: targetRecipientId, // Specific recipient for direct message, or null for agency-wide broadcast
+        senderId: message.senderId, // Do not notify the person who sent the message
+        title: '💬 Message from ${message.senderName}',
+        body: message.text.isNotEmpty ? message.text : 'Sent an attachment',
+        type: NotificationType.chatMessage,
+        relatedId: conversationId,
+        createdAt: message.createdAt,
+      );
+
+      await sendNotification(agencyId: agencyId, notification: notif);
+    } catch (_) {}
   }
 
   /// Mark a conversation as read by a specific user
@@ -608,7 +691,7 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> _notificationsRef(String agencyId) =>
       _agenciesRef.doc(agencyId).collection('notifications');
 
-  /// Real-time stream of notifications for an agency, filtered for broadcast or specific user
+  /// Real-time stream of notifications for an agency, filtered for broadcast or specific user (excluding self-actions)
   Stream<List<AppNotification>> streamNotifications({required String agencyId, String? userId}) {
     return _notificationsRef(agencyId)
         .orderBy('createdAt', descending: true)
@@ -616,7 +699,11 @@ class FirestoreService {
         .map((snapshot) {
       return snapshot.docs
           .map((doc) => AppNotification.fromMap(doc.id, doc.data()))
-          .where((n) => n.userId == null || n.userId == userId)
+          .where((n) {
+            final forMe = n.userId == null || n.userId == userId;
+            final notFromMe = userId == null || n.senderId == null || n.senderId != userId;
+            return forMe && notFromMe;
+          })
           .toList();
     });
   }

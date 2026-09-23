@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/notification_models.dart';
 import '../../domain/notification_provider.dart';
+import '../../../chat/domain/chat_models.dart';
+import '../../../chat/domain/chat_provider.dart';
+import '../../../chat/presentation/screens/chat_room_screen.dart';
 
 void showNotificationCenter(BuildContext context) {
   final colors = context.colors;
@@ -231,6 +234,35 @@ class _NotificationCenterSheet extends ConsumerWidget {
                         onTap: () {
                           if (!notif.isRead) {
                             ref.read(notificationProvider.notifier).markAsRead(notif.id);
+                          }
+                          if (notif.type == NotificationType.chatMessage && notif.relatedId != null) {
+                            Navigator.pop(context);
+                            final convos = ref.read(chatProvider).conversations;
+                            final targetConvo = convos.firstWhere(
+                              (c) => c.id == notif.relatedId,
+                              orElse: () => ChatConversation(
+                                id: notif.relatedId!,
+                                agencyId: notif.agencyId,
+                                type: notif.relatedId == 'agency_general' ? ConversationType.channel : ConversationType.direct,
+                                title: notif.title.replaceFirst('💬 Message from ', ''),
+                                participantIds: [],
+                                participantNames: {},
+                                participantPhotos: {},
+                                lastMessage: notif.body,
+                                lastSenderName: '',
+                                lastMessageTime: notif.createdAt,
+                              ),
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ChatRoomScreen(
+                                  conversationId: targetConvo.id,
+                                  title: targetConvo.title,
+                                  type: targetConvo.type,
+                                ),
+                              ),
+                            );
                           }
                         },
                         borderRadius: BorderRadius.circular(14),
