@@ -18,6 +18,7 @@ timeline
     2026-09-23 : In-App Agency Messenger : Group Room & DMs, Team Presence, Media Link Sharing
     2026-09-23 : Session Persistence & UI Polish : Instant Auto-Login, Ghost Data Purge, 6 Fresh Posts, Icon-Only Dock
     2026-09-23 : Security Hardening & Secret Governance : Gitignore Policy, Untracked Credentials, Template Scaffold
+    2026-09-23 : Custom Minimal Navigation Dock : WaraBottomBar, Pure Icon Pill Aesthetics, Zero Text Clutter
 ```
 
 ---
@@ -179,6 +180,23 @@ timeline
     - Executed `git rm --cached lib/firebase_options.dart` to purge live credentials from future commits and GitHub tree representation while preserving the physical file on local development environments.
   - **Developer Onboarding Documentation:**
     - Updated `README.md` file tree and installation guide with step-by-step instructions on bootstrapping Firebase credentials.
+
+---
+
+### 🔹 Milestone 11: Dedicated Minimalist Navigation Dock (`WaraBottomBar`)
+- **Objective:** Eliminate all bottom menu text labels across Manager and Editor shells, creating a custom, high-end icon-only navigation dock.
+- **Key Deliverables:**
+  - **Engineered Custom `WaraBottomBar` Widget:**
+    - Authored `lib/shared/widgets/wara_bottom_bar.dart` replacing Flutter's rigid Material 3 `NavigationBar`.
+    - Pure icon layout with zero text, zero tooltips, and zero label spacing artifacts.
+  - **Fluid Active Pill Highlights:**
+    - High-contrast animated capsule (`240ms`, `Curves.easeOutCubic`) highlighting the active destination with `colors.primary.withValues(alpha: 0.14)` and a subtle `0.28` border stroke.
+    - Active icon renders in solid `colors.primary`, while inactive icons sit in calm, muted tones (`colors.muted.withValues(alpha: 0.8)`).
+  - **Ergonomics & Multi-Platform Safe Area:**
+    - Standardized dock height to 62px with wrapped `SafeArea(top: false)`.
+    - Integrated touch feedback (`InkResponse`) with non-intrusive splash radiuses.
+  - **Complete Shell Unification:**
+    - Connected `WaraBottomBar` to `_EditorShell` (4 tabs: Marketplace, Workspace, Messenger, Profile) and `_ManagerShell` (5 tabs: Workflow, Pending, Finance, Messenger, Agency OS) via GoRouter's `shell.goBranch`.
 
 ---
 

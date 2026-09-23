@@ -16,6 +16,7 @@ import '../../features/chat/presentation/screens/chat_room_screen.dart';
 import '../../features/chat/domain/chat_models.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
+import '../../shared/widgets/wara_bottom_bar.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final isAuth = ref.watch(authProvider.select((s) => s.isAuthenticated));
@@ -103,41 +104,27 @@ class _EditorShell extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.bg,
       body: shell,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border(top: BorderSide(color: colors.border.withValues(alpha: 0.8), width: 1)),
-        ),
-        child: NavigationBar(
-          selectedIndex: shell.currentIndex,
-          onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-          backgroundColor: colors.surface,
-          indicatorColor: colors.primary.withValues(alpha: 0.15),
-          height: 60,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.storefront_outlined),
-              selectedIcon: Icon(Icons.storefront_rounded),
-              label: 'Available Pool',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.work_outline_rounded),
-              selectedIcon: Icon(Icons.work_rounded),
-              label: 'My Workspace',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline_rounded),
-              selectedIcon: Icon(Icons.chat_bubble_rounded),
-              label: 'Messenger',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      bottomNavigationBar: WaraBottomBar(
+        selectedIndex: shell.currentIndex,
+        onItemSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        items: const [
+          WaraNavItem(
+            icon: Icons.storefront_outlined,
+            selectedIcon: Icons.storefront_rounded,
+          ),
+          WaraNavItem(
+            icon: Icons.work_outline_rounded,
+            selectedIcon: Icons.work_rounded,
+          ),
+          WaraNavItem(
+            icon: Icons.chat_bubble_outline_rounded,
+            selectedIcon: Icons.chat_bubble_rounded,
+          ),
+          WaraNavItem(
+            icon: Icons.person_outline_rounded,
+            selectedIcon: Icons.person_rounded,
+          ),
+        ],
       ),
     );
   }
@@ -153,47 +140,33 @@ class _ManagerShell extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.bg,
       body: shell,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border(top: BorderSide(color: colors.border.withValues(alpha: 0.8), width: 1)),
-        ),
-        child: NavigationBar(
-          selectedIndex: shell.currentIndex,
-          onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-          backgroundColor: colors.surface,
-          indicatorColor: colors.primary.withValues(alpha: 0.15),
-          height: 60,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard_rounded),
-              label: 'Global Workflow',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.hourglass_top_outlined),
-              selectedIcon: Icon(Icons.hourglass_top_rounded),
-              label: 'Pending',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.account_balance_outlined),
-              selectedIcon: Icon(Icons.account_balance_rounded),
-              label: 'Finance',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline_rounded),
-              selectedIcon: Icon(Icons.chat_bubble_rounded),
-              label: 'Messenger',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.admin_panel_settings_outlined),
-              selectedIcon: Icon(Icons.admin_panel_settings_rounded),
-              label: 'Agency OS',
-            ),
-          ],
-        ),
+      bottomNavigationBar: WaraBottomBar(
+        selectedIndex: shell.currentIndex,
+        onItemSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        items: const [
+          WaraNavItem(
+            icon: Icons.dashboard_outlined,
+            selectedIcon: Icons.dashboard_rounded,
+          ),
+          WaraNavItem(
+            icon: Icons.hourglass_top_outlined,
+            selectedIcon: Icons.hourglass_top_rounded,
+          ),
+          WaraNavItem(
+            icon: Icons.account_balance_outlined,
+            selectedIcon: Icons.account_balance_rounded,
+          ),
+          WaraNavItem(
+            icon: Icons.chat_bubble_outline_rounded,
+            selectedIcon: Icons.chat_bubble_rounded,
+          ),
+          WaraNavItem(
+            icon: Icons.admin_panel_settings_outlined,
+            selectedIcon: Icons.admin_panel_settings_rounded,
+          ),
+        ],
       ),
     );
   }
 }
+
