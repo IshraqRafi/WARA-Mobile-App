@@ -292,6 +292,21 @@ timeline
 - **System Pop-Up (Push) Notifications Architecture Blueprint:**
   - Authored comprehensive production plan for native OS heads-up banners on Android & iOS using Firebase Cloud Messaging (FCM) and `flutter_local_notifications`.
 
+### Milestone 16: Pre-Presentation Cleanup — Purged Dummy OS Tiles & Built Live Firestore Finance Ledger
+- **Preserved Project Backup:**
+  - Created and pushed safe pre-cleanup backup branch `backup-pre-presentation-cleanup` to GitHub remote repository (`https://github.com/IshraqRafi/WARA-Mobile-App/tree/backup-pre-presentation-cleanup`).
+- **Purged Unfinished / Dummy Settings Tiles:**
+  - Removed placeholder `Agency Profile & Branding`, `Ad Channel Integrations`, `Agency Subscription`, and `Security & SSO Audit` cards from `ManagerSettingsScreen`.
+  - Retained exclusively the live, fully functional options: `Editor & Staff Team Seats` (Firestore live editors stream + Join Key) and `Agency Creative Leaderboard` (live rankings).
+- **100% Real-Time Firestore Finance Engine:**
+  - Eliminated hardcoded bank balance (`৳15,000`), fake recurring retainers (`৳12,000 MRR`), fake client retainers (`kInitialClientsData` Nike/RedBull with emojis), and static editor payout maps.
+  - Converted `ManagerFinanceScreen` into a reactive `ConsumerWidget` streaming directly from Firestore `streamProjects(agencyId: user.agencyId)`:
+    - **Total Production Pipeline Value:** Dynamically aggregated sum of all agency project client budgets.
+    - **Committed & Settled Payouts:** Real-time breakdown of settled payouts (approved) vs escrow commitments (in production).
+    - **Agency Net Margin:** Dynamic formula `Total Revenue - Total Editor Payouts` with live margin percentage.
+    - **Live Project Financial Ledger:** Project-by-project breakdown of client budgets, assigned editors, and real-time status badges (Paid Out, In Review, In Production, Unallocated).
+    - **Real Editor Disbursements:** Live aggregation of earned payouts and active production values per editor, dynamically derived from claimed and approved projects.
+
 ---
 
 ## 🛠️ Technical Problem Solving Highlights

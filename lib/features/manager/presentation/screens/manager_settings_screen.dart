@@ -438,15 +438,6 @@ class ManagerSettingsScreen extends ConsumerWidget {
                 subtitle: 'Track editor rankings, star ratings, and project outputs',
                 onTap: () => showAgencyLeaderboardModal(context, ref),
               ),
-              _SettingsTile(
-                icon: Icons.domain_rounded,
-                title: 'Agency Profile & Branding',
-                subtitle: '${user?.agencyName ?? "Wara Media Group"} (wara.io)',
-                onTap: () {},
-              ),
-              _SettingsTile(icon: Icons.integration_instructions_outlined, title: 'Ad Channel Integrations', subtitle: 'Meta, Google Ads, TikTok Connected', onTap: () {}),
-              _SettingsTile(icon: Icons.credit_card_outlined, title: 'Agency Subscription', subtitle: r'wara.io Scale Plan (৳29,900/mo)', onTap: () {}),
-              _SettingsTile(icon: Icons.security_rounded, title: 'Security & SSO Audit', subtitle: 'Cloud Auth & Role Whitelist Enforced', onTap: () {}),
               const SizedBox(height: 28),
 
               SizedBox(
