@@ -158,8 +158,17 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
             // ── Live Stream of Real Team Members for Direct Messages ────────
             Expanded(
               child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: ref.watch(firestoreServiceProvider).streamAgencyTeamMembers(agencyId: user?.agencyId),
+                stream: ref.watch(firestoreServiceProvider).streamAgencyTeamMembers(),
                 builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
                   final rawMembers = snapshot.data ?? [];
 
                   // Current user identification (Google email, auth UID, session ID)
@@ -200,16 +209,35 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                       if (seenEmails.contains(email)) continue;
                       seenEmails.add(email);
                     }
-                    if (id.isNotEmpty) {
-                      if (seenIds.contains(id)) continue;
-                      seenIds.add(id);
-                    }
-                    if (uid.isNotEmpty) {
-                      if (seenIds.contains(uid)) continue;
-                      seenIds.add(uid);
+                    final uniqueKey = id.isNotEmpty ? id : (uid.isNotEmpty ? uid : email);
+                    if (uniqueKey.isNotEmpty) {
+                      if (seenIds.contains(uniqueKey)) continue;
+                      seenIds.add(uniqueKey);
                     }
 
                     allMembers.add(m);
+                  }
+
+                  final currentUserId = user?.id ?? '';
+
+                  // 3. Ensure any user from active direct conversations is always present
+                  for (final c in directConvos) {
+                    final otherId = c.participantIds.firstWhere(
+                      (pId) => !myIds.contains(pId),
+                      orElse: () => '',
+                    );
+                    if (otherId.isNotEmpty && !seenIds.contains(otherId)) {
+                      seenIds.add(otherId);
+                      final otherName = c.getDisplayName(currentUserId);
+                      final otherPhoto = c.getDisplayPhoto(currentUserId);
+                      allMembers.add({
+                        'id': otherId,
+                        'uid': otherId,
+                        'name': otherName,
+                        'photoUrl': otherPhoto,
+                        'specialization': 'Creative Team Member',
+                      });
+                    }
                   }
 
                   // Apply search filter if query active
@@ -232,8 +260,6 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                     }
                     return null;
                   }
-
-                  final currentUserId = user?.id ?? '';
 
                   // Dynamically sort members:
                   // 1. Unread incoming messages come to the VERY TOP (for receiver)

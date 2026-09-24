@@ -305,7 +305,15 @@ timeline
     - **Committed & Settled Payouts:** Real-time breakdown of settled payouts (approved) vs escrow commitments (in production).
     - **Agency Net Margin:** Dynamic formula `Total Revenue - Total Editor Payouts` with live margin percentage.
     - **Live Project Financial Ledger:** Project-by-project breakdown of client budgets, assigned editors, and real-time status badges (Paid Out, In Review, In Production, Unallocated).
-    - **Real Editor Disbursements:** Live aggregation of earned payouts and active production values per editor, dynamically derived from claimed and approved projects.
+### Milestone 17: Universal Direct Messages Restoration & Cross-Workspace Chat Sync
+- **Restored All Direct Messages for Real Registered People:**
+  - Removed the overly strict `agencyId` filtering in `streamAgencyTeamMembers` that was dropping registered editors and team members who signed up with real Gmail accounts.
+  - Relaxed `streamEditors` to ensure every creative editor registered in Firestore is streamed to Team Seats and the Leaderboard.
+  - Added merging of active conversation participants in `ChatInboxScreen` so that any existing direct conversations with team members are always preserved in the feed.
+  - Added connection state handling with a loading spinner while Firestore snapshots initialize.
+- **Universal Cross-Workspace Direct Message Synchronization:**
+  - Enhanced `ChatNotifier` to listen both to the user's active `agencyId` and to `agency_demo_wara`, merging conversations seamlessly so no direct messages are lost between different workspace sessions.
+  - Updated `sendChatMessage`, `createOrGetConversation`, and `streamConversationMessages` to automatically mirror and sync direct messages across workspaces, ensuring instantaneous delivery and read receipt updates between managers and editors.
 
 ---
 

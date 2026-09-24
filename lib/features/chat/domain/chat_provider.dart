@@ -63,6 +63,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
   final FirestoreService _firestoreService;
   final UserSession? _currentUser;
   StreamSubscription<List<ChatConversation>>? _convosSubscription;
+  StreamSubscription<List<ChatConversation>>? _demoConvosSubscription;
   final Map<String, StreamSubscription<List<ChatMessage>>> _msgSubscriptions = {};
 
   ChatNotifier(this._firestoreService, this._currentUser) : super(const ChatState()) {
@@ -70,8 +71,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 
   void _init() {
-    final agencyId = _currentUser?.agencyId;
-    if (agencyId == null || agencyId.isEmpty) return;
+    final agencyId = _currentUser?.agencyId?.isNotEmpty == true
+        ? _currentUser!.agencyId!
+        : 'agency_demo_wara';
 
     // Reset agency general chat with owner welcome message
     _firestoreService.resetAgencyRoom(
@@ -89,17 +91,40 @@ class ChatNotifier extends StateNotifier<ChatState> {
     // Stream real-time conversations for this agency
     _convosSubscription = _firestoreService.streamAgencyConversations(agencyId).listen(
       (convos) {
-        state = state.copyWith(conversations: convos);
+        final currentMap = {for (final c in state.conversations) c.id: c};
+        for (final c in convos) {
+          currentMap[c.id] = c;
+        }
+        final list = currentMap.values.toList()
+          ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+        state = state.copyWith(conversations: list);
       },
       onError: (_) {
         // Fallback or offline
       },
     );
+
+    // Also stream demo workspace conversations to ensure cross-workspace direct messages sync
+    if (agencyId != 'agency_demo_wara') {
+      _demoConvosSubscription = _firestoreService.streamAgencyConversations('agency_demo_wara').listen(
+        (demoConvos) {
+          final currentMap = {for (final c in state.conversations) c.id: c};
+          for (final c in demoConvos) {
+            currentMap[c.id] = c;
+          }
+          final list = currentMap.values.toList()
+            ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+          state = state.copyWith(conversations: list);
+        },
+        onError: (_) {},
+      );
+    }
   }
 
   @override
   void dispose() {
     _convosSubscription?.cancel();
+    _demoConvosSubscription?.cancel();
     for (final sub in _msgSubscriptions.values) {
       sub.cancel();
     }
@@ -116,8 +141,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
   /// Subscribe to real-time messages for a specific conversation room
   void subscribeToConversationMessages(String conversationId) {
-    final agencyId = _currentUser?.agencyId;
-    if (agencyId == null || agencyId.isEmpty) return;
+    final agencyId = _currentUser?.agencyId?.isNotEmpty == true
+        ? _currentUser!.agencyId!
+        : 'agency_demo_wara';
 
     // Cancel existing subscription for this room if any
     _msgSubscriptions[conversationId]?.cancel();
@@ -145,7 +171,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
 
     final user = _currentUser;
-    if (user == null || user.agencyId == null) return;
+    if (user == null) return;
+    final agencyId = user.agencyId?.isNotEmpty == true ? user.agencyId! : 'agency_demo_wara';
 
     final now = DateTime.now();
     final messageId = 'msg_${now.millisecondsSinceEpoch}_${user.id.length > 4 ? user.id.substring(0, 4) : user.id}';
@@ -153,7 +180,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final newMessage = ChatMessage(
       id: messageId,
       conversationId: conversationId,
-      agencyId: user.agencyId!,
+      agencyId: agencyId,
       senderId: user.id,
       senderName: user.name.isNotEmpty ? user.name : (user.role.name == 'manager' ? 'Agency Lead' : 'Editor'),
       senderPhotoUrl: user.photoUrl,
@@ -173,7 +200,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     // 2. Cloud Firestore write
     try {
       await _firestoreService.sendChatMessage(
-        agencyId: user.agencyId!,
+        agencyId: agencyId,
         conversationId: conversationId,
         message: newMessage,
         recipientId: recipientId,
@@ -186,7 +213,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
   /// Mark a conversation as read by the current user
   Future<void> markAsRead(String conversationId) async {
     final user = _currentUser;
-    if (user == null || user.agencyId == null) return;
+    if (user == null) return;
+    final agencyId = user.agencyId?.isNotEmpty == true ? user.agencyId! : 'agency_demo_wara';
 
     // Optimistic local update
     final updatedConvos = state.conversations.map((c) {
@@ -201,7 +229,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }).toList();
     state = state.copyWith(conversations: updatedConvos);
 
-    await _firestoreService.markConversationAsRead(user.agencyId!, conversationId, user.id);
+    await _firestoreService.markConversationAsRead(agencyId, conversationId, user.id);
   }
 
   /// Get or create a deterministic 1-on-1 Direct Message conversation between current user and another team member

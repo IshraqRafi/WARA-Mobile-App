@@ -117,16 +117,6 @@ class FirestoreService {
         data['uid'] = doc.id;
         data['id'] = data['id'] ?? doc.id;
 
-        // If agencyId is provided, match this agency, unassigned users, or demo agency
-        final docAgencyId = data['agencyId'] as String?;
-        if (agencyId != null && agencyId.isNotEmpty) {
-          final isMatch = docAgencyId == agencyId ||
-              docAgencyId == null ||
-              docAgencyId.isEmpty ||
-              docAgencyId == 'agency_demo_wara';
-          if (!isMatch) continue;
-        }
-
         // Fallback name if missing or blank (e.g. use email prefix from real Google sign-in)
         final email = data['email'] as String? ?? '';
         final name = (data['name'] as String? ?? '').trim();
@@ -173,16 +163,6 @@ class FirestoreService {
         final data = Map<String, dynamic>.from(doc.data());
         data['uid'] = doc.id;
         data['id'] = data['id'] ?? doc.id;
-
-        // If agencyId is provided, filter by matching agency, demo agency, or unassigned
-        final docAgencyId = data['agencyId'] as String?;
-        if (agencyId != null && agencyId.isNotEmpty) {
-          final isMatch = docAgencyId == agencyId ||
-              docAgencyId == null ||
-              docAgencyId.isEmpty ||
-              docAgencyId == 'agency_demo_wara';
-          if (!isMatch) continue;
-        }
 
         // Fallback name if missing or blank (e.g. use email prefix from Google sign-in)
         final email = (data['email'] as String? ?? '').trim();
@@ -448,6 +428,20 @@ class FirestoreService {
 
   /// Real-time stream of messages in a conversation ordered chronologically
   Stream<List<ChatMessage>> streamConversationMessages(String agencyId, String conversationId) {
+    if (conversationId.startsWith('dm_') && agencyId != 'agency_demo_wara') {
+      return _messagesRef(agencyId, conversationId)
+          .orderBy('createdAt', descending: false)
+          .snapshots()
+          .asyncMap((snapshot) async {
+        if (snapshot.docs.isNotEmpty) {
+          return snapshot.docs.map((doc) => ChatMessage.fromMap(doc.id, doc.data())).toList();
+        }
+        final demoSnap = await _messagesRef('agency_demo_wara', conversationId)
+            .orderBy('createdAt', descending: false)
+            .get();
+        return demoSnap.docs.map((doc) => ChatMessage.fromMap(doc.id, doc.data())).toList();
+      });
+    }
     return _messagesRef(agencyId, conversationId)
         .orderBy('createdAt', descending: false)
         .snapshots()
@@ -462,6 +456,13 @@ class FirestoreService {
     final doc = await docRef.get();
     if (!doc.exists) {
       await docRef.set(conversation.toMap());
+    }
+    if (conversation.id.startsWith('dm_') && agencyId != 'agency_demo_wara') {
+      final demoDocRef = _conversationsRef('agency_demo_wara').doc(conversation.id);
+      final demoDoc = await demoDocRef.get();
+      if (!demoDoc.exists) {
+        await demoDocRef.set(conversation.toMap());
+      }
     }
   }
 
@@ -484,6 +485,21 @@ class FirestoreService {
       'lastSenderId': message.senderId,
       'readBy': [message.senderId],
     }, SetOptions(merge: true));
+
+    // Mirror direct messages to agency_demo_wara for cross-agency visibility
+    if (conversationId.startsWith('dm_') && agencyId != 'agency_demo_wara') {
+      final demoMsgDocRef = _messagesRef('agency_demo_wara', conversationId).doc(message.id);
+      batch.set(demoMsgDocRef, message.toMap());
+
+      final demoConvoDocRef = _conversationsRef('agency_demo_wara').doc(conversationId);
+      batch.set(demoConvoDocRef, {
+        'lastMessage': message.text,
+        'lastSenderName': message.senderName,
+        'lastMessageTime': Timestamp.fromDate(message.createdAt),
+        'lastSenderId': message.senderId,
+        'readBy': [message.senderId],
+      }, SetOptions(merge: true));
+    }
 
     await batch.commit();
 
