@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../shared/widgets/google_g_logo.dart';
+import '../../../../shared/widgets/wara_banner.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../domain/auth_provider.dart';
 
@@ -32,13 +35,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final text = Theme.of(context).textTheme;
 
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenMargin(context), vertical: AppSpacing.xxl),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
@@ -46,69 +50,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Center(child: WaraLogo(size: 72)),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(AppInfo.name, textAlign: TextAlign.center, style: text.displayLarge),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'wara.io',
+                    AppInfo.tagline.toUpperCase(),
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: colors.text, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -1),
+                    style: text.labelMedium?.copyWith(letterSpacing: 1.5),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'MEDIA AGENCY OPERATING SYSTEM',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: AppSpacing.xl),
                   Text(
                     'Run projects, editors and payouts for your media agency in one place.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: colors.text, fontSize: 15, height: 1.45),
+                    style: text.bodyLarge?.copyWith(color: colors.muted),
                   ),
-                  const SizedBox(height: 36),
-
+                  const SizedBox(height: AppSpacing.xxl),
                   if (_errorMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: colors.error.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: colors.error.withValues(alpha: 0.4)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.error_outline_rounded, color: colors.error, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(_errorMessage!, style: TextStyle(color: colors.error, fontSize: 12))),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    WaraBanner(message: _errorMessage!),
+                    const SizedBox(height: AppSpacing.lg),
                   ],
-
                   SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _handleGoogleSignIn,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: colors.border, width: 1.2),
-                        backgroundColor: colors.card,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      icon: _isLoading
-                          ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: colors.primary, strokeWidth: 2))
-                          : Icon(Icons.g_mobiledata_rounded, color: colors.primary, size: 26),
-                      label: Text(
-                        'Continue with Google',
-                        style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.w600),
+                    height: 52,
+                    child: Semantics(
+                      button: true,
+                      label: _isLoading ? 'Signing in with Google' : 'Continue with Google',
+                      excludeSemantics: true,
+                      child: OutlinedButton(
+                        onPressed: _isLoading ? null : _handleGoogleSignIn,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: colors.card,
+                          disabledBackgroundColor: colors.card,
+                          minimumSize: const Size.fromHeight(52),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                        ),
+                        child: _isLoading
+                            ? SizedBox.square(
+                                dimension: 22,
+                                child: CircularProgressIndicator(color: colors.primary, strokeWidth: 2.5),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const GoogleGLogo(size: 20),
+                                  const SizedBox(width: AppSpacing.md),
+                                  Text('Continue with Google', style: text.titleMedium),
+                                ],
+                              ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppSpacing.xl),
                   Text(
                     'By continuing you agree to the wara.io Terms of Service and Privacy Policy.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: colors.muted, fontSize: 11, height: 1.4),
+                    style: text.bodySmall,
                   ),
                 ],
               ),

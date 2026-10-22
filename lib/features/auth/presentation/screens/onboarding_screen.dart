@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/wara_banner.dart';
 import '../../../../shared/widgets/wara_logo.dart';
+import '../../../../shared/widgets/wara_section_header.dart';
 import '../../domain/auth_provider.dart';
 
 /// First run for a new Google account: create an agency (manager) or join one
@@ -46,98 +48,120 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final text = Theme.of(context).textTheme;
     final pending = ref.watch(authProvider.select((s) => s.pendingUser));
     final firstName = (pending?.name ?? '').split(' ').first;
+    final margin = AppSpacing.screenMargin(context);
 
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Center(child: WaraLogo(size: 56)),
-                  const SizedBox(height: 20),
-                  Text(
-                    firstName.isEmpty ? 'Welcome to wara.io' : 'Welcome, $firstName',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: colors.text, fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'How will you use wara.io?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: colors.muted, fontSize: 14),
-                  ),
-                  const SizedBox(height: 28),
-                  _OptionCard(
-                    icon: Icons.business_center_rounded,
-                    title: 'Create an agency',
-                    subtitle: 'Manage projects, invite editors and track payouts.',
-                    selected: _path == _Path.createAgency,
-                    onTap: () => setState(() => _path = _Path.createAgency),
-                  ),
-                  const SizedBox(height: 12),
-                  _OptionCard(
-                    icon: Icons.movie_edit,
-                    title: 'Join an agency as an editor',
-                    subtitle: 'Use the join key your agency manager shared with you.',
-                    selected: _path == _Path.joinAgency,
-                    onTap: () => setState(() => _path = _Path.joinAgency),
-                  ),
-                  if (_path == _Path.createAgency) ...[
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _agencyCtrl,
-                      textCapitalization: TextCapitalization.words,
-                      style: TextStyle(color: colors.text),
-                      decoration: InputDecoration(
-                        labelText: 'Agency name',
-                        labelStyle: TextStyle(color: colors.muted),
-                        filled: true,
-                        fillColor: colors.surface,
-                        prefixIcon: Icon(Icons.apartment_rounded, color: colors.muted),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.border)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.border)),
-                      ),
-                    ),
-                  ],
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: 14),
-                    Text(_errorMessage!, style: TextStyle(color: colors.error, fontSize: 12)),
-                  ],
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _continue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
-                    ),
-                    child: _isLoading
-                        ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: colors.isDark ? Colors.black : Colors.white, strokeWidth: 2.5))
-                        : Text(
-                            _path == _Path.createAgency ? 'Create agency' : 'Continue',
-                            style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(margin, AppSpacing.xxl, margin, AppSpacing.xl),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Center(child: WaraLogo(size: 56)),
+                        const SizedBox(height: AppSpacing.xl),
+                        Text(
+                          firstName.isEmpty ? 'Welcome to wara.io' : 'Welcome, $firstName',
+                          textAlign: TextAlign.center,
+                          style: text.headlineSmall,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text('How will you use wara.io?', textAlign: TextAlign.center, style: text.bodyMedium?.copyWith(color: colors.muted)),
+                        WaraSectionCard(
+                          title: 'Choose your role',
+                          divided: false,
+                          contentPadding: const EdgeInsets.all(AppSpacing.md),
+                          children: [
+                            _OptionCard(
+                              icon: Icons.business_center_rounded,
+                              title: 'Create an agency',
+                              subtitle: 'Manage projects, invite editors and track payouts.',
+                              selected: _path == _Path.createAgency,
+                              onTap: () => setState(() => _path = _Path.createAgency),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            _OptionCard(
+                              icon: Icons.movie_edit,
+                              title: 'Join an agency as an editor',
+                              subtitle: 'Use the join key your agency manager shared with you.',
+                              selected: _path == _Path.joinAgency,
+                              onTap: () => setState(() => _path = _Path.joinAgency),
+                            ),
+                          ],
+                        ),
+                        if (_path == _Path.createAgency)
+                          WaraSectionCard(
+                            title: 'Agency details',
+                            divided: false,
+                            contentPadding: const EdgeInsets.all(AppSpacing.lg),
+                            children: [
+                              TextField(
+                                controller: _agencyCtrl,
+                                textCapitalization: TextCapitalization.words,
+                                style: text.bodyLarge,
+                                decoration: const InputDecoration(
+                                  labelText: 'Agency name',
+                                  prefixIcon: Icon(Icons.apartment_rounded),
+                                ),
+                              ),
+                            ],
                           ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: _isLoading ? null : () => ref.read(authProvider.notifier).logout(),
-                    child: Text(
-                      pending == null ? 'Sign out' : 'Not ${pending.email}? Sign out',
-                      style: TextStyle(color: colors.muted, fontSize: 12),
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: AppSpacing.lg),
+                          WaraBanner(message: _errorMessage!),
+                        ],
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+            // Pinned action bar.
+            Container(
+              decoration: BoxDecoration(color: colors.bg, border: Border(top: BorderSide(color: colors.border))),
+              padding: EdgeInsets.fromLTRB(margin, AppSpacing.md, margin, AppSpacing.sm),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _continue,
+                          child: _isLoading
+                              ? SizedBox.square(
+                                  dimension: 22,
+                                  child: CircularProgressIndicator(color: Theme.of(context).colorScheme.onPrimary, strokeWidth: 2.5),
+                                )
+                              : Text(_path == _Path.createAgency ? 'Create agency' : 'Continue'),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _isLoading ? null : () => ref.read(authProvider.notifier).logout(),
+                        style: TextButton.styleFrom(foregroundColor: colors.muted),
+                        child: Text(
+                          pending == null ? 'Sign out' : 'Not ${pending.email}? Sign out',
+                          style: text.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -162,34 +186,39 @@ class _OptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: selected ? colors.primary.withValues(alpha: 0.08) : colors.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: selected ? colors.primary : colors.border, width: selected ? 1.6 : 1),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: selected ? colors.primary : colors.muted, size: 26),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: TextStyle(color: colors.muted, fontSize: 12, height: 1.35)),
-                ],
+    final text = Theme.of(context).textTheme;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.brMd,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: selected ? colors.primaryTint : colors.surface,
+            borderRadius: AppRadius.brMd,
+            border: Border.all(color: selected ? colors.primary : colors.border, width: selected ? 1.5 : 1),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: selected ? colors.primary : colors.muted, size: 24),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: text.titleMedium),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(subtitle, style: text.bodySmall),
+                  ],
+                ),
               ),
-            ),
-            Icon(selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                color: selected ? colors.primary : colors.muted, size: 20),
-          ],
+              Icon(selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                  color: selected ? colors.primary : colors.muted, size: 20),
+            ],
+          ),
         ),
       ),
     );
