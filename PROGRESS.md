@@ -358,3 +358,9 @@ timeline
 - [ ] In-app video preview player with timecode-accurate feedback markers.
 - [ ] Automated PDF invoice generation for agency clients and editor payout stubs.
 - [ ] Offline caching support for workspace reviews and project briefs.
+
+## Production cleanup (polish/demo-fixes)
+- Google-only sign-in with onboarding (name your agency / join as editor); email/password removed.
+- Removed all demo accounts, `agency_demo_wara`, seed data, hardcoded names/keys and legacy screens. Entries above that mention demo data are historical.
+- Firestore rules scope profiles, projects and chat to the agency; DMs to participants.
+- Setup guide: `SETUP.md` (replaces `DEMO_SETUP.md`).
