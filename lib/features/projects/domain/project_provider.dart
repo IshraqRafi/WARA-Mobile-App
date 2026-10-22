@@ -357,3 +357,28 @@ final projectsProvider = StateNotifierProvider<ProjectsNotifier, List<ProjectIte
     },
   );
 });
+
+/// Status counts for the stat strip, computed once per projects change
+/// (one pass) instead of four `where` scans on every screen build.
+typedef ProjectCounts = ({int open, int claimed, int submitted, int overdue});
+
+final projectCountsProvider = Provider<ProjectCounts>((ref) {
+  var open = 0, claimed = 0, submitted = 0, overdue = 0;
+  for (final p in ref.watch(projectsProvider)) {
+    if (p.status == ProjectStatus.open) open++;
+    if (p.status == ProjectStatus.claimed) claimed++;
+    if (p.status == ProjectStatus.submitted) submitted++;
+    if (p.isOverdue) overdue++;
+  }
+  return (open: open, claimed: claimed, submitted: submitted, overdue: overdue);
+});
+
+/// Projects with an editor attached, plus the approved payout total.
+final workspaceProjectsProvider = Provider<({List<ProjectItem> items, int earned})>((ref) {
+  final items = ref.watch(projectsProvider).where((p) => p.claimedByEditorId != null).toList(growable: false);
+  final earned = items
+      .where((p) => p.status == ProjectStatus.approved)
+      .fold<double>(0, (sum, p) => sum + p.editorPayout)
+      .toInt();
+  return (items: items, earned: earned);
+});

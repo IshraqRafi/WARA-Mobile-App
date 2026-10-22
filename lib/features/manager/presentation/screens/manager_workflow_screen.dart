@@ -20,6 +20,20 @@ import '../widgets/rate_editor_dialog.dart';
 /// Index of the active stat filter on the workflow screen (null = all).
 final _workflowFilterProvider = StateProvider.autoDispose<int?>((ref) => null);
 
+final List<bool Function(ProjectItem)> _filterTests = [
+  (p) => p.status == ProjectStatus.open,
+  (p) => p.status == ProjectStatus.claimed,
+  (p) => p.status == ProjectStatus.submitted,
+  (p) => p.isOverdue,
+];
+
+/// Filtered list, recomputed only when projects or the filter change.
+final _visibleProjectsProvider = Provider.autoDispose<List<ProjectItem>>((ref) {
+  final projects = ref.watch(projectsProvider);
+  final filter = ref.watch(_workflowFilterProvider);
+  return filter == null ? projects : projects.where(_filterTests[filter]).toList(growable: false);
+});
+
 class ManagerWorkflowScreen extends ConsumerWidget {
   const ManagerWorkflowScreen({super.key});
 
@@ -826,31 +840,13 @@ class ManagerWorkflowScreen extends ConsumerWidget {
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
     if (projectsError != null && projects.isEmpty) {
-      return Scaffold(
-        backgroundColor: colors.bg,
-        body: SafeArea(
-          child: WaraErrorState(
-            title: 'Couldn\'t load projects',
-            message: friendlyErrorMessage(projectsError),
-            onRetry: () => ref.read(projectsProvider.notifier).retry(),
-          ),
-        ),
-      );
+      return ProjectsLoadError(error: projectsError);
     }
 
     final margin = AppSpacing.screenMargin(context);
-    final openCount = projects.where((p) => p.status == ProjectStatus.open).length;
-    final claimedCount = projects.where((p) => p.status == ProjectStatus.claimed).length;
-    final submittedCount = projects.where((p) => p.status == ProjectStatus.submitted).length;
-    final overdueCount = projects.where((p) => p.isOverdue).length;
+    final counts = ref.watch(projectCountsProvider);
     final filter = ref.watch(_workflowFilterProvider);
-    final filterTests = <bool Function(ProjectItem)>[
-      (p) => p.status == ProjectStatus.open,
-      (p) => p.status == ProjectStatus.claimed,
-      (p) => p.status == ProjectStatus.submitted,
-      (p) => p.isOverdue,
-    ];
-    final visible = filter == null ? projects : projects.where(filterTests[filter]).toList();
+    final visible = ref.watch(_visibleProjectsProvider);
 
     return Scaffold(
       backgroundColor: colors.bg,
@@ -885,10 +881,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.xl),
                   WaraStatStrip(
                     stats: [
-                      WaraStat(label: 'Open', value: openCount, tone: WaraTone.info),
-                      WaraStat(label: 'Active', value: claimedCount, tone: WaraTone.warning),
-                      WaraStat(label: 'Review', value: submittedCount, tone: WaraTone.success),
-                      WaraStat(label: 'Overdue', value: overdueCount, tone: WaraTone.error),
+                      WaraStat(label: 'Open', value: counts.open, tone: WaraTone.info),
+                      WaraStat(label: 'Active', value: counts.claimed, tone: WaraTone.warning),
+                      WaraStat(label: 'Review', value: counts.submitted, tone: WaraTone.success),
+                      WaraStat(label: 'Overdue', value: counts.overdue, tone: WaraTone.error),
                     ],
                     selected: filter,
                     onSelect: (i) => ref.read(_workflowFilterProvider.notifier).state = i,
@@ -903,9 +899,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             if (visible.isEmpty && filter == null && !ref.watch(projectsLoadedProvider))
               SliverPadding(
                 padding: EdgeInsets.symmetric(horizontal: margin),
-                sliver: SliverList.builder(
-                  itemCount: 4,
-                  itemBuilder: (c, i) => const Shimmer(child: ProjectCardSkeleton()),
+                // One shimmer controller/shader for all skeleton rows.
+                sliver: const SliverToBoxAdapter(
+                  child: Shimmer(
+                    child: Column(children: [ProjectCardSkeleton(), ProjectCardSkeleton(), ProjectCardSkeleton(), ProjectCardSkeleton()]),
+                  ),
                 ),
               )
             else if (visible.isEmpty)

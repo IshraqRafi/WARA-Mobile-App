@@ -151,20 +151,12 @@ class EditorWorkspaceScreen extends ConsumerWidget {
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
     if (projectsError != null && projects.isEmpty) {
-      return Scaffold(
-        backgroundColor: colors.bg,
-        body: SafeArea(
-          child: WaraErrorState(
-            title: 'Couldn\'t load projects',
-            message: friendlyErrorMessage(projectsError),
-            onRetry: () => ref.read(projectsProvider.notifier).retry(),
-          ),
-        ),
-      );
+      return ProjectsLoadError(error: projectsError);
     }
 
     // Projects claimed by this editor
-    final myProjects = projects.where((p) => p.claimedByEditorId != null).toList();
+    final workspace = ref.watch(workspaceProjectsProvider);
+    final myProjects = workspace.items;
 
     return Scaffold(
       backgroundColor: colors.bg,
@@ -229,7 +221,7 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Earned: ৳${myProjects.where((p) => p.status == ProjectStatus.approved).fold<double>(0, (sum, item) => sum + item.editorPayout).toInt()}',
+                      'Earned: ৳${workspace.earned}',
                       style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
