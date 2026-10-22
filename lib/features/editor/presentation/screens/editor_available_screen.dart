@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../../shared/motion/claim_handoff.dart';
 import '../../../payments/presentation/payout_widgets.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,22 +36,44 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
   final Set<String> _taken = {};
   static const undoWindow = Duration(seconds: 5);
 
+  /// Card keys, for the hand-off origin.
+  final Map<String, GlobalKey> _cardKeys = {};
+
+  void _setPendingBadge(String id, bool on) {
+    if (!mounted) return;
+    final n = ref.read(pendingClaimsProvider.notifier);
+    n.state = on ? {...n.state, id} : ({...n.state}..remove(id));
+  }
+
+  void _handoff(ProjectItem project) {
+    final box = _cardKeys[project.id]?.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return _setPendingBadge(project.id, true);
+    final rect = box.localToGlobal(Offset.zero) & box.size;
+    ClaimHandoff.fly(context, from: rect, label: project.title, onArrive: () {
+      if (_pending.containsKey(project.id)) _setPendingBadge(project.id, true);
+    });
+  }
+
   void _claim(ProjectItem project, UserSession? user) {
     if (user == null || _pending.containsKey(project.id)) return;
     Haptics.medium();
+    _handoff(project);
     final notifier = ref.read(projectsProvider.notifier);
     final messenger = ScaffoldMessenger.of(context);
     Future<void> commit() async {
       _pending.remove(project.id);
       try {
         await notifier.claimProject(project.id, user.id, user.name);
+        _setPendingBadge(project.id, false);
       } on AlreadyTakenException {
+        _setPendingBadge(project.id, false);
         // Someone else won the race: drop the card, tell the editor.
         _taken.add(project.id);
         if (!mounted) return;
         setState(() {});
         WaraToast.show(context, message: 'Already taken', icon: Icons.block_rounded);
       } catch (e) {
+        _setPendingBadge(project.id, false);
         if (!mounted) return;
         setState(() {});
         WaraToast.show(context, message: friendlyErrorMessage(e), icon: Icons.error_outline_rounded);
@@ -68,6 +91,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
         label: 'Undo',
         onPressed: () {
           _pending.remove(project.id)?.cancel();
+          _setPendingBadge(project.id, false);
           if (mounted) setState(() {});
         },
       ),
@@ -201,7 +225,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                                 onDismissed: (dir) => dir == DismissDirection.endToStart
                                     ? _hide(project)
                                     : _claim(project, user),
-                                child: OfferCard(project: project, onTap: () => showOfferDetail(context, project, agencyName: user?.agencyName, onClaim: () => _claim(project, user)), onLongPress: () => _claim(project, user)),
+                                child: KeyedSubtree(key: _cardKeys.putIfAbsent(project.id, GlobalKey.new), child: OfferCard(project: project, onTap: () => showOfferDetail(context, project, agencyName: user?.agencyName, onClaim: () => _claim(project, user)), onLongPress: () => _claim(project, user))),
                               ),
                             ),
                           );

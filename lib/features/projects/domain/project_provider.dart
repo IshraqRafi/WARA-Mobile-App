@@ -559,8 +559,15 @@ final workspaceProjectsProvider = Provider<({List<ProjectItem> items, int earned
 });
 
 /// Workspace tab badge: the signed-in editor's active claims.
+/// Offers claimed inside the undo window (not yet written). Counted on the
+/// Workspace badge while still open so the hand-off lands on a live count.
+final pendingClaimsProvider = StateProvider<Set<String>>((ref) => const {});
+
 final workspaceBadgeProvider = Provider<int>((ref) {
-  return activeClaimCount(ref.watch(projectsProvider), ref.watch(currentUserIdProvider));
+  final projects = ref.watch(projectsProvider);
+  final pending = ref.watch(pendingClaimsProvider);
+  final stillOpen = projects.where((p) => pending.contains(p.id) && p.status == ProjectStatus.open).length;
+  return activeClaimCount(projects, ref.watch(currentUserIdProvider)) + stillOpen;
 });
 
 final _isManagerProvider = Provider<bool>((ref) => ref.watch(authProvider.select((s) => s.user?.role == UserRole.manager)));
