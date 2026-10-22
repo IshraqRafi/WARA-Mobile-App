@@ -154,11 +154,18 @@ service cloud.firestore {
               && request.resource.data.status == 'submitted'
               && resource.data.get('claimedByEditorId', '') == request.auth.uid);
       }
+      // revisionChecks: ticked by the claimed editor (or a manager).
+      function checksOk() {
+        return request.resource.data.get('revisionChecks', []) == resource.data.get('revisionChecks', [])
+          || isManager()
+          || resource.data.get('claimedByEditorId', '') == request.auth.uid;
+      }
       allow update: if inAgency(resource.data.agencyId)
         && request.resource.data.agencyId == resource.data.agencyId
         && (!('clientBudget' in request.resource.data)
             || request.resource.data.clientBudget == resource.data.get('clientBudget', null))
-        && versionOk();
+        && versionOk()
+        && checksOk();
       allow delete: if isManager() && inAgency(resource.data.agencyId);
 
       // projects/{id}/private/finance: clientPrice, currency, updatedAt,

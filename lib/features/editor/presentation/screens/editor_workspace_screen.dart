@@ -10,12 +10,13 @@ import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../widgets/submit_sheet.dart';
+import '../widgets/revision_checklist.dart';
 
 class EditorWorkspaceScreen extends ConsumerWidget {
   const EditorWorkspaceScreen({super.key});
 
   void _showSubmitModal(BuildContext context, WidgetRef ref, ProjectItem project) {
-    showSubmitSheet(context, project, onSubmit: (link, note) {
+    showSubmitSheet(context, project, openChecks: openRevisionItems(project), onSubmit: (link, note) {
       ref.read(projectsProvider.notifier).submitWork(project.id, link, note);
       WaraToast.show(context, message: 'Submitted v${project.submissionVersion + 1}', icon: Icons.check_circle_rounded);
     });
@@ -128,6 +129,13 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                               project: project,
                               listId: 'workspace',
                               payoutLabel: 'Payout',
+                              notice: revisionItems(project).isEmpty
+                                  ? null
+                                  : RevisionChecklist(
+                                      items: revisionItems(project),
+                                      checked: project.revisionChecks,
+                                      onToggle: (i) => ref.read(projectsProvider.notifier).toggleRevisionCheck(project.id, i),
+                                    ),
                               actions: [
                                 if (project.status == ProjectStatus.claimed)
                                   Tooltip(

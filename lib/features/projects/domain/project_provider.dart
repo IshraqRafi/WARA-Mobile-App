@@ -354,6 +354,8 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
           item.copyWith(
             status: ProjectStatus.claimed,
             submissionNote: 'Revision Request: $feedback',
+            revisionNotes: feedback,
+            revisionChecks: const [],
           )
         else
           item
@@ -361,6 +363,24 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
 
     // Cloud Firestore write
     _firestoreService.requestRevision(projectId, feedback);
+  }
+
+  /// Tick/untick revision item [index] on [projectId] (stored per project).
+  void toggleRevisionCheck(String projectId, int index) {
+    Haptics.tick();
+    List<int>? next;
+    state = [
+      for (final item in state)
+        if (item.id == projectId)
+          item.copyWith(
+            revisionChecks: next = item.revisionChecks.contains(index)
+                ? (List.of(item.revisionChecks)..remove(index))
+                : ([...item.revisionChecks, index]..sort()),
+          )
+        else
+          item
+    ];
+    if (next != null) _firestoreService.updateProject(projectId, {'revisionChecks': next});
   }
 
   void assignProject(String projectId, String editorId, String editorName) {

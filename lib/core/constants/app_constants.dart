@@ -82,6 +82,9 @@ class ProjectItem {
   final int submissionVersion;
   /// Whether the latest submit landed after the deadline.
   final bool submittedLate;
+  /// Latest manager revision notes and the indices the editor has ticked.
+  final String? revisionNotes;
+  final List<int> revisionChecks;
 
   const ProjectItem({
     required this.id,
@@ -106,6 +109,8 @@ class ProjectItem {
     this.deadlineAt,
     this.submissionVersion = 0,
     this.submittedLate = false,
+    this.revisionNotes,
+    this.revisionChecks = const [],
   });
 
   bool get canReturn => status == ProjectStatus.claimed && deadlineHoursLeft > 72;
@@ -127,6 +132,8 @@ class ProjectItem {
     DateTime? deadlineAt,
     int? submissionVersion,
     bool? submittedLate,
+    String? revisionNotes,
+    List<int>? revisionChecks,
   }) {
     return ProjectItem(
       id: id,
@@ -151,6 +158,8 @@ class ProjectItem {
       deadlineAt: deadlineAt ?? this.deadlineAt,
       submissionVersion: submissionVersion ?? this.submissionVersion,
       submittedLate: submittedLate ?? this.submittedLate,
+      revisionNotes: revisionNotes ?? this.revisionNotes,
+      revisionChecks: revisionChecks ?? this.revisionChecks,
     );
   }
 
@@ -176,6 +185,8 @@ class ProjectItem {
       if (deadlineAt != null) 'deadlineAt': deadlineAt!.toIso8601String(),
       if (submissionVersion > 0) 'submissionVersion': submissionVersion,
       if (submittedLate) 'submittedLate': true,
+      if (revisionNotes != null) 'revisionNotes': revisionNotes,
+      if (revisionChecks.isNotEmpty) 'revisionChecks': revisionChecks,
     };
   }
 
@@ -206,6 +217,8 @@ class ProjectItem {
       deadlineAt: _date(map['deadlineAt']),
       submissionVersion: (map['submissionVersion'] as num?)?.toInt() ?? 0,
       submittedLate: map['submittedLate'] as bool? ?? false,
+      revisionNotes: map['revisionNotes'] as String?,
+      revisionChecks: [for (final v in (map['revisionChecks'] as List? ?? const [])) if (v is num) v.toInt()],
     );
   }
 }

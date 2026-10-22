@@ -306,6 +306,8 @@ class FirestoreService {
     await _projectsRef.doc(projectId).update({
       'status': ProjectStatus.claimed.name,
       'submissionNote': 'Revision Request: $feedback',
+      'revisionNotes': feedback,
+      'revisionChecks': <int>[],
     });
   }
 
