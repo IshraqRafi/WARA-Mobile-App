@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
 import '../../features/chat/domain/chat_models.dart';
 import '../../features/notifications/domain/notification_models.dart';
@@ -199,31 +200,21 @@ class FirestoreService {
     });
   }
 
-  /// Reset all projects in Firestore and populate with the 6 fresh unassigned projects
-  Future<void> resetAndSeedFreshProjects() async {
+  /// Seeds the demo projects only when [agencyId] has no projects yet.
+  /// Never deletes anything, so work done during a demo survives re-login.
+  Future<void> seedInitialProjectsIfEmpty({String agencyId = 'agency_demo_wara'}) async {
     try {
-      final snapshot = await _projectsRef.get();
+      final snapshot =
+          await _projectsRef.where('agencyId', isEqualTo: agencyId).limit(1).get();
+      if (snapshot.docs.isNotEmpty) return;
       final batch = _db.batch();
-      for (final doc in snapshot.docs) {
-        batch.delete(doc.reference);
-      }
       for (final project in kInitialProjectsData) {
-        final docRef = _projectsRef.doc(project.id);
-        batch.set(docRef, project.toMap());
+        if (project.agencyId != agencyId) continue;
+        batch.set(_projectsRef.doc(project.id), project.toMap());
       }
       await batch.commit();
-    } catch (_) {}
-  }
-
-  /// Automatically seeds initial projects if the Firestore collection is empty
-  Future<void> seedInitialProjectsIfEmpty() async {
-    try {
-      final snapshot = await _projectsRef.limit(1).get();
-      if (snapshot.docs.isEmpty) {
-        await resetAndSeedFreshProjects();
-      }
     } catch (e) {
-      // In case of offline or rules error, log silently
+      debugPrint('seedInitialProjectsIfEmpty failed: $e');
     }
   }
 
