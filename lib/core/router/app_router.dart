@@ -18,30 +18,52 @@ import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 import '../../shared/widgets/wara_bottom_bar.dart';
 
-final routerProvider = Provider<GoRouter>((ref) {
-  final isAuth = ref.watch(authProvider.select((s) => s.isAuthenticated));
-  final userRole = ref.watch(authProvider.select((s) => s.user?.role));
-  final isEditor = userRole == UserRole.editor;
-  final isProfileComplete = ref.watch(authProvider.select((s) => s.user?.isProfileComplete ?? true));
+/// Bridges auth changes into GoRouter without rebuilding the router.
+/// Only the fields that affect redirects trigger a refresh.
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(Ref ref) {
+    ref.listen<(bool, UserRole?, bool)>(
+      authProvider.select((s) => (
+            s.isAuthenticated,
+            s.user?.role,
+            s.user?.isProfileComplete ?? true,
+          )),
+      (_, _) => notifyListeners(),
+    );
+  }
+}
 
-  return GoRouter(
-    initialLocation: !isAuth
-        ? '/login'
-        : (isEditor
-            ? (isProfileComplete ? '/editor/available' : '/editor/profile-setup')
-            : '/manager/workflow'),
+/// A single GoRouter for the app's lifetime. Auth changes re-run [redirect]
+/// via refreshListenable, so the navigation stack and tab state are kept.
+final routerProvider = Provider<GoRouter>((ref) {
+  final refresh = _AuthRefreshNotifier(ref);
+  ref.onDispose(refresh.dispose);
+
+  String homeFor(bool isEditor, bool isProfileComplete) => isEditor
+      ? (isProfileComplete ? '/editor/available' : '/editor/profile-setup')
+      : '/manager/workflow';
+
+  final router = GoRouter(
+    initialLocation: '/login',
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final auth = ref.read(authProvider);
+      final isAuth = auth.isAuthenticated;
+      final isEditor = auth.user?.role == UserRole.editor;
+      final isProfileComplete = auth.user?.isProfileComplete ?? true;
       final loc = state.matchedLocation;
-      if (!isAuth && loc != '/login') return '/login';
-      if (isAuth) {
-        if (isEditor && !isProfileComplete) {
-          if (loc != '/editor/profile-setup') return '/editor/profile-setup';
-          return null;
-        }
-        if (loc == '/login' || loc == '/editor/profile-setup') {
-          return isEditor ? '/editor/available' : '/manager/workflow';
-        }
+
+      if (!isAuth) return loc == '/login' ? null : '/login';
+
+      if (isEditor && !isProfileComplete) {
+        return loc == '/editor/profile-setup' ? null : '/editor/profile-setup';
       }
+      if (loc == '/login' || loc == '/editor/profile-setup') {
+        return homeFor(isEditor, isProfileComplete);
+      }
+      // Keep users inside their own role's shell.
+      if (isEditor && loc.startsWith('/manager/')) return homeFor(true, true);
+      if (!isEditor && loc.startsWith('/editor/')) return homeFor(false, true);
       return null;
     },
     routes: [
@@ -92,6 +114,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.onDispose(router.dispose);
+  return router;
 });
 
 class _EditorShell extends StatelessWidget {
