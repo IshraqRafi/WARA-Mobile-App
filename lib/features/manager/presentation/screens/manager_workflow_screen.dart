@@ -413,10 +413,22 @@ class ManagerWorkflowScreen extends ConsumerWidget {
   }
 
   void _openCreate(BuildContext from) {
-    ContainerTransformRoute.open<void>(
-      from,
-      color: from.colors.primary,
-      builder: (_) => _CreateProjectScreen(toastContext: from),
+    Haptics.light();
+    showModalBottomSheet<void>(
+      context: from,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      sheetAnimationStyle: Motion.reduced(from)
+          ? AnimationStyle.noAnimation
+          : const AnimationStyle(
+              duration: Duration(milliseconds: 380),
+              reverseDuration: Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            ),
+      builder: (ctx) => _CreateProjectSheet(toastContext: from),
     );
   }
 
@@ -985,17 +997,19 @@ class _NumberStepperField extends StatelessWidget {
   }
 }
 
-/// Full-screen create flow (opened with a container transform from the FAB).
+/// Create flow as a draggable sheet: opens at 60%, drags up to 92%, snaps.
 /// Owns and disposes its text controllers.
-class _CreateProjectScreen extends ConsumerStatefulWidget {
+class _CreateProjectSheet extends ConsumerStatefulWidget {
   final BuildContext? toastContext;
-  const _CreateProjectScreen({this.toastContext});
+  const _CreateProjectSheet({this.toastContext});
 
   @override
-  ConsumerState<_CreateProjectScreen> createState() => _CreateProjectScreenState();
+  ConsumerState<_CreateProjectSheet> createState() => _CreateProjectSheetState();
 }
 
-class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
+class _CreateProjectSheetState extends ConsumerState<_CreateProjectSheet> {
+  final _sheet = DraggableScrollableController();
+
   /// Confetti once per agency, ever (flag stored on device).
   static Future<void> _celebrateFirst(BuildContext host, String? agencyId) async {
     if (agencyId == null || agencyId.isEmpty) return;
@@ -1021,40 +1035,66 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
     clientPriceCtrl.dispose();
     deadlineCtrl.dispose();
     descCtrl.dispose();
+    _sheet.dispose();
     super.dispose();
+  }
+
+  /// Typing in a field near the bottom: grow the sheet so it stays visible.
+  void _expand() {
+    if (!_sheet.isAttached || _sheet.size >= 0.9) return;
+    _sheet.animateTo(0.92, duration: Motion.of(context, const Duration(milliseconds: 300)), curve: Curves.easeOutCubic);
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Scaffold(
-      backgroundColor: colors.card,
-      appBar: AppBar(
-        backgroundColor: colors.card,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Padding(
-        padding: EdgeInsets.only(left: 24, right: 24, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: DraggableScrollableSheet(
+        controller: _sheet,
+        expand: false,
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        snap: true,
+        snapSizes: const [0.6],
+        snapAnimationDuration: const Duration(milliseconds: 280),
+        builder: (context, scroll) => DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(top: BorderSide(color: colors.border)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 24, offset: const Offset(0, -4))],
+          ),
+          child: ListView(
+            controller: scroll,
+            padding: EdgeInsets.fromLTRB(24, 10, 24, 24 + (keyboard > 0 ? 0 : MediaQuery.paddingOf(context).bottom)),
             children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(color: colors.muted.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  Icon(Icons.add_circle_outline_rounded, color: colors.primary, size: 22),
-                  const SizedBox(width: 10),
-                  Text(
-                    'New project',
-                    style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      'New project',
+                      style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    icon: Icon(Icons.close_rounded, color: colors.muted),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               Text(
                 'Project Title',
@@ -1063,9 +1103,29 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
               const SizedBox(height: 6),
               TextField(
                 controller: titleCtrl,
+                textInputAction: TextInputAction.next,
                 style: TextStyle(color: colors.text, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Title',
+                  hintStyle: TextStyle(color: colors.muted, fontSize: 13),
+                  fillColor: colors.surface,
+                  filled: true,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Client',
+                style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                key: const ValueKey('create_client'),
+                controller: clientCtrl,
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.words,
+                style: TextStyle(color: colors.text, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Client name',
                   hintStyle: TextStyle(color: colors.muted, fontSize: 13),
                   fillColor: colors.surface,
                   filled: true,
@@ -1093,6 +1153,7 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
               TextField(
                 controller: descCtrl,
                 maxLines: 3,
+                onTap: _expand,
                 style: TextStyle(color: colors.text, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Brief',
@@ -1114,7 +1175,7 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
                         .read(projectsProvider.notifier)
                         .createNewProject(
                           title: titleCtrl.text.trim(),
-                          clientName: clientCtrl.text.trim().isEmpty ? 'LuxeLiving Apparel' : clientCtrl.text.trim(),
+                          clientName: clientCtrl.text.trim().isEmpty ? 'Direct client' : clientCtrl.text.trim(),
                           clientPrice: double.tryParse(clientPriceCtrl.text),
                           createdBy: ref.read(authProvider).user?.id,
                           editorPayout: payout,
