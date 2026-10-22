@@ -43,7 +43,7 @@ class WaraBottomBar extends StatelessWidget {
         color: colors.surface,
         border: Border(
           top: BorderSide(
-            color: colors.border.withValues(alpha: 0.6),
+            color: colors.border,
             width: 1,
           ),
         ),
@@ -51,7 +51,7 @@ class WaraBottomBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 68,
+          height: 72,
           child: Row(
             children: List.generate(items.length, (index) {
               final item = items[index];
@@ -78,20 +78,14 @@ class WaraBottomBar extends StatelessWidget {
                             duration: const Duration(milliseconds: 240),
                             curve: Curves.easeOutCubic,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 4,
+                              horizontal: AppSpacing.lg,
+                              vertical: AppSpacing.xs,
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? colors.primary.withValues(alpha: 0.14)
+                                  ? colors.primaryTint
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected
-                                    ? colors.primary.withValues(alpha: 0.28)
-                                    : Colors.transparent,
-                                width: 1,
-                              ),
+                              borderRadius: AppRadius.brPill,
                             ),
                             child: Stack(
                               clipBehavior: Clip.none,
@@ -104,7 +98,7 @@ class WaraBottomBar extends StatelessWidget {
                                   size: 24,
                                   color: isSelected
                                       ? colors.primary
-                                      : colors.muted.withValues(alpha: 0.8),
+                                      : colors.muted,
                                 ),
                                 if (item.hasBadge)
                                   Positioned(
@@ -126,7 +120,7 @@ class WaraBottomBar extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: AppSpacing.xs),
                           Text(
                             item.label,
                             maxLines: 1,
@@ -135,13 +129,13 @@ class WaraBottomBar extends StatelessWidget {
                               context,
                             ).clamp(maxScaleFactor: 1.2),
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: isSelected
                                   ? FontWeight.w700
                                   : FontWeight.w500,
                               color: isSelected
                                   ? colors.primary
-                                  : colors.muted.withValues(alpha: 0.9),
+                                  : colors.muted,
                             ),
                           ),
                         ],

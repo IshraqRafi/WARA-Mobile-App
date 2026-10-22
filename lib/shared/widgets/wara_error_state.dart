@@ -32,36 +32,35 @@ class WaraErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final text = Theme.of(context).textTheme;
+    final badge = compact ? 48.0 : 64.0;
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(compact ? 16 : 32),
+        padding: EdgeInsets.all(compact ? AppSpacing.lg : AppSpacing.xxl),
         child: Semantics(
           liveRegion: true,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off_rounded, size: compact ? 28 : 40, color: colors.error),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.bold),
+              Container(
+                width: badge,
+                height: badge,
+                decoration: BoxDecoration(color: colors.errorTint, shape: BoxShape.circle),
+                child: Icon(Icons.cloud_off_rounded, size: badge * 0.45, color: colors.error),
               ),
-              const SizedBox(height: 6),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: colors.muted, fontSize: 12, height: 1.4),
+              const SizedBox(height: AppSpacing.lg),
+              Text(title, textAlign: TextAlign.center, style: text.titleMedium),
+              const SizedBox(height: AppSpacing.xs),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Text(message, textAlign: TextAlign.center, style: text.bodyMedium?.copyWith(color: colors.muted)),
               ),
               if (onRetry != null) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 OutlinedButton.icon(
                   onPressed: onRetry,
-                  icon: Icon(Icons.refresh_rounded, size: 18, color: colors.primary),
-                  label: Text('Retry', style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: colors.primary.withValues(alpha: 0.5)),
-                  ),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Retry'),
                 ),
               ],
             ],
