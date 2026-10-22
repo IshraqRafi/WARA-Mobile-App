@@ -92,8 +92,12 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
 
     return Scaffold(
       backgroundColor: colors.bg,
+      // Refresh wraps the whole page (not just the list below the header)
+      // so the spinner comes from the top edge, as on Workflow.
       body: SafeArea(
-        child: Column(
+        child: WaraRefresh(
+          onRefresh: () => ref.read(chatProvider.notifier).refresh(),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Top Header ───────────────────────────────────────────────
@@ -341,8 +345,6 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
 
                       // Feed ListView
                       Expanded(
-                        child: WaraRefresh(
-                        onRefresh: () => ref.read(chatProvider.notifier).refresh(),
                         child: ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                           padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.xs, AppSpacing.screenMargin(context), AppSpacing.bottomInset(context)),
@@ -468,13 +470,13 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                           ],
                         ),
                       ),
-                      ),
                     ],
                   );
                 },
               ),
             ),
           ],
+          ),
         ),
       ),
     );

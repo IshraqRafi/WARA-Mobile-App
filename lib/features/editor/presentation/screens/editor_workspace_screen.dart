@@ -161,7 +161,10 @@ class EditorWorkspaceScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
-        child: Padding(
+        // Refresh spans the page so the spinner enters from the top edge.
+        child: WaraRefresh(
+          onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
+          child: Padding(
           padding: EdgeInsets.fromLTRB(
             AppSpacing.screenMargin(context),
             AppSpacing.lg,
@@ -235,9 +238,7 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                     ? const SkeletonList(item: ProjectCardSkeleton())
                     : myProjects.isEmpty
                     ? const WaraEmptyState(icon: Icons.folder_open_outlined, title: 'No projects')
-                    : WaraRefresh(
-                        onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
-                        child: ListView.builder(
+                    : ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: EdgeInsets.only(bottom: AppSpacing.bottomInset(context)),
                         itemCount: myProjects.length,
@@ -287,10 +288,10 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                           );
                         },
                       ),
-                      ),
               ),
             ],
           ),
+        ),
         ),
       ),
     );

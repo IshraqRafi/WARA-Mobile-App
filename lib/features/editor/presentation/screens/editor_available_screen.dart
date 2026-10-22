@@ -95,7 +95,10 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
-        child: Padding(
+        // Refresh spans the page so the spinner enters from the top edge.
+        child: WaraRefresh(
+          onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
+          child: Padding(
           padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.lg, AppSpacing.screenMargin(context), 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,9 +168,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                         icon: Icons.check_circle_outline_rounded,
                         title: 'No open offers',
                       )
-                    : WaraRefresh(
-                        onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
-                        child: ListView.builder(
+                    : ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: EdgeInsets.only(bottom: AppSpacing.bottomInset(context)),
                         itemCount: availableProjects.length,
@@ -232,10 +233,10 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                           );
                         },
                       ),
-                      ),
               ),
             ],
           ),
+        ),
         ),
       ),
     );
