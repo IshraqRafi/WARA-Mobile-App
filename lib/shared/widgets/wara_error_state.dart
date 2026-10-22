@@ -40,7 +40,7 @@ class WaraErrorState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off_rounded, size: compact ? 28 : 40, color: colors.warningRed),
+              Icon(Icons.cloud_off_rounded, size: compact ? 28 : 40, color: colors.error),
               const SizedBox(height: 12),
               Text(
                 title,

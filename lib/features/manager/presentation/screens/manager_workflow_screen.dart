@@ -26,7 +26,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
         ),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: colors.warningRed, size: 24),
+            Icon(Icons.warning_amber_rounded, color: colors.error, size: 24),
             const SizedBox(width: 10),
             Text('Delete Project Offer?', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
           ],
@@ -46,16 +46,16 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: colors.isDark ? Colors.black : const Color(0xFFFEE2E2),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: colors.warningRed.withValues(alpha: 0.6)),
+                  border: Border.all(color: colors.error.withValues(alpha: 0.6)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, color: colors.warningRed, size: 16),
+                    Icon(Icons.info_outline_rounded, color: colors.error, size: 16),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Currently assigned to ${project.claimedByEditorName}. Deleting will remove it from their workspace.',
-                        style: TextStyle(color: colors.warningRed, fontSize: 11, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: colors.error, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -87,7 +87,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             icon: const Icon(Icons.delete_forever_rounded, size: 16, color: Colors.white),
             label: const Text('Delete Permanently', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: colors.warningRed,
+              backgroundColor: colors.error,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -203,11 +203,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                           Navigator.pop(ctx);
                           _showDeleteConfirmation(context, ref, project);
                         },
-                        icon: Icon(Icons.delete_outline_rounded, size: 16, color: colors.warningRed),
-                        label: Text('Delete Offer', style: TextStyle(color: colors.warningRed, fontSize: 13, fontWeight: FontWeight.bold)),
+                        icon: Icon(Icons.delete_outline_rounded, size: 16, color: colors.error),
+                        label: Text('Delete Offer', style: TextStyle(color: colors.error, fontSize: 13, fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(color: colors.warningRed.withValues(alpha: 0.5)),
+                          side: BorderSide(color: colors.error.withValues(alpha: 0.5)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -360,8 +360,8 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     Navigator.pop(ctx);
                     _showDeleteConfirmation(context, ref, project);
                   },
-                  icon: Icon(Icons.delete_outline_rounded, size: 16, color: colors.warningRed),
-                  label: Text('Delete Project Offer', style: TextStyle(color: colors.warningRed, fontSize: 13, fontWeight: FontWeight.bold)),
+                  icon: Icon(Icons.delete_outline_rounded, size: 16, color: colors.error),
+                  label: Text('Delete Project Offer', style: TextStyle(color: colors.error, fontSize: 13, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -835,7 +835,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                           color: colors.card,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: project.isOverdue ? colors.warningRed.withValues(alpha: 0.6) : colors.border,
+                            color: project.isOverdue ? colors.error.withValues(alpha: 0.6) : colors.border,
                             width: project.isOverdue ? 1.5 : 1,
                           ),
                         ),
@@ -849,16 +849,16 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                                 decoration: BoxDecoration(
                                   color: colors.isDark ? Colors.black : const Color(0xFFFEE2E2),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: colors.warningRed, width: 1.5),
+                                  border: Border.all(color: colors.error, width: 1.5),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.warning_amber_rounded, color: colors.warningRed, size: 16),
+                                    Icon(Icons.warning_amber_rounded, color: colors.error, size: 16),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
                                         '⚠️ OVERDUE - Editor Failed to Deliver Before Deadline',
-                                        style: TextStyle(color: colors.warningRed, fontSize: 11, fontWeight: FontWeight.bold),
+                                        style: TextStyle(color: colors.error, fontSize: 11, fontWeight: FontWeight.bold),
                                       ),
                                     ),
                                   ],

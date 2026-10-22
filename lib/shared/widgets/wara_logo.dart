@@ -19,8 +19,8 @@ class WaraLogo extends StatelessWidget {
     this.size = 42,
     this.borderRadius,
     this.padding,
-    this.backgroundColor = const Color(0xFF141414),
-    this.borderColor = const Color(0xFF2C2C2C),
+    this.backgroundColor = AppColors.brandInk,
+    this.borderColor = AppColors.brandInkBorder,
     this.boxShadow,
   });
 

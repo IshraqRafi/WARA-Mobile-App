@@ -1,21 +1,9 @@
-import 'package:flutter/material.dart';
-
 class AppInfo {
   static const String name = 'wara.io';
   static const String tagline = 'Media Agency Operating System';
   static const String version = 'v2.5.0';
   static const String logoPath = 'assets/wara.png';
 }
-
-// B&W Palette Constants
-const Color kBg       = Color(0xFF0A0A0A); // Deep black background
-const Color kSurface  = Color(0xFF161616); // Dark grey surface
-const Color kCard     = Color(0xFF1E1E1E); // Elevated card grey
-const Color kPrimary  = Color(0xFFFFFFFF); // Pure white primary accent
-const Color kText     = Color(0xFFF0F0F0); // Off-white main text
-const Color kMuted    = Color(0xFF757575); // Neutral grey secondary text
-const Color kBorder   = Color(0xFF2C2C2C); // Subtle border outline
-const Color kWarningRed = Color(0xFFFF4D4D); // Warning red for overdue projects
 
 enum UserRole { manager, editor }
 

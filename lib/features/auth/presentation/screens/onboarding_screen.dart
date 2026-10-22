@@ -108,7 +108,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ],
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 14),
-                    Text(_errorMessage!, style: TextStyle(color: colors.warningRed, fontSize: 12)),
+                    Text(_errorMessage!, style: TextStyle(color: colors.error, fontSize: 12)),
                   ],
                   const SizedBox(height: 24),
                   ElevatedButton(
