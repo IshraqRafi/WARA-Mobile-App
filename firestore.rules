@@ -61,7 +61,11 @@ service cloud.firestore {
         && (request.resource.data.get('agencyId', '') == resource.data.get('agencyId', '')
             || (resource.data.get('agencyId', '') == ''
                 && validMembership(uid, request.resource.data)))
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(ratingKeys());
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(ratingKeys())
+        // availability: editors only, 'available' or 'busy'.
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['availability'])
+            || (request.resource.data.get('role', '') == 'editor'
+                && request.resource.data.availability in ['available', 'busy']));
       // Managers rate editors (FirestoreService.rateEditor): rating fields only.
       allow update: if signedIn() && isManager()
         && myAgency() != '' && resource.data.get('agencyId', '') == myAgency()

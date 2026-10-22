@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/availability_badge.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -132,6 +133,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                           rating: rating,
                           ratingCount: ratingCount,
                           completedProjects: completedProjects,
+                          availability: e['availability'],
                           onRate: () {
                             showRateEditorSheet(
                               context: context,
@@ -267,6 +269,7 @@ class _EditorCard extends StatelessWidget {
   final double rating;
   final int ratingCount;
   final int completedProjects;
+  final Object? availability;
   final VoidCallback? onRate;
 
   const _EditorCard({
@@ -282,6 +285,7 @@ class _EditorCard extends StatelessWidget {
     required this.rating,
     required this.ratingCount,
     required this.completedProjects,
+    this.availability,
     this.onRate,
   });
 
@@ -380,12 +384,18 @@ class _EditorCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      name,
-                      style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Row(children: [
+                      Flexible(
+                        child: Text(
+                          name,
+                          style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      AvailabilityBadge(availability),
+                    ]),
                     const SizedBox(height: 2),
                     Text(
                       specialization,

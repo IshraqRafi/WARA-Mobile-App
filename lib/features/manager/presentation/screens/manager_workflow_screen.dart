@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/availability_badge.dart';
 import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -528,22 +529,15 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                         ),
                         title: Row(
                           children: [
-                            Text(
-                              activeEditors[i]['name'] as String? ?? 'Editor',
-                              style: TextStyle(color: colors.text, fontWeight: FontWeight.bold),
+                            Flexible(
+                              child: Text(
+                                activeEditors[i]['name'] as String? ?? 'Editor',
+                                style: TextStyle(color: colors.text, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: colors.successTint,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'Online',
-                                style: TextStyle(color: colors.success, fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            ),
+                            AvailabilityBadge(activeEditors[i]['availability']),
                           ],
                         ),
                         subtitle: Text(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/profile_scorecard.dart';
+import '../widgets/availability_toggle.dart';
+import '../../../../shared/widgets/wara_error_state.dart';
+import '../../../../shared/widgets/availability_badge.dart';
 import '../../../projects/domain/project_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -365,11 +368,26 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
               const SizedBox(height: 14),
               Builder(builder: (context) {
                 final me = ref.watch(myProfileProvider).value ?? const {};
-                return ProfileScorecard(
-                  score: EditorScore.of(ref.watch(projectsProvider), user?.id),
-                  rating: (me['rating'] as num?)?.toDouble() ?? 0,
-                  ratingCount: (me['ratingCount'] as num?)?.toInt() ?? 0,
-                );
+                final available = parseAvailability(me['availability']) != Availability.busy;
+                return Column(children: [
+                  ProfileScorecard(
+                    score: EditorScore.of(ref.watch(projectsProvider), user?.id),
+                    rating: (me['rating'] as num?)?.toDouble() ?? 0,
+                    ratingCount: (me['ratingCount'] as num?)?.toInt() ?? 0,
+                  ),
+                  const SizedBox(height: 14),
+                  AvailabilityToggle(
+                    available: available,
+                    onChanged: user == null
+                        ? null
+                        : (v) => ref.read(firestoreServiceProvider).updateUserProfile(
+                            user.id, {'availability': v ? 'available' : 'busy'}).catchError((Object e) {
+                              if (context.mounted) {
+                                WaraToast.show(context, message: friendlyErrorMessage(e), icon: Icons.error_outline_rounded);
+                              }
+                            }),
+                  ),
+                ]);
               }),
               const SizedBox(height: 20),
               const AgencyLeaderboardCard(),

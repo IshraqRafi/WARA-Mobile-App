@@ -117,3 +117,14 @@ test('revisionChecks: claimed editor or manager only', async () => {
   await assertSucceeds(updateDoc(doc(as('eA'), 'projects/p1'), { revisionChecks: [0, 1] }));
   await assertSucceeds(updateDoc(doc(as('mA'), 'projects/p1'), { revisionNotes: 'x', revisionChecks: [] }));
 });
+
+test('availability: editor sets own to available/busy; nobody else', async () => {
+  await assertSucceeds(updateDoc(doc(as('eA'), 'users/eA'), { availability: 'busy' }));
+  await assertSucceeds(updateDoc(doc(as('eA'), 'users/eA'), { availability: 'available' }));
+  await assertFails(updateDoc(doc(as('eA'), 'users/eA'), { availability: 'away' }));
+  await assertFails(updateDoc(doc(as('eA'), 'users/eA'), { availability: true }));
+  await assertFails(updateDoc(doc(as('eA2'), 'users/eA'), { availability: 'busy' }));
+  await assertFails(updateDoc(doc(as('mA'), 'users/eA'), { availability: 'busy' }));
+  await assertFails(updateDoc(doc(as('mA'), 'users/mA'), { availability: 'busy' }));
+  await assertFails(updateDoc(doc(as('eA'), 'users/eA'), { availability: 'busy', rating: 5 }));
+});
