@@ -1,16 +1,13 @@
-import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
+import '../widgets/wara_page_header.dart';
 import 'motion.dart';
 
-/// Pinned sliver header that collapses as the list scrolls: the leading
-/// logo shrinks and drifts at a slower rate than the content (light
-/// parallax), the title scales down, and a hairline appears once collapsed.
-/// Scroll-driven only, so it costs nothing while idle. Under reduce-motion it
-/// stays pinned at the compact size with no parallax.
+/// Pinned sliver version of [WaraPageHeader]: the logo shrinks slightly, the
+/// subtitle folds away and a hairline appears as the list scrolls.
+/// Scroll-driven only. Under reduce-motion it stays at the compact size.
 class CollapsingHeader extends StatelessWidget {
-  final Widget Function(double size) leading;
   final String title;
-  final TextStyle? titleStyle;
+  final String? subtitle;
   final Widget? trailing;
   final Color background;
   final Color divider;
@@ -18,16 +15,15 @@ class CollapsingHeader extends StatelessWidget {
 
   const CollapsingHeader({
     super.key,
-    required this.leading,
     required this.title,
     required this.background,
     required this.divider,
-    this.titleStyle,
+    this.subtitle,
     this.trailing,
     this.padding = EdgeInsets.zero,
   });
 
-  static const double expanded = 84;
+  static const double expanded = 76;
   static const double collapsed = 60;
 
   @override
@@ -55,7 +51,6 @@ class _Delegate extends SliverPersistentHeaderDelegate {
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     final range = maxExtent - minExtent;
     final t = reduced || range <= 0 ? 1.0 : (shrinkOffset / range).clamp(0.0, 1.0);
-    final logo = lerpDouble(42, 32, t)!;
     return RepaintBoundary(
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -64,23 +59,8 @@ class _Delegate extends SliverPersistentHeaderDelegate {
         ),
         child: Padding(
           padding: h.padding,
-          child: Row(
-            children: [
-              // Parallax: the logo lags the collapse slightly.
-              Transform.translate(offset: Offset(0, (1 - t) * -4 + shrinkOffset.clamp(0, range) * 0.08), child: h.leading(logo)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Transform.scale(
-                    scale: lerpDouble(1, 0.86, t)!,
-                    alignment: Alignment.centerLeft,
-                    child: Text(h.title, style: h.titleStyle, maxLines: 1),
-                  ),
-                ),
-              ),
-              if (h.trailing != null) h.trailing!,
-            ],
+          child: Center(
+            child: WaraPageHeader(title: h.title, subtitle: h.subtitle, trailing: h.trailing, collapse: t),
           ),
         ),
       ),
@@ -89,5 +69,11 @@ class _Delegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_Delegate old) =>
-      old.h != h || old.reduced != reduced || old.textScale != textScale;
+      old.h.title != h.title ||
+      old.h.subtitle != h.subtitle ||
+      old.h.trailing != h.trailing ||
+      old.h.background != h.background ||
+      old.h.divider != h.divider ||
+      old.reduced != reduced ||
+      old.textScale != textScale;
 }

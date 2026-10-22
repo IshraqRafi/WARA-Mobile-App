@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:demo_app/shared/motion/collapsing_header.dart';
+import 'package:demo_app/core/theme/app_theme.dart';
+import 'package:demo_app/shared/widgets/wara_logo.dart';
 
 Widget _app({bool reduce = false}) => MaterialApp(
+      theme: AppTheme.dark,
       home: MediaQuery(
         data: MediaQueryData(disableAnimations: reduce, size: const Size(400, 800)),
         child: Scaffold(
           body: CustomScrollView(slivers: [
             CollapsingHeader(
-              leading: (s) => SizedBox(key: const ValueKey('logo'), width: s, height: s),
-              title: 'wara.io',
+              title: 'Workflow',
+              subtitle: 'Studio',
               background: Colors.black,
               divider: Colors.grey,
             ),
@@ -22,15 +25,15 @@ Widget _app({bool reduce = false}) => MaterialApp(
 void main() {
   testWidgets('header collapses and logo shrinks on scroll', (tester) async {
     await tester.pumpWidget(_app());
-    expect(tester.getSize(find.byKey(const ValueKey('logo'))).width, 42);
+    expect(tester.getSize(find.byType(WaraLogo)).width, 40);
     await tester.drag(find.text('row 2'), const Offset(0, -300));
     await tester.pump();
-    expect(tester.getSize(find.byKey(const ValueKey('logo'))).width, 32);
-    expect(find.text('wara.io'), findsOneWidget); // pinned
+    expect(tester.getSize(find.byType(WaraLogo)).width, 34);
+    expect(find.text('Workflow'), findsOneWidget); // pinned
   });
 
   testWidgets('reduced motion: compact and static from the start', (tester) async {
     await tester.pumpWidget(_app(reduce: true));
-    expect(tester.getSize(find.byKey(const ValueKey('logo'))).width, 32);
+    expect(tester.getSize(find.byType(WaraLogo)).width, 34);
   });
 }

@@ -7,6 +7,9 @@ import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import '../../../../shared/widgets/wara_status_chip.dart';
 import '../../../projects/domain/project_provider.dart';
+import '../../../auth/domain/auth_provider.dart';
+import '../../../notifications/presentation/widgets/notification_center_modal.dart';
+import '../../../../shared/widgets/wara_page_header.dart';
 
 class ManagerFinanceScreen extends ConsumerWidget {
   const ManagerFinanceScreen({super.key});
@@ -34,7 +37,11 @@ class ManagerFinanceScreen extends ConsumerWidget {
         child: ListView(
           padding: EdgeInsets.fromLTRB(m, AppSpacing.lg, m, AppSpacing.bottomInset(context)),
           children: [
-            Text('Finance', style: text.titleLarge?.copyWith(color: colors.text, fontWeight: FontWeight.w700)),
+            WaraPageHeader(
+              title: 'Finance',
+              subtitle: ref.watch(authProvider.select((s) => s.user?.agencyName)),
+              trailing: const NotificationBellButton(),
+            ),
             const SizedBox(height: AppSpacing.lg),
 
             // ── Hero total ──────────────────────────────────────────────

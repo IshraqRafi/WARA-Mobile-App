@@ -5,9 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
-import '../../../../shared/widgets/wara_logo.dart';
+import '../../../../shared/widgets/wara_page_header.dart';
 import '../../../../shared/widgets/wara_project_card.dart';
 import '../../../notifications/presentation/widgets/notification_center_modal.dart';
+import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../widgets/rate_editor_dialog.dart';
 
@@ -60,16 +61,10 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const WaraLogo(),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Text('Pending', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      const NotificationBellButton(),
-                    ],
+                  WaraPageHeader(
+                    title: 'Pending',
+                    subtitle: ref.watch(authProvider.select((s) => s.user?.agencyName)),
+                    trailing: const NotificationBellButton(),
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Text('PIPELINE VALUE', style: text.labelMedium?.copyWith(letterSpacing: 0.8)),

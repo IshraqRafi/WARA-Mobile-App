@@ -7,7 +7,6 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
-import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_project_card.dart';
 import '../../../../shared/widgets/wara_section_header.dart';
 import '../../../../shared/widgets/wara_stat_strip.dart';
@@ -693,7 +692,6 @@ class ManagerWorkflowScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
-    final text = Theme.of(context).textTheme;
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
     if (projectsError != null && projects.isEmpty) {
@@ -715,9 +713,8 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                         physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             CollapsingHeader(
-              leading: (size) => WaraLogo(size: size),
-              title: 'wara.io',
-              titleStyle: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5),
+              title: 'Workflow',
+              subtitle: ref.watch(authProvider.select((s) => s.user?.agencyName)),
               trailing: const NotificationBellButton(),
               background: colors.bg,
               divider: colors.border,

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
-import '../../../../shared/widgets/wara_logo.dart';
+import '../../../../shared/widgets/wara_page_header.dart';
 import '../../../../shared/widgets/wara_section_header.dart';
 import '../../../../shared/widgets/wara_theme_toggle.dart';
 import '../../../../shared/widgets/wara_toast.dart';
@@ -167,27 +167,10 @@ class ManagerSettingsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with Sun/Moon Theme Toggle
-              Row(
-                children: [
-                  const WaraLogo(),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Agency OS Settings', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(
-                          '${(user?.agencyName ?? '').isNotEmpty ? user!.agencyName : "Your agency"} • Manager Controls',
-                          style: TextStyle(color: colors.muted, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const WaraThemeToggle(),
-                ],
+              WaraPageHeader(
+                title: 'Settings',
+                subtitle: (user?.agencyName ?? '').isNotEmpty ? user!.agencyName : null,
+                trailing: const WaraThemeToggle(),
               ),
               const SizedBox(height: 24),
 
