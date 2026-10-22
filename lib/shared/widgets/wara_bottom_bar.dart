@@ -4,20 +4,23 @@ import '../../core/theme/app_theme.dart';
 class WaraNavItem {
   final IconData icon;
   final IconData? selectedIcon;
+  final String label;
   final bool hasBadge;
   final String? tooltip;
 
   const WaraNavItem({
     required this.icon,
+    required this.label,
     this.selectedIcon,
     this.hasBadge = false,
     this.tooltip,
   });
 }
 
-/// A sleek, textless, icon-only bottom navigation dock engineered for WARA.
+/// Bottom navigation dock for WARA: icon plus a short visible label,
+/// with tooltip and screen-reader semantics on every tab.
 ///
-/// Features animated pill highlights, zero text clutter, theme-adaptive surfaces,
+/// Features animated pill highlights, theme-adaptive surfaces,
 /// and safe-area compliance across both Editor and Manager shells.
 class WaraBottomBar extends StatelessWidget {
   final int selectedIndex;
@@ -48,64 +51,99 @@ class WaraBottomBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 62,
+          height: 68,
           child: Row(
             children: List.generate(items.length, (index) {
               final item = items[index];
               final isSelected = selectedIndex == index;
 
               return Expanded(
-                child: InkResponse(
-                  onTap: () => onItemSelected(index),
-                  containedInkWell: true,
-                  highlightColor: Colors.transparent,
-                  splashColor: colors.primary.withValues(alpha: 0.12),
-                  radius: 28,
-                  child: Center(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 240),
-                      curve: Curves.easeOutCubic,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? colors.primary.withValues(alpha: 0.14)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected
-                              ? colors.primary.withValues(alpha: 0.28)
-                              : Colors.transparent,
-                          width: 1,
-                        ),
-                      ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.center,
+                child: Semantics(
+                  button: true,
+                  selected: isSelected,
+                  label: '${item.label} tab',
+                  excludeSemantics: true,
+                  child: Tooltip(
+                    message: item.tooltip ?? item.label,
+                    child: InkResponse(
+                      onTap: () => onItemSelected(index),
+                      containedInkWell: true,
+                      highlightColor: Colors.transparent,
+                      splashColor: colors.primary.withValues(alpha: 0.12),
+                      radius: 28,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            isSelected ? (item.selectedIcon ?? item.icon) : item.icon,
-                            size: 24,
-                            color: isSelected
-                                ? colors.primary
-                                : colors.muted.withValues(alpha: 0.8),
-                          ),
-                          if (item.hasBadge)
-                            Positioned(
-                              top: -2,
-                              right: -2,
-                              child: Container(
-                                width: 7,
-                                height: 7,
-                                decoration: BoxDecoration(
-                                  color: colors.primary,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: colors.surface,
-                                    width: 1.5,
-                                  ),
-                                ),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 240),
+                            curve: Curves.easeOutCubic,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? colors.primary.withValues(alpha: 0.14)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected
+                                    ? colors.primary.withValues(alpha: 0.28)
+                                    : Colors.transparent,
+                                width: 1,
                               ),
                             ),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              alignment: Alignment.center,
+                              children: [
+                                Icon(
+                                  isSelected
+                                      ? (item.selectedIcon ?? item.icon)
+                                      : item.icon,
+                                  size: 24,
+                                  color: isSelected
+                                      ? colors.primary
+                                      : colors.muted.withValues(alpha: 0.8),
+                                ),
+                                if (item.hasBadge)
+                                  Positioned(
+                                    top: -2,
+                                    right: -2,
+                                    child: Container(
+                                      width: 7,
+                                      height: 7,
+                                      decoration: BoxDecoration(
+                                        color: colors.primary,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: colors.surface,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textScaler: MediaQuery.textScalerOf(
+                              context,
+                            ).clamp(maxScaleFactor: 1.2),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? colors.primary
+                                  : colors.muted.withValues(alpha: 0.9),
+                            ),
+                          ),
                         ],
                       ),
                     ),

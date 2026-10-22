@@ -134,18 +134,22 @@ class _EditorShell extends StatelessWidget {
         items: const [
           WaraNavItem(
             icon: Icons.storefront_outlined,
+            label: 'Marketplace',
             selectedIcon: Icons.storefront_rounded,
           ),
           WaraNavItem(
             icon: Icons.work_outline_rounded,
+            label: 'Workspace',
             selectedIcon: Icons.work_rounded,
           ),
           WaraNavItem(
             icon: Icons.chat_bubble_outline_rounded,
+            label: 'Messages',
             selectedIcon: Icons.chat_bubble_rounded,
           ),
           WaraNavItem(
             icon: Icons.person_outline_rounded,
+            label: 'Settings',
             selectedIcon: Icons.person_rounded,
           ),
         ],
@@ -170,22 +174,27 @@ class _ManagerShell extends StatelessWidget {
         items: const [
           WaraNavItem(
             icon: Icons.dashboard_outlined,
+            label: 'Workflow',
             selectedIcon: Icons.dashboard_rounded,
           ),
           WaraNavItem(
             icon: Icons.hourglass_top_outlined,
+            label: 'Pending',
             selectedIcon: Icons.hourglass_top_rounded,
           ),
           WaraNavItem(
             icon: Icons.account_balance_outlined,
+            label: 'Finance',
             selectedIcon: Icons.account_balance_rounded,
           ),
           WaraNavItem(
             icon: Icons.chat_bubble_outline_rounded,
+            label: 'Messages',
             selectedIcon: Icons.chat_bubble_rounded,
           ),
           WaraNavItem(
             icon: Icons.admin_panel_settings_outlined,
+            label: 'Settings',
             selectedIcon: Icons.admin_panel_settings_rounded,
           ),
         ],
