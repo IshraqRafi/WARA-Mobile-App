@@ -105,7 +105,7 @@ class ChatMemberStrip extends ConsumerWidget {
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: Colors.greenAccent,
+                              color: colors.success,
                               shape: BoxShape.circle,
                               border: Border.all(color: colors.surface, width: 2),
                             ),

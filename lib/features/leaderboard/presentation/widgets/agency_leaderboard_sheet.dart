@@ -48,10 +48,10 @@ Future<void> showAgencyLeaderboardModal(BuildContext context, WidgetRef ref) {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.15),
+                    color: AppColors.star.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 24),
+                  child: const Icon(Icons.emoji_events_rounded, color: AppColors.star, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -251,8 +251,8 @@ class _LeaderboardRow extends StatelessWidget {
           height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.amber.withValues(alpha: 0.2),
-            border: Border.all(color: Colors.amber, width: 1.5),
+            color: AppColors.star.withValues(alpha: 0.2),
+            border: Border.all(color: AppColors.star, width: 1.5),
           ),
           child: const Center(
             child: Text('🥇', style: TextStyle(fontSize: 16)),
@@ -265,8 +265,8 @@ class _LeaderboardRow extends StatelessWidget {
           height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.blueGrey.withValues(alpha: 0.2),
-            border: Border.all(color: Colors.blueGrey.shade300, width: 1.5),
+            color: AppColors.medalSilver.withValues(alpha: 0.2),
+            border: Border.all(color: AppColors.medalSilver, width: 1.5),
           ),
           child: const Center(
             child: Text('🥈', style: TextStyle(fontSize: 16)),
@@ -279,8 +279,8 @@ class _LeaderboardRow extends StatelessWidget {
           height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.brown.withValues(alpha: 0.2),
-            border: Border.all(color: Colors.brown.shade300, width: 1.5),
+            color: AppColors.medalBronze.withValues(alpha: 0.2),
+            border: Border.all(color: AppColors.medalBronze, width: 1.5),
           ),
           child: const Center(
             child: Text('🥉', style: TextStyle(fontSize: 16)),
@@ -373,18 +373,18 @@ class _LeaderboardRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.12),
+              color: AppColors.star.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              border: Border.all(color: AppColors.star.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                const Icon(Icons.star_rounded, color: AppColors.star, size: 14),
                 const SizedBox(width: 3),
                 Text(
                   rating.toStringAsFixed(1),
-                  style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: AppColors.star, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -461,10 +461,10 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.15),
+                      color: AppColors.star.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 20),
+                    child: const Icon(Icons.emoji_events_rounded, color: AppColors.star, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -521,8 +521,8 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                           myRank != null ? '#$myRank' : 'Unranked',
                           style: TextStyle(
                             color: myRank == 1
-                                ? Colors.amber
-                                : (myRank == 2 ? Colors.blueGrey.shade300 : (myRank == 3 ? Colors.brown.shade300 : colors.text)),
+                                ? AppColors.star
+                                : (myRank == 2 ? AppColors.medalSilver : (myRank == 3 ? AppColors.medalBronze : colors.text)),
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -537,7 +537,7 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                            const Icon(Icons.star_rounded, color: AppColors.star, size: 16),
                             const SizedBox(width: 3),
                             Text(
                               myRating.toStringAsFixed(1),
@@ -602,11 +602,11 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star_rounded, color: Colors.amber, size: 12),
+                              const Icon(Icons.star_rounded, color: AppColors.star, size: 12),
                               const SizedBox(width: 2),
                               Text(
                                 rat.toStringAsFixed(1),
-                                style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                                style: const TextStyle(color: AppColors.star, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(width: 8),
                               Text('$cp cuts', style: TextStyle(color: colors.muted, fontSize: 11)),

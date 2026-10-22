@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
+import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_logo.dart';
+import '../../../../shared/widgets/wara_section_header.dart';
 import '../../../../shared/widgets/wara_theme_toggle.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
@@ -94,29 +96,11 @@ class ManagerSettingsScreen extends ConsumerWidget {
                       return ListView(
                         controller: scrollController,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: colors.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: colors.border),
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(Icons.people_outline_rounded, color: colors.muted, size: 36),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'No editors in this room yet',
-                                  style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Share your Agency Join Key with editors. Once they enter your room, their live profiles will appear here.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: colors.muted, fontSize: 12, height: 1.4),
-                                ),
-                              ],
-                            ),
+                          const WaraEmptyState(
+                            compact: true,
+                            icon: Icons.people_outline_rounded,
+                            title: 'No editors yet',
+                            message: 'Share your agency join key with editors. Their profiles appear here once they join.',
                           ),
                         ],
                       );
@@ -179,7 +163,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
       backgroundColor: colors.bg,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.lg, AppSpacing.screenMargin(context), AppSpacing.bottomInset(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -285,15 +269,15 @@ class ManagerSettingsScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.15),
+                            color: colors.successTint,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle)),
+                              Container(width: 6, height: 6, decoration: BoxDecoration(color: colors.success, shape: BoxShape.circle)),
                               const SizedBox(width: 5),
-                              const Text('Active Room', style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                              Text('Active', style: TextStyle(color: colors.success, fontSize: 12, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
@@ -424,71 +408,40 @@ class ManagerSettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              Text('AGENCY MANAGEMENT OPTIONS', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
-              const SizedBox(height: 12),
-
-              _SettingsTile(
-                icon: Icons.people_outline_rounded,
-                title: 'Editor & Staff Team Seats',
-                subtitle: 'View live registered creative editors in Firestore',
-                onTap: () => _showTeamModal(context, ref),
-              ),
-              _SettingsTile(
-                icon: Icons.emoji_events_outlined,
-                title: 'Agency Creative Leaderboard',
-                subtitle: 'Track editor rankings, star ratings, and project outputs',
-                onTap: () => showAgencyLeaderboardModal(context, ref),
-              ),
-              const SizedBox(height: 28),
-
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => ref.read(authProvider.notifier).logout(),
-                  icon: Icon(Icons.logout_rounded, color: colors.muted, size: 18),
-                  label: Text('Sign Out of Manager Dashboard', style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: BorderSide(color: colors.border),
-                    backgroundColor: colors.surface,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              WaraSectionCard(
+                title: 'Agency',
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.people_outline_rounded),
+                    title: const Text('Team'),
+                    subtitle: const Text('Editors registered in your agency'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => _showTeamModal(context, ref),
                   ),
-                ),
+                  ListTile(
+                    leading: const Icon(Icons.emoji_events_outlined),
+                    title: const Text('Leaderboard'),
+                    subtitle: const Text('Editor rankings, ratings and output'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => showAgencyLeaderboardModal(context, ref),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              WaraSectionCard(
+                title: 'Account',
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.logout_rounded, color: colors.error),
+                    title: Text('Log out', style: TextStyle(color: colors.error, fontWeight: FontWeight.w600)),
+                    onTap: () => ref.read(authProvider.notifier).logout(),
+                  ),
+                ],
               ),
               const SizedBox(height: 30),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _SettingsTile({required this.icon, required this.title, required this.subtitle, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: colors.border)),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: colors.border)),
-          child: Icon(icon, color: colors.text, size: 20),
-        ),
-        title: Text(title, style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: TextStyle(color: colors.muted, fontSize: 12)),
-        trailing: Icon(Icons.chevron_right_rounded, color: colors.muted, size: 20),
       ),
     );
   }
@@ -534,16 +487,16 @@ class _EditorCard extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: Colors.amber.withValues(alpha: 0.18),
+            color: AppColors.star.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+            border: Border.all(color: AppColors.star.withValues(alpha: 0.5)),
           ),
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('🥇', style: TextStyle(fontSize: 12)),
               SizedBox(width: 4),
-              Text('#1 Leader', style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text('#1 Leader', style: TextStyle(color: AppColors.star, fontSize: 10, fontWeight: FontWeight.bold)),
             ],
           ),
         );
@@ -552,16 +505,16 @@ class _EditorCard extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: Colors.blueGrey.withValues(alpha: 0.18),
+            color: AppColors.medalSilver.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blueGrey.shade300.withValues(alpha: 0.5)),
+            border: Border.all(color: AppColors.medalSilver.withValues(alpha: 0.5)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('🥈', style: TextStyle(fontSize: 12)),
               const SizedBox(width: 4),
-              Text('#2 Top', style: TextStyle(color: Colors.blueGrey.shade200, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text('#2 Top', style: TextStyle(color: AppColors.medalSilver, fontSize: 10, fontWeight: FontWeight.bold)),
             ],
           ),
         );
@@ -570,16 +523,16 @@ class _EditorCard extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: Colors.brown.withValues(alpha: 0.18),
+            color: AppColors.medalBronze.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.brown.shade300.withValues(alpha: 0.5)),
+            border: Border.all(color: AppColors.medalBronze.withValues(alpha: 0.5)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('🥉', style: TextStyle(fontSize: 12)),
               const SizedBox(width: 4),
-              Text('#3 Rising', style: TextStyle(color: Colors.brown.shade200, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text('#3 Rising', style: TextStyle(color: AppColors.medalBronze, fontSize: 10, fontWeight: FontWeight.bold)),
             ],
           ),
         );
@@ -660,18 +613,18 @@ class _EditorCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.12),
+                  color: AppColors.star.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                  border: Border.all(color: AppColors.star.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                    const Icon(Icons.star_rounded, color: AppColors.star, size: 14),
                     const SizedBox(width: 4),
                     Text(
                       rating.toStringAsFixed(1),
-                      style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: AppColors.star, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       ' ($ratingCount)',
@@ -789,14 +742,14 @@ class _EditorCard extends StatelessWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: onRate,
-                icon: const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                icon: const Icon(Icons.star_rounded, color: AppColors.star, size: 16),
                 label: Text(
                   'Rate & Review Editor',
                   style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  side: BorderSide(color: Colors.amber.withValues(alpha: 0.4)),
+                  side: BorderSide(color: AppColors.star.withValues(alpha: 0.4)),
                   backgroundColor: colors.card,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),

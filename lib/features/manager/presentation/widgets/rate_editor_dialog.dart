@@ -75,10 +75,10 @@ Future<void> showRateEditorSheet({
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.15),
+                          color: AppColors.star.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.star_rounded, color: Colors.amber, size: 22),
+                        child: const Icon(Icons.star_rounded, color: AppColors.star, size: 22),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -167,7 +167,7 @@ Future<void> showRateEditorSheet({
                                   duration: const Duration(milliseconds: 150),
                                   child: Icon(
                                     isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-                                    color: isFilled ? Colors.amber : colors.muted.withValues(alpha: 0.5),
+                                    color: isFilled ? AppColors.star : colors.muted.withValues(alpha: 0.5),
                                     size: 38,
                                   ),
                                 ),
@@ -179,7 +179,7 @@ Future<void> showRateEditorSheet({
                         Text(
                           getRatingLabel(selectedRating),
                           style: TextStyle(
-                            color: Colors.amber.shade400,
+                            color: AppColors.star,
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.3,

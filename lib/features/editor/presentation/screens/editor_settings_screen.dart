@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/wara_section_header.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_theme_toggle.dart';
@@ -215,7 +216,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
       backgroundColor: colors.bg,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.lg, AppSpacing.screenMargin(context), AppSpacing.bottomInset(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -344,15 +345,15 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.15),
+                        color: colors.successTint,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle)),
+                          Container(width: 6, height: 6, decoration: BoxDecoration(color: colors.success, shape: BoxShape.circle)),
                           const SizedBox(width: 4),
-                          const Text('Joined', style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Text('Joined', style: TextStyle(color: colors.success, fontSize: 12, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -438,8 +439,9 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                     const SizedBox(height: 16),
                     Text('Active Working Days', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      spacing: AppSpacing.xs,
+                      runSpacing: AppSpacing.sm,
                       children: _allDays.map((day) {
                         final isActive = currentDays.contains(day);
                         return GestureDetector(
@@ -454,8 +456,8 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            width: 38,
-                            height: 38,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: isActive ? colors.primary : colors.surface,
                               shape: BoxShape.circle,
@@ -480,20 +482,15 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Sign Out Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => ref.read(authProvider.notifier).logout(),
-                  icon: Icon(Icons.logout_rounded, color: colors.muted, size: 18),
-                  label: Text('Sign Out of Editor Portal', style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: BorderSide(color: colors.border),
-                    backgroundColor: colors.surface,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              WaraSectionCard(
+                title: 'Account',
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.logout_rounded, color: colors.error),
+                    title: Text('Log out', style: TextStyle(color: colors.error, fontWeight: FontWeight.w600)),
+                    onTap: () => ref.read(authProvider.notifier).logout(),
                   ),
-                ),
+                ],
               ),
               const SizedBox(height: 30),
             ],

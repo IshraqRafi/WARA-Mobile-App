@@ -54,7 +54,7 @@ class NotificationBellButton extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.redAccent,
+                  color: colors.error,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: colors.bg, width: 1.5),
                 ),
@@ -110,22 +110,22 @@ class _NotificationCenterSheet extends ConsumerWidget {
     }
   }
 
-  Color _colorForType(NotificationType type) {
+  Color _colorForType(NotificationType type, AppColors c) {
     switch (type) {
       case NotificationType.projectNew:
-        return Colors.orangeAccent;
+        return c.warning;
       case NotificationType.projectClaimed:
-        return Colors.blueAccent;
+        return c.info;
       case NotificationType.submissionReceived:
-        return Colors.cyanAccent;
+        return c.primary;
       case NotificationType.projectApproved:
-        return Colors.greenAccent;
+        return c.success;
       case NotificationType.revisionRequested:
-        return Colors.amberAccent;
+        return c.warning;
       case NotificationType.ratingReceived:
-        return const Color(0xFFFFD700); // Gold
+        return AppColors.star;
       case NotificationType.chatMessage:
-        return Colors.indigoAccent;
+        return c.info;
     }
   }
 
@@ -228,7 +228,7 @@ class _NotificationCenterSheet extends ConsumerWidget {
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final notif = notifications[index];
-                      final iconColor = _colorForType(notif.type);
+                      final iconColor = _colorForType(notif.type, colors);
 
                       return InkWell(
                         onTap: () {

@@ -42,6 +42,11 @@ class AppColors extends ThemeExtension<AppColors> {
   Color get onPrimary => isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
 
   /// Fixed brand surface behind the logo (dark in both themes).
+  /// Rating star and leaderboard medal colours (identical in both themes).
+  static const Color star = Color(0xFFF5B301);
+  static const Color medalGold = Color(0xFFF5B301);
+  static const Color medalSilver = Color(0xFF9AA5B1);
+  static const Color medalBronze = Color(0xFFB7794B);
   static const Color brandInk = Color(0xFF141414);
   static const Color brandInkBorder = Color(0xFF2C2C2C);
 
