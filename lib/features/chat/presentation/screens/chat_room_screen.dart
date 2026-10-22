@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -33,6 +34,10 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   final TextEditingController _msgCtrl = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isSending = false;
+
+  /// Message ids present on first load; only messages after that spring in.
+  Set<String>? _historyIds;
+  final Set<String> _sprung = {};
 
   @override
   void initState() {
@@ -179,6 +184,16 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     final currentUser = ref.watch(authProvider.select((s) => s.user));
     final chatState = ref.watch(chatProvider);
     final messages = chatState.messagesMap[widget.conversationId] ?? [];
+    if (_historyIds == null && chatState.messagesMap.containsKey(widget.conversationId)) {
+      _historyIds = {for (final m in messages) m.id};
+    }
+    final myId = currentUser?.id ?? '';
+    final convo = chatState.conversations.where((c) => c.id == widget.conversationId).firstOrNull;
+    final seen = convo != null &&
+        messages.isNotEmpty &&
+        messages.last.isMe(myId) &&
+        convo.lastSenderId == myId &&
+        convo.readBy.any((id) => id != myId);
     final roomError = chatState.roomErrors[widget.conversationId];
     final isChannel = widget.type == ConversationType.channel;
 
@@ -292,10 +307,37 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                         // Check if previous message is from same sender to group avatars
                         final isFirstInGroup = index == 0 || messages[index - 1].senderId != msg.senderId;
 
-                        return ChatBubble(
-                          message: msg,
-                          isMe: isMe,
-                          showAvatar: isFirstInGroup,
+                        final fresh = _historyIds != null && !_historyIds!.contains(msg.id) && _sprung.add(msg.id);
+                        final bubble = MessageSpringIn(
+                          key: ValueKey('msg_${msg.id}'),
+                          animate: fresh,
+                          fromRight: isMe,
+                          child: ChatBubble(
+                            message: msg,
+                            isMe: isMe,
+                            showAvatar: isFirstInGroup,
+                          ),
+                        );
+                        if (index != messages.length - 1 || !seen) return bubble;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            bubble,
+                            FadeInOnce(
+                              key: const ValueKey('seen'),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(0, 2, AppSpacing.md, 0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.done_all_rounded, size: 14, color: colors.primary),
+                                    const SizedBox(width: 4),
+                                    Text('Seen', style: TextStyle(color: colors.muted, fontSize: 11)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),
