@@ -8,14 +8,21 @@ import '../../../../shared/widgets/wara_error_state.dart';
 import '../../../../shared/widgets/wara_status_chip.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../../../auth/domain/auth_provider.dart';
-import '../../../notifications/presentation/widgets/notification_center_modal.dart';
+import '../widgets/finance_margin_hero.dart';
 import '../../../../shared/widgets/wara_page_header.dart';
 
-class ManagerFinanceScreen extends ConsumerWidget {
+class ManagerFinanceScreen extends ConsumerStatefulWidget {
   const ManagerFinanceScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ManagerFinanceScreen> createState() => _ManagerFinanceScreenState();
+}
+
+class _ManagerFinanceScreenState extends ConsumerState<ManagerFinanceScreen> {
+  DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+
+  @override
+  Widget build(BuildContext context) {
     final colors = context.colors;
     final text = Theme.of(context).textTheme;
     final projects = ref.watch(projectsProvider);
@@ -40,7 +47,15 @@ class ManagerFinanceScreen extends ConsumerWidget {
             WaraPageHeader(
               title: 'Finance',
               subtitle: ref.watch(authProvider.select((s) => s.user?.agencyName)),
-              trailing: const NotificationBellButton(),
+              trailing: FinanceMonthSwitcher(month: _month, onChanged: (m) => setState(() => _month = m)),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // ── Net margin for the selected month ────────────────────────
+            FinanceMarginHero(
+              month: _month,
+              current: MonthlyMargin.of(projects, finance, _month),
+              previous: MonthlyMargin.of(projects, finance, DateTime(_month.year, _month.month - 1)),
             ),
             const SizedBox(height: AppSpacing.lg),
 
