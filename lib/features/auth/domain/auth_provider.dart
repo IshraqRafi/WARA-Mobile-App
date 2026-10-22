@@ -257,32 +257,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return (success: false, error: 'Please enter both email and password.');
     }
 
-    // 1. Check Demo Accounts First for instant testing convenience
-    if (cleanEmail == 'manager@gmail.com' && cleanPassword == 'manager') {
-      final session = _buildSessionForRole(
-        UserRole.manager,
-        agencyName: 'Wara Media Group',
-        agencyId: 'agency_demo_wara',
-        agencyJoinKey: 'WARA-7742',
-        isProfileComplete: true,
-      );
-      await _persistSession(session);
-      state = AuthState(isAuthenticated: true, user: session);
-      return (success: true, error: null);
-    } else if (cleanEmail == 'editor@gmail.com' && cleanPassword == 'editor') {
-      final session = _buildSessionForRole(
-        UserRole.editor,
-        agencyName: 'Wara Media Group',
-        agencyId: 'agency_demo_wara',
-        agencyJoinKey: 'WARA-7742',
-        isProfileComplete: true,
-      );
-      await _persistSession(session);
-      state = AuthState(isAuthenticated: true, user: session);
-      return (success: true, error: null);
-    }
-
-    // 2. Real Cloud Firebase Auth
+    // Demo accounts are real Firebase Auth users (see DEMO_SETUP.md); no
+    // credentials live in the app, so they go through the same path as everyone.
+    // Firebase email/password sign-in
     try {
       final userCred = await _auth.signInWithEmailAndPassword(
         email: cleanEmail,
