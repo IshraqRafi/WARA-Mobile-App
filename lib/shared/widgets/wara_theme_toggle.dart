@@ -26,9 +26,9 @@ class WaraThemeToggle extends ConsumerWidget {
     final c = context.colors;
     final dark = ref.watch(themeNotifierProvider) == ThemeMode.dark;
     final d = Motion.of(context, duration);
-    final w = compact ? 44.0 : 50.0;
-    final h = compact ? 26.0 : 28.0;
-    const pad = 3.0;
+    final w = compact ? 52.0 : 59.0;
+    final h = compact ? 30.0 : 33.0;
+    const pad = 3.5;
     final thumb = h - pad * 2;
 
     return Semantics(
