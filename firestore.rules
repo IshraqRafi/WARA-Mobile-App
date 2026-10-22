@@ -145,10 +145,20 @@ service cloud.firestore {
       allow read: if inAgency(resource.data.agencyId);
       allow create: if isManager() && inAgency(request.resource.data.agencyId)
         && !('clientBudget' in request.resource.data);
+      // submissionVersion only moves +1, on a submit, by the claimed editor.
+      function versionOk() {
+        let before = resource.data.get('submissionVersion', 0);
+        let after = request.resource.data.get('submissionVersion', 0);
+        return after == before
+          || (after == before + 1
+              && request.resource.data.status == 'submitted'
+              && resource.data.get('claimedByEditorId', '') == request.auth.uid);
+      }
       allow update: if inAgency(resource.data.agencyId)
         && request.resource.data.agencyId == resource.data.agencyId
         && (!('clientBudget' in request.resource.data)
-            || request.resource.data.clientBudget == resource.data.get('clientBudget', null));
+            || request.resource.data.clientBudget == resource.data.get('clientBudget', null))
+        && versionOk();
       allow delete: if isManager() && inAgency(resource.data.agencyId);
 
       // projects/{id}/private/finance: clientPrice, currency, updatedAt,

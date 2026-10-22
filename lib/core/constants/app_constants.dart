@@ -78,6 +78,10 @@ class ProjectItem {
   /// Absolute deadline (drives live countdowns); null on legacy docs, which
   /// only have the static [deadlineHoursLeft].
   final DateTime? deadlineAt;
+  /// Delivery version count (v1, v2…); 0 before the first submit.
+  final int submissionVersion;
+  /// Whether the latest submit landed after the deadline.
+  final bool submittedLate;
 
   const ProjectItem({
     required this.id,
@@ -100,6 +104,8 @@ class ProjectItem {
     this.isOverdue = false,
     this.approvedAt,
     this.deadlineAt,
+    this.submissionVersion = 0,
+    this.submittedLate = false,
   });
 
   bool get canReturn => status == ProjectStatus.claimed && deadlineHoursLeft > 72;
@@ -119,6 +125,8 @@ class ProjectItem {
     bool? isOverdue,
     DateTime? approvedAt,
     DateTime? deadlineAt,
+    int? submissionVersion,
+    bool? submittedLate,
   }) {
     return ProjectItem(
       id: id,
@@ -141,6 +149,8 @@ class ProjectItem {
       isOverdue: isOverdue ?? this.isOverdue,
       approvedAt: approvedAt ?? this.approvedAt,
       deadlineAt: deadlineAt ?? this.deadlineAt,
+      submissionVersion: submissionVersion ?? this.submissionVersion,
+      submittedLate: submittedLate ?? this.submittedLate,
     );
   }
 
@@ -164,6 +174,8 @@ class ProjectItem {
       'isOverdue': isOverdue,
       if (approvedAt != null) 'approvedAt': approvedAt!.toIso8601String(),
       if (deadlineAt != null) 'deadlineAt': deadlineAt!.toIso8601String(),
+      if (submissionVersion > 0) 'submissionVersion': submissionVersion,
+      if (submittedLate) 'submittedLate': true,
     };
   }
 
@@ -192,6 +204,8 @@ class ProjectItem {
       isOverdue: map['isOverdue'] as bool? ?? false,
       approvedAt: _date(map['approvedAt']),
       deadlineAt: _date(map['deadlineAt']),
+      submissionVersion: (map['submissionVersion'] as num?)?.toInt() ?? 0,
+      submittedLate: map['submittedLate'] as bool? ?? false,
     );
   }
 }

@@ -281,12 +281,15 @@ class FirestoreService {
   }
 
   /// Submit deliverable link and notes
-  Future<void> submitWork(String projectId, String link, String note, String submittedAt) async {
+  Future<void> submitWork(String projectId, String link, String note, String submittedAt,
+      {required int version, bool late = false}) async {
     await _projectsRef.doc(projectId).update({
       'status': ProjectStatus.submitted.name,
       'submissionLink': link,
       'submissionNote': note,
       'submittedAt': submittedAt,
+      'submissionVersion': version,
+      'submittedLate': late,
     });
   }
 

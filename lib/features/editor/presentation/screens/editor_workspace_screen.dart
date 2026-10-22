@@ -9,140 +9,16 @@ import '../../../../shared/widgets/wara_project_card.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../projects/domain/project_provider.dart';
+import '../widgets/submit_sheet.dart';
 
 class EditorWorkspaceScreen extends ConsumerWidget {
   const EditorWorkspaceScreen({super.key});
 
   void _showSubmitModal(BuildContext context, WidgetRef ref, ProjectItem project) {
-    final colors = context.colors;
-    final linkCtrl = TextEditingController(text: project.submissionLink ?? '');
-    final noteCtrl = TextEditingController(text: project.submissionNote ?? '');
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: colors.card,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colors.muted.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Icon(Icons.upload_file_rounded, color: colors.primary, size: 24),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Submit Deliverable for Validation',
-                    style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Submit final files, Google Drive, or Frame.io links for manager validation.',
-              style: TextStyle(color: colors.muted, fontSize: 12),
-            ),
-            const SizedBox(height: 20),
-
-            Text(
-              'Asset Link (Required)',
-              style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: linkCtrl,
-              style: TextStyle(color: colors.text, fontSize: 14),
-              decoration: InputDecoration(
-                fillColor: colors.surface,
-                filled: true,
-                hintText: 'https://',
-                hintStyle: TextStyle(color: colors.muted, fontSize: 13),
-                prefixIcon: Icon(Icons.link_rounded, color: colors.muted, size: 20),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Text(
-              'Production Notes (Optional)',
-              style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: noteCtrl,
-              maxLines: 3,
-              style: TextStyle(color: colors.text, fontSize: 14),
-              decoration: InputDecoration(
-                fillColor: colors.surface,
-                filled: true,
-                hintText: 'Notes (optional)',
-                hintStyle: TextStyle(color: colors.muted, fontSize: 13),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: BorderSide(color: colors.border),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text('Cancel', style: TextStyle(color: colors.muted, fontSize: 14)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      final link = linkCtrl.text.trim();
-                      if (link.isEmpty) {
-                        WaraToast.show(context, message: 'Enter a valid link', icon: Icons.warning_amber_rounded);
-                        return;
-                      }
-
-                      ref.read(projectsProvider.notifier).submitWork(project.id, link, noteCtrl.text.trim());
-
-                      Navigator.pop(ctx);
-                      WaraToast.show(context, message: 'Submitted for review', icon: Icons.check_circle_rounded);
-                    },
-                    icon: Icon(Icons.send_rounded, size: 18, color: colors.onPrimary),
-                    label: Text(
-                      project.status == ProjectStatus.submitted ? 'Update Submission' : 'Submit for Approval',
-                      style: TextStyle(color: colors.onPrimary, fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colors.primary,
-                      foregroundColor: colors.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+    showSubmitSheet(context, project, onSubmit: (link, note) {
+      ref.read(projectsProvider.notifier).submitWork(project.id, link, note);
+      WaraToast.show(context, message: 'Submitted v${project.submissionVersion + 1}', icon: Icons.check_circle_rounded);
+    });
   }
 
   @override

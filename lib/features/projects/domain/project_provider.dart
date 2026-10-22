@@ -305,6 +305,11 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     Haptics.statusChange(ProjectStatus.submitted);
     final nowStr = 'Today at ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
 
+    final current = state.where((p) => p.id == projectId).firstOrNull;
+    final version = (current?.submissionVersion ?? 0) + 1;
+    final at = current?.deadlineAt;
+    final late = at != null ? DateTime.now().isAfter(at) : (current?.isOverdue ?? false);
+
     // Optimistic update
     state = [
       for (final item in state)
@@ -314,13 +319,15 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
             submissionLink: submissionLink,
             submissionNote: submissionNote,
             submittedAt: nowStr,
+            submissionVersion: version,
+            submittedLate: late,
           )
         else
           item
     ];
 
     // Cloud Firestore write
-    _firestoreService.submitWork(projectId, submissionLink, submissionNote, nowStr);
+    _firestoreService.submitWork(projectId, submissionLink, submissionNote, nowStr, version: version, late: late);
   }
 
   void approveProject(String projectId) {

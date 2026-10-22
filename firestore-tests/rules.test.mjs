@@ -98,3 +98,14 @@ test('DM: only participants read', async () => {
   await assertFails(getDoc(doc(as('eA2'), p)));  // same agency, not a participant
   await assertFails(getDoc(doc(as('mB'), p)));   // other agency
 });
+
+test('submissionVersion: +1 on submit by the claimed editor only', async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    updateDoc(doc(ctx.firestore(), 'projects/p1'), { status: 'claimed', claimedByEditorId: 'eA', submissionVersion: 1 }));
+  await assertFails(updateDoc(doc(as('eA'), 'projects/p1'), { status: 'submitted', submissionVersion: 3 }));
+  await assertFails(updateDoc(doc(as('eA2'), 'projects/p1'), { status: 'submitted', submissionVersion: 2 }));
+  await assertFails(updateDoc(doc(as('eA'), 'projects/p1'), { status: 'claimed', submissionVersion: 2 }));
+  await assertFails(updateDoc(doc(as('mA'), 'projects/p1'), { submissionVersion: 0 }));
+  await assertSucceeds(updateDoc(doc(as('eA'), 'projects/p1'), { status: 'submitted', submissionVersion: 2 }));
+  await assertSucceeds(updateDoc(doc(as('mA'), 'projects/p1'), { status: 'approved' }));
+});
