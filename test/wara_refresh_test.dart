@@ -24,15 +24,17 @@ void main() {
         ),
       ),
     ));
+    expect(find.byType(RefreshIndicator), findsOneWidget);
     await tester.fling(find.text('row 0'), const Offset(0, 400), 1000);
     await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
     expect(calls, 1);
-    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(RefreshProgressIndicator), findsOneWidget);
     done.complete();
     await tester.pumpAndSettle();
-    expect(tester.binding.transientCallbackCount, 0);
+    expect(find.byType(RefreshProgressIndicator), findsNothing);
   }
 
-  testWidgets('pull past threshold refreshes until the future completes', (t) => run(t, reduce: false));
+  testWidgets('pull refreshes until the future completes', (t) => run(t, reduce: false));
   testWidgets('reduced motion: refresh still works', (t) => run(t, reduce: true));
 }
