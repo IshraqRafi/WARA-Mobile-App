@@ -1,10 +1,72 @@
 rules_version = '2';
 
+// Data model (see lib/core/services/firestore_service.dart):
+//   users/{uid}                         profile; holds role + agencyId
+//   agencies/{agencyId}                 agency doc (managerUid, joinKey)
+//     conversations/{convoId}           chat channels + DMs
+//       messages/{msgId}
+//     notifications/{notifId}
+//   projects/{projectId}                flat collection, each doc has agencyId
+//
+// Policy: every request must be signed in to Firebase Auth. Agency-owned data
+// is scoped to the caller's users/{uid}.agencyId. Exceptions, kept so current
+// features work: profiles and agency docs are readable by any signed-in user
+// (editor marketplace, join-by-key lookup), and DMs are mirrored into
+// agency_demo_wara by the app, so signed-in users may write there.
+// Bulk deletes are not allowed anywhere.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // Allows read and write for authenticated users and during development
-      allow read, write: if true;
+
+    function signedIn() { return request.auth != null; }
+    function me() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function myAgency() { return me().get('agencyId', ''); }
+    function isManager() { return me().get('role', '') == 'manager'; }
+    function inAgency(agencyId) { return signedIn() && myAgency() == agencyId; }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == uid;
+      // Managers rate editors (FirestoreService.rateEditor): rating fields only.
+      allow update: if signedIn() && isManager()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['rating', 'ratingCount', 'totalStars', 'completedProjects',
+                       'lastRatedAt', 'latestFeedback']);
+      allow delete: if false;
+    }
+
+    match /agencies/{agencyId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.managerUid == request.auth.uid;
+      allow update: if signedIn() && (resource.data.managerUid == request.auth.uid
+                                      || (isManager() && inAgency(agencyId)));
+      allow delete: if false;
+
+      match /conversations/{convoId} {
+        allow read, create, update: if inAgency(agencyId)
+          || (signedIn() && agencyId == 'agency_demo_wara' && convoId.matches('dm_.*'));
+        allow delete: if false;
+
+        match /messages/{msgId} {
+          allow read, create, update: if inAgency(agencyId)
+            || (signedIn() && agencyId == 'agency_demo_wara' && convoId.matches('dm_.*'));
+          allow delete: if false;
+        }
+      }
+
+      match /notifications/{notifId} {
+        allow read, create, update: if inAgency(agencyId);
+        allow delete: if false;
+      }
+    }
+
+    match /projects/{projectId} {
+      // Readable by any signed-in user so unscoped queries (users without an
+      // agency yet) keep working; writes are agency-scoped.
+      allow read: if signedIn();
+      allow create: if inAgency(request.resource.data.agencyId);
+      allow update: if inAgency(resource.data.agencyId)
+        && request.resource.data.agencyId == resource.data.agencyId;
+      allow delete: if isManager() && inAgency(resource.data.agencyId);
     }
   }
 }
