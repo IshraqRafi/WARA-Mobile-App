@@ -7,6 +7,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'shared/motion/launch_reveal.dart';
+import 'shared/motion/theme_reveal.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,15 +38,12 @@ class WaraIoApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
+      themeAnimationDuration: Duration.zero,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
-        return AnimatedTheme(
-          data: isDark ? AppTheme.dark : AppTheme.light,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOutCubic,
-          child: LaunchReveal(child: child ?? const SizedBox.shrink()),
-        );
+        // Theme flips instantly; ThemeReveal animates the change from the toggle.
+        return ThemeReveal(child: LaunchReveal(child: child ?? const SizedBox.shrink()));
       },
     );
   }

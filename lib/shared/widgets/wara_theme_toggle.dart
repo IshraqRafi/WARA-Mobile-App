@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/theme_provider.dart';
+import '../motion/theme_reveal.dart';
 
 class WaraThemeToggle extends ConsumerStatefulWidget {
   final bool compact;
@@ -46,7 +47,11 @@ class _WaraThemeToggleState extends ConsumerState<WaraThemeToggle>
 
   void _onToggle() {
     HapticFeedback.lightImpact();
-    ref.read(themeNotifierProvider.notifier).toggleTheme();
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null && box.hasSize
+        ? box.localToGlobal(box.size.center(Offset.zero))
+        : Offset.zero;
+    ThemeReveal.run(context, origin, () => ref.read(themeNotifierProvider.notifier).toggleTheme());
   }
 
   @override
