@@ -286,6 +286,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
 final chatProvider = StateNotifierProvider<ChatNotifier, ChatState>((ref) {
   final firestore = ref.watch(firestoreServiceProvider);
-  final user = ref.watch(authProvider).user;
-  return ChatNotifier(firestore, user);
+  // Rebuild (and re-subscribe) only when a field the notifier uses changes,
+  // not on every auth state emission.
+  ref.watch(authProvider.select((s) {
+    final u = s.user;
+    return u == null ? null : (u.id, u.agencyId, u.name, u.email, u.photoUrl, u.role);
+  }));
+  return ChatNotifier(firestore, ref.read(authProvider).user);
 });

@@ -82,7 +82,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final user = ref.watch(authProvider).user;
+    final user = ref.watch(authProvider.select((s) => s.user));
     final chatState = ref.watch(chatProvider);
     final conversations = chatState.filteredConversations;
 
@@ -167,9 +167,9 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
 
             // ── Live Stream of Real Team Members for Direct Messages ────────
             Expanded(
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: ref.watch(firestoreServiceProvider).streamAgencyTeamMembers(agencyId: user?.agencyId),
-                builder: (context, snapshot) {
+              child: Consumer(
+  builder: (context, ref, _) {
+  final snapshot = asSnapshot(ref.watch(teamMembersProvider(user?.agencyId)));
                   if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                     return const SkeletonList(item: InboxRowSkeleton(), count: 6);
                   }

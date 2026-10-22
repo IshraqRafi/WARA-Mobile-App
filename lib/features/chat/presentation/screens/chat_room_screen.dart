@@ -176,7 +176,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final currentUser = ref.watch(authProvider).user;
+    final currentUser = ref.watch(authProvider.select((s) => s.user));
     final chatState = ref.watch(chatProvider);
     final messages = chatState.messagesMap[widget.conversationId] ?? [];
     final roomError = chatState.roomErrors[widget.conversationId];

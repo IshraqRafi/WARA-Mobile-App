@@ -76,9 +76,9 @@ Future<void> showAgencyLeaderboardModal(BuildContext context, WidgetRef ref) {
 
             // Leaderboard Stream
             Expanded(
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: ref.watch(firestoreServiceProvider).streamEditors(agencyId: currentUser?.agencyId),
-                builder: (context, snapshot) {
+              child: Consumer(
+  builder: (context, ref, _) {
+  final snapshot = asSnapshot(ref.watch(editorsProvider(currentUser?.agencyId)));
                   final editors = snapshot.data ?? [];
 
                   if (editors.isEmpty) {
@@ -423,11 +423,11 @@ class AgencyLeaderboardCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
-    final currentUser = ref.watch(authProvider).user;
+    final currentUser = ref.watch(authProvider.select((s) => s.user));
 
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: ref.watch(firestoreServiceProvider).streamEditors(agencyId: currentUser?.agencyId),
-      builder: (context, snapshot) {
+    return Consumer(
+  builder: (context, ref, _) {
+  final snapshot = asSnapshot(ref.watch(editorsProvider(currentUser?.agencyId)));
         final editors = snapshot.data ?? [];
 
         // Determine user rank & metrics

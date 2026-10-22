@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firestore_service.dart';
@@ -8,6 +8,25 @@ import '../../auth/domain/auth_provider.dart';
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
   return FirestoreService();
 });
+
+/// Agency editors, one shared Firestore listener per agency. Widgets watch
+/// this instead of calling `streamEditors` in build (which re-subscribed on
+/// every rebuild).
+final editorsProvider = StreamProvider.autoDispose.family<List<Map<String, dynamic>>, String?>(
+  (ref, agencyId) => ref.watch(firestoreServiceProvider).streamEditors(agencyId: agencyId),
+);
+
+/// All agency members (managers + editors), shared like [editorsProvider].
+final teamMembersProvider = StreamProvider.autoDispose.family<List<Map<String, dynamic>>, String?>(
+  (ref, agencyId) => ref.watch(firestoreServiceProvider).streamAgencyTeamMembers(agencyId: agencyId),
+);
+
+/// Adapts an [AsyncValue] to the [AsyncSnapshot] shape StreamBuilder used.
+AsyncSnapshot<T> asSnapshot<T>(AsyncValue<T> v) {
+  if (v.hasValue) return AsyncSnapshot<T>.withData(ConnectionState.active, v.requireValue);
+  if (v.hasError) return AsyncSnapshot<T>.withError(ConnectionState.active, v.error!, v.stackTrace ?? StackTrace.empty);
+  return AsyncSnapshot<T>.waiting();
+}
 
 /// Last load error from the projects stream (null when healthy).
 final projectsErrorProvider = StateProvider<Object?>((ref) => null);

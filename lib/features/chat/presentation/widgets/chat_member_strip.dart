@@ -17,12 +17,12 @@ class ChatMemberStrip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
-    final currentUser = ref.watch(authProvider).user;
+    final currentUser = ref.watch(authProvider.select((s) => s.user));
     final agencyId = currentUser?.agencyId;
 
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: ref.read(firestoreServiceProvider).streamEditors(agencyId: agencyId),
-      builder: (context, snapshot) {
+    return Consumer(
+  builder: (context, ref, _) {
+  final snapshot = asSnapshot(ref.watch(editorsProvider(agencyId)));
         final editors = snapshot.data ?? [];
         final otherEditors = editors.where((e) => e['uid'] != currentUser?.id).toList();
 

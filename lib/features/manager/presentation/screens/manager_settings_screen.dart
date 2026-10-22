@@ -87,9 +87,9 @@ class ManagerSettingsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               Expanded(
-                child: StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: ref.watch(firestoreServiceProvider).streamEditors(agencyId: user?.agencyId),
-                  builder: (context, snapshot) {
+                child: Consumer(
+  builder: (context, ref, _) {
+  final snapshot = asSnapshot(ref.watch(editorsProvider(user?.agencyId)));
                     final activeEditors = snapshot.data ?? [];
 
                     if (activeEditors.isEmpty) {
@@ -156,7 +156,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
-    final user = ref.watch(authProvider).user;
+    final user = ref.watch(authProvider.select((s) => s.user));
 
     return Scaffold(
       backgroundColor: colors.bg,

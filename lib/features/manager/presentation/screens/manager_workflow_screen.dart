@@ -579,9 +579,9 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             Text(project.title, style: TextStyle(color: colors.muted, fontSize: 12)),
             const SizedBox(height: 20),
 
-            StreamBuilder<List<Map<String, dynamic>>>(
-              stream: ref.read(firestoreServiceProvider).streamEditors(agencyId: ref.read(authProvider).user?.agencyId),
-              builder: (context, snapshot) {
+            Consumer(
+  builder: (context, ref, _) {
+  final snapshot = asSnapshot(ref.watch(editorsProvider(ref.read(authProvider).user?.agencyId)));
                 final cloudEditors = snapshot.data ?? [];
 
                 // Filter complete profiles or combine with fallback

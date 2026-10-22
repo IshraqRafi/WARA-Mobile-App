@@ -95,6 +95,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
 final notificationProvider = StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
   final firestore = ref.watch(firestoreServiceProvider);
-  final user = ref.watch(authProvider).user;
-  return NotificationNotifier(firestore, user);
+  // Re-subscribe only when the user or agency changes.
+  ref.watch(authProvider.select((s) => (s.user?.id, s.user?.agencyId)));
+  return NotificationNotifier(firestore, ref.read(authProvider).user);
 });
