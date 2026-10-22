@@ -158,6 +158,10 @@ class FirestoreService {
     return data;
   }
 
+  /// Live copy of one user's own doc (rating, availability…).
+  Stream<Map<String, dynamic>> streamUserDoc(String uid) =>
+      _usersRef.doc(uid).snapshots().map((d) => d.data() ?? const {});
+
   /// Real-time stream of the editors in [agencyId], ranked by rating then
   /// completed projects. Without an agency there is nobody to show.
   Stream<List<Map<String, dynamic>>> streamEditors({String? agencyId}) {

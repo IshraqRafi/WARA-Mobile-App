@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/profile_scorecard.dart';
+import '../../../projects/domain/project_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_section_header.dart';
@@ -360,6 +362,15 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 14),
+              Builder(builder: (context) {
+                final me = ref.watch(myProfileProvider).value ?? const {};
+                return ProfileScorecard(
+                  score: EditorScore.of(ref.watch(projectsProvider), user?.id),
+                  rating: (me['rating'] as num?)?.toDouble() ?? 0,
+                  ratingCount: (me['ratingCount'] as num?)?.toInt() ?? 0,
+                );
+              }),
               const SizedBox(height: 20),
               const AgencyLeaderboardCard(),
               const SizedBox(height: 24),

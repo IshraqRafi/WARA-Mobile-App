@@ -17,6 +17,13 @@ final editorsProvider = StreamProvider.autoDispose.family<List<Map<String, dynam
   (ref, agencyId) => ref.watch(firestoreServiceProvider).streamEditors(agencyId: agencyId),
 );
 
+/// The signed-in user's own doc, live. Empty when signed out.
+final myProfileProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
+  final uid = ref.watch(currentUserIdProvider);
+  if (uid == null || uid.isEmpty) return Stream.value(const {});
+  return ref.watch(firestoreServiceProvider).streamUserDoc(uid);
+});
+
 /// All agency members (managers + editors), shared like [editorsProvider].
 final teamMembersProvider = StreamProvider.autoDispose.family<List<Map<String, dynamic>>, String?>(
   (ref, agencyId) => ref.watch(firestoreServiceProvider).streamAgencyTeamMembers(agencyId: agencyId),
