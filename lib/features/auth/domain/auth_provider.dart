@@ -180,6 +180,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final session = UserSession.fromMap(jsonDecode(sessionJson) as Map<String, dynamic>);
         if (session.id == fbUser.uid) {
           state = AuthState(isAuthenticated: true, user: session);
+          if (session.role == UserRole.manager && (session.agencyId ?? '').isNotEmpty) {
+            _firestoreService.ensureJoinKeyIndex(session.agencyId!, session.agencyJoinKey ?? '', session.agencyName);
+          }
           return;
         }
       }
@@ -251,6 +254,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (agency != null) {
         agencyName = agency.name;
         agencyJoinKey = agency.joinKey;
+        _firestoreService.ensureJoinKeyIndex(agency.id, agency.joinKey, agency.name);
       }
     }
 
@@ -470,6 +474,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final newKey = await _firestoreService.regenerateAgencyKey(
         user.agencyId!,
         user.agencyName,
+        oldKey: user.agencyJoinKey,
       );
       final updated = user.copyWith(agencyJoinKey: newKey);
       await _persistSession(updated);
@@ -481,6 +486,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return newKey;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Rename the agency (manager only). Returns false on failure.
+  Future<bool> renameAgency(String name) async {
+    final user = state.user;
+    final clean = name.trim();
+    if (user == null || user.role != UserRole.manager || user.agencyId == null || clean.length < 2) return false;
+    try {
+      await _firestoreService.renameAgency(user.agencyId!, user.agencyJoinKey ?? '', clean);
+      final updated = user.copyWith(agencyName: clean);
+      await _persistSession(updated);
+      state = AuthState(isAuthenticated: true, user: updated);
+      await _firestoreService.updateUserProfile(user.id, {'agencyName': clean});
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 

@@ -46,24 +46,58 @@ class FirestoreService {
       createdAt: DateTime.now(),
     );
 
-    await _agenciesRef.doc(agencyId).set(agency.toMap());
+    final batch = _db.batch();
+    batch.set(_agenciesRef.doc(agencyId), agency.toMap());
+    batch.set(_joinKeysRef.doc(joinKey), _joinKeyData(agencyId, agency.name));
+    await batch.commit();
     return agency;
   }
 
-  /// Verify and lookup an agency by its Join Key
+  /// joinKeys/{KEY} -> {agencyId, agencyName}. Editors resolve a key with a
+  /// single get (no listing), so agency docs stay private to their members.
+  CollectionReference<Map<String, dynamic>> get _joinKeysRef => _db.collection('joinKeys');
+
+  Map<String, dynamic> _joinKeyData(String agencyId, String agencyName) => {
+        'agencyId': agencyId,
+        'agencyName': agencyName,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+  /// Agencies created before joinKeys/ existed have no lookup doc; the
+  /// manager's app creates it. Best effort, errors ignored.
+  Future<void> ensureJoinKeyIndex(String agencyId, String joinKey, String agencyName) async {
+    if (joinKey.isEmpty) return;
+    try {
+      final doc = await _joinKeysRef.doc(joinKey).get();
+      if (!doc.exists) await _joinKeysRef.doc(joinKey).set(_joinKeyData(agencyId, agencyName));
+    } catch (_) {}
+  }
+
+  /// Rename the agency (manager only).
+  Future<void> renameAgency(String agencyId, String oldKey, String name) async {
+    final batch = _db.batch();
+    batch.update(_agenciesRef.doc(agencyId), {'name': name});
+    if (oldKey.isNotEmpty) batch.set(_joinKeysRef.doc(oldKey), {'agencyName': name}, SetOptions(merge: true));
+    await batch.commit();
+  }
+
+  /// Resolve a join key to its agency via joinKeys/{KEY}.
   Future<AgencyModel?> validateAndGetAgencyByKey(String joinKey) async {
     final cleanKey = joinKey.trim().toUpperCase();
-    if (cleanKey.isEmpty) return null;
+    if (cleanKey.isEmpty || cleanKey.contains('/')) return null;
 
     try {
-      final query = await _agenciesRef
-          .where('joinKey', isEqualTo: cleanKey)
-          .limit(1)
-          .get();
-
-      if (query.docs.isNotEmpty) {
-        final doc = query.docs.first;
-        return AgencyModel.fromMap(doc.id, doc.data());
+      final doc = await _joinKeysRef.doc(cleanKey).get();
+      final data = doc.data();
+      if (doc.exists && data != null && (data['agencyId'] as String? ?? '').isNotEmpty) {
+        return AgencyModel(
+          id: data['agencyId'] as String,
+          name: data['agencyName'] as String? ?? 'Agency',
+          managerUid: '',
+          managerName: '',
+          joinKey: cleanKey,
+          createdAt: DateTime.now(),
+        );
       }
     } catch (_) {}
     return null;
@@ -81,12 +115,18 @@ class FirestoreService {
   }
 
   /// Regenerate a join key for an existing agency
-  Future<String> regenerateAgencyKey(String agencyId, String agencyName) async {
+  /// The old key stops working at once: the rules only accept the key
+  /// currently on the agency doc.
+  Future<String> regenerateAgencyKey(String agencyId, String agencyName, {String? oldKey}) async {
     final newKey = generateJoinKey(agencyName);
-    await _agenciesRef.doc(agencyId).set({
+    final batch = _db.batch();
+    batch.update(_agenciesRef.doc(agencyId), {
       'joinKey': newKey,
       'keyUpdatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    });
+    batch.set(_joinKeysRef.doc(newKey), _joinKeyData(agencyId, agencyName));
+    if (oldKey != null && oldKey.isNotEmpty && oldKey != newKey) batch.delete(_joinKeysRef.doc(oldKey));
+    await batch.commit();
     return newKey;
   }
 

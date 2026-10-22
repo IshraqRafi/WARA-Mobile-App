@@ -10,8 +10,9 @@ rules_version = '2';
 //
 // Policy: every request must be signed in to Firebase Auth. Agency-owned data
 // is scoped to the caller's users/{uid}.agencyId. Profiles are readable by the
-// owner and by members of the same agency. Agency docs are readable by any
-// signed-in user so editors can look up a join key. Direct messages
+// owner and by members of the same agency. Agency docs are readable by their
+// members only; editors resolve a join key through joinKeys/{KEY}. A profile's
+// role and agencyId are locked once set (see validMembership). Direct messages
 // (conversations/dm_*) are limited to their participantIds.
 // Bulk deletes are not allowed anywhere.
 service cloud.firestore {
@@ -21,13 +22,46 @@ service cloud.firestore {
     function me() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
     function myAgency() { return me().get('agencyId', ''); }
     function isManager() { return me().get('role', '') == 'manager'; }
-    function inAgency(agencyId) { return signedIn() && myAgency() == agencyId; }
+    function inAgency(agencyId) { return signedIn() && myAgency() != '' && myAgency() == agencyId; }
+    function agencyPath(agencyId) { return /databases/$(database)/documents/agencies/$(agencyId); }
+
+    // Membership a profile may claim for itself (no Cloud Functions needed):
+    //  - a manager only for an agency whose managerUid is them (getAfter, so
+    //    the agency and the profile can be written in one batch), or
+    //  - an editor only with the agency's CURRENT joinKey in agencyJoinKey.
+    function validMembership(uid, data) {
+      return data.get('agencyId', '') == ''
+        || (data.get('role', '') == 'manager'
+            && existsAfter(agencyPath(data.agencyId))
+            && getAfter(agencyPath(data.agencyId)).data.managerUid == uid)
+        || (data.get('role', '') == 'editor'
+            && data.get('agencyJoinKey', '') != ''
+            && exists(agencyPath(data.agencyId))
+            && get(agencyPath(data.agencyId)).data.joinKey == data.agencyJoinKey);
+    }
+    function ratingKeys() {
+      return ['rating', 'ratingCount', 'totalStars', 'completedProjects', 'lastRatedAt', 'latestFeedback'];
+    }
 
     match /users/{uid} {
       allow read: if signedIn()
         && (request.auth.uid == uid
             || (myAgency() != '' && resource.data.get('agencyId', '') == myAgency()));
-      allow create, update: if signedIn() && request.auth.uid == uid;
+      // Self create: role is editor or manager, membership must be proven.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.get('role', '') in ['editor', 'manager']
+        && validMembership(uid, request.resource.data)
+        && !request.resource.data.keys().hasAny(ratingKeys());
+      // Self update: role is locked once set; agencyId can only go from
+      // empty to a proven agency, never change after; ratings are managers'.
+      allow update: if signedIn() && request.auth.uid == uid
+        && (request.resource.data.get('role', null) == resource.data.get('role', null)
+            || (resource.data.get('role', null) == null
+                && request.resource.data.get('role', '') in ['editor', 'manager']))
+        && (request.resource.data.get('agencyId', '') == resource.data.get('agencyId', '')
+            || (resource.data.get('agencyId', '') == ''
+                && validMembership(uid, request.resource.data)))
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(ratingKeys());
       // Managers rate editors (FirestoreService.rateEditor): rating fields only.
       allow update: if signedIn() && isManager()
         && myAgency() != '' && resource.data.get('agencyId', '') == myAgency()
@@ -38,10 +72,12 @@ service cloud.firestore {
     }
 
     match /agencies/{agencyId} {
-      allow read: if signedIn();
+      // Members and the owner only; join keys are resolved via joinKeys/.
+      allow read: if signedIn() && (resource.data.managerUid == request.auth.uid || inAgency(agencyId));
       allow create: if signedIn() && request.resource.data.managerUid == request.auth.uid;
       allow update: if signedIn() && (resource.data.managerUid == request.auth.uid
-                                      || (isManager() && inAgency(agencyId)));
+                                      || (isManager() && inAgency(agencyId)))
+        && request.resource.data.managerUid == resource.data.managerUid;
       allow delete: if false;
 
       match /conversations/{convoId} {
@@ -80,6 +116,25 @@ service cloud.firestore {
         allow read, create, update: if inAgency(agencyId);
         allow delete: if false;
       }
+    }
+
+    // joinKeys/{KEY} -> {agencyId, agencyName, createdAt}. Get by exact key
+    // only (no listing). Only the agency's manager writes it, and only for
+    // the key that is (or, in the same batch, becomes) the agency's joinKey.
+    match /joinKeys/{key} {
+      function ownsAgency(agencyId) {
+        return existsAfter(agencyPath(agencyId))
+          && getAfter(agencyPath(agencyId)).data.managerUid == request.auth.uid;
+      }
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && ownsAgency(request.resource.data.agencyId)
+        && getAfter(agencyPath(request.resource.data.agencyId)).data.joinKey == key
+        && request.resource.data.keys().hasOnly(['agencyId', 'agencyName', 'createdAt']);
+      allow update: if signedIn() && ownsAgency(resource.data.agencyId)
+        && request.resource.data.agencyId == resource.data.agencyId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['agencyName']);
+      allow delete: if signedIn() && ownsAgency(resource.data.agencyId);
     }
 
     match /projects/{projectId} {
