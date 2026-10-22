@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
+import '../../../../shared/widgets/wara_empty_state.dart';
+import '../../../../shared/widgets/wara_project_card.dart';
+import '../../../../shared/widgets/wara_section_header.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
@@ -166,7 +169,7 @@ class EditorAvailableScreen extends ConsumerWidget {
       backgroundColor: colors.bg,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.lg, AppSpacing.screenMargin(context), 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -225,135 +228,48 @@ class EditorAvailableScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('OPEN PROJECT OFFERS', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
-                  Text('${availableProjects.length} Offers Available', style: TextStyle(color: colors.muted, fontSize: 11)),
-                ],
+              WaraSectionHeader(
+                title: 'Open offers',
+                subtitle: '${availableProjects.length} available',
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
               ),
-              const SizedBox(height: 12),
-
-              // Available Projects List
               Expanded(
                 child: availableProjects.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle_outline_rounded, color: colors.muted, size: 48),
-                            const SizedBox(height: 12),
-                            Text('All offers are claimed!', style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text('Check back later for new agency project drops.', style: TextStyle(color: colors.muted, fontSize: 12)),
-                          ],
-                        ),
+                    ? const WaraEmptyState(
+                        icon: Icons.check_circle_outline_rounded,
+                        title: 'All offers are claimed',
+                        message: 'Check back later for new projects from your agency.',
                       )
                     : ListView.builder(
+                        padding: EdgeInsets.only(bottom: AppSpacing.bottomInset(context)),
                         itemCount: availableProjects.length,
                         itemBuilder: (context, index) {
                           final project = availableProjects[index];
-                          return GestureDetector(
+                          return WaraProjectCard(
+                            project: project,
+                            showStatus: false,
+                            showSkills: true,
+                            payoutLabel: 'Offer payout',
                             onTap: () => _showProjectDetailsModal(context, ref, project, user),
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: colors.card,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: colors.border),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                                        child: Text(project.clientName, style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600)),
-                                      ),
-                                      const Spacer(),
-                                      Flexible(
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(Icons.timer_outlined, color: colors.muted, size: 12),
-                                              const SizedBox(width: 4),
-                                              Flexible(
-                                                child: Text(
-                                                  project.deadlineStr,
-                                                  style: TextStyle(color: colors.muted, fontSize: 11),
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(project.title, style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 6),
-                                  Text(project.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: colors.muted, fontSize: 12, height: 1.4)),
-                                  const SizedBox(height: 14),
-
-                                  Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: project.requiredSkills.map((skill) {
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                                        child: Text(skill, style: TextStyle(color: colors.text, fontSize: 10)),
+                            actions: [
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  ref.read(projectsProvider.notifier).claimProject(
+                                        project.id,
+                                        user?.id ?? 'editor_1',
+                                        '${user?.name ?? ''} (You)',
                                       );
-                                    }).toList(),
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('OFFER PAYOUT', style: TextStyle(color: colors.muted, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-                                          Text('৳${project.editorPayout.toInt()}', style: TextStyle(color: colors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
-                                        ],
-                                      ),
-                                      ElevatedButton.icon(
-                                        onPressed: () {
-                                          ref.read(projectsProvider.notifier).claimProject(
-                                                project.id,
-                                                user?.id ?? 'editor_1',
-                                                '${user?.name ?? ''} (You)',
-                                              );
-
-                                          WaraToast.show(
-                                            context,
-                                            message: '🎉 Offer accepted! Project claimed & transferred to "My Workspace".',
-                                            icon: Icons.check_circle_rounded,
-                                          );
-                                        },
-                                        icon: Icon(Icons.touch_app_rounded, size: 16, color: colors.isDark ? Colors.black : Colors.white),
-                                        label: Text('Accept Offer', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: colors.primary,
-                                          foregroundColor: colors.isDark ? Colors.black : Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          elevation: 0,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                  WaraToast.show(
+                                    context,
+                                    message: '🎉 Offer accepted! Project claimed & transferred to "My Workspace".',
+                                    icon: Icons.check_circle_rounded,
+                                  );
+                                },
+                                style: waraCompactButton(),
+                                icon: const Icon(Icons.touch_app_rounded, size: 18),
+                                label: const Text('Accept offer'),
                               ),
-                            ),
+                            ],
                           );
                         },
                       ),
