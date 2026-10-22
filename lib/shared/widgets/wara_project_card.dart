@@ -29,6 +29,9 @@ class WaraProjectCard extends ConsumerStatefulWidget {
   final String payoutLabel;
   /// Overrides the payout amount (defaults to the editor payout).
   final double? amount;
+
+  /// Shows a dash instead of an amount (e.g. unknown client price).
+  final bool amountMissing;
   /// Extra line in the expanded body (e.g. editor payout on finance).
   final Widget? notice;
   final List<Widget> actions;
@@ -42,6 +45,7 @@ class WaraProjectCard extends ConsumerStatefulWidget {
     this.showStatus = true,
     this.payoutLabel = 'Payout',
     this.amount,
+    this.amountMissing = false,
     this.notice,
     this.actions = const [],
   });
@@ -111,7 +115,7 @@ class _WaraProjectCardState extends ConsumerState<WaraProjectCard> {
               GlowPulse(
                 active: p.status == ProjectStatus.approved,
                 color: c.success,
-                child: Text('৳$amount', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                child: Text(widget.amountMissing ? '—' : '৳$amount', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               ),
             ],
           ),

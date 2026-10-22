@@ -21,15 +21,11 @@ class ManagerFinanceScreen extends ConsumerWidget {
       return ProjectsLoadError(error: projectsError);
     }
 
-    // ── Live metrics (unchanged calculations) ─────────────────────────────
-    final totalPipelineVolume = projects.fold<double>(0.0, (sum, p) => sum + p.clientBudget);
-    final approvedProjects = projects.where((p) => p.status == ProjectStatus.approved).toList();
-    final approvedRevenue = approvedProjects.fold<double>(0.0, (sum, p) => sum + p.clientBudget);
+    // ── Live metrics from the manager-only client prices ─────────────────
+    final finance = ref.watch(projectFinanceProvider).valueOrNull ?? const <String, ProjectFinance>{};
+    final s = FinanceSummary.of(projects, finance);
+    final totalPipelineVolume = s.pipeline;
     final claimedOrDoneProjects = projects.where((p) => p.status != ProjectStatus.open).toList();
-    final totalEditorPayouts = claimedOrDoneProjects.fold<double>(0.0, (sum, p) => sum + p.editorPayout);
-    final approvedEditorPayouts = approvedProjects.fold<double>(0.0, (sum, p) => sum + p.editorPayout);
-    final netMargin = totalPipelineVolume - totalEditorPayouts;
-    final marginPercent = totalPipelineVolume > 0 ? ((netMargin / totalPipelineVolume) * 100).toInt() : 0;
 
     final m = AppSpacing.screenMargin(context);
     return Scaffold(
@@ -58,10 +54,11 @@ class ManagerFinanceScreen extends ConsumerWidget {
 
             // ── Secondary metrics strip ─────────────────────────────────
             FinanceMetricStrip(metrics: [
-              FinanceMetric('Revenue', '৳${formatTaka(approvedRevenue)}'),
-              FinanceMetric('Paid', '৳${formatTaka(approvedEditorPayouts)}'),
-              FinanceMetric('Committed', '৳${formatTaka(totalEditorPayouts)}', color: colors.primary),
-              FinanceMetric('Margin', '$marginPercent%', color: colors.success),
+              FinanceMetric('Revenue', s.revenue == null ? '—' : '৳${formatTaka(s.revenue!)}'),
+              FinanceMetric('Paid', '৳${formatTaka(s.paid)}'),
+              FinanceMetric('Committed', '৳${formatTaka(s.committed)}', color: colors.primary),
+              FinanceMetric('Margin', s.marginPercent == null ? '—' : '${s.marginPercent!.toStringAsFixed(0)}%',
+                  color: colors.success),
             ]),
             const SizedBox(height: AppSpacing.xl),
 
@@ -76,6 +73,41 @@ class ManagerFinanceScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// Finance totals. Only projects with a known client price count toward
+/// revenue and margin, so a missing price never fakes a margin.
+class FinanceSummary {
+  final double pipeline; // client value of all priced projects
+  final double? revenue; // client value of approved, priced projects
+  final double paid; // editor payouts on approved projects
+  final double committed; // editor payouts on claimed/submitted/approved
+  final double? marginPercent; // over priced, non-open projects
+  const FinanceSummary(this.pipeline, this.revenue, this.paid, this.committed, this.marginPercent);
+
+  factory FinanceSummary.of(List<ProjectItem> projects, Map<String, ProjectFinance> finance) {
+    double pipeline = 0, revenue = 0, paid = 0, committed = 0, pricedValue = 0, pricedCuts = 0;
+    var anyApprovedPriced = false;
+    for (final p in projects) {
+      final price = clientPriceOf(p, finance);
+      if (price != null) pipeline += price;
+      if (p.status == ProjectStatus.open) continue;
+      committed += p.editorPayout;
+      if (price != null) {
+        pricedValue += price;
+        pricedCuts += p.editorPayout;
+      }
+      if (p.status == ProjectStatus.approved) {
+        paid += p.editorPayout;
+        if (price != null) {
+          revenue += price;
+          anyApprovedPriced = true;
+        }
+      }
+    }
+    return FinanceSummary(pipeline, anyApprovedPriced ? revenue : null, paid, committed,
+        pricedValue > 0 ? (pricedValue - pricedCuts) / pricedValue * 100 : null);
   }
 }
 

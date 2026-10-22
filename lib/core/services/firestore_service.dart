@@ -147,13 +147,47 @@ class FirestoreService {
   }
 
   /// Create a new project in Firestore
-  Future<void> createProject(ProjectItem item) async {
-    await _projectsRef.doc(item.id).set(item.toMap());
+  Future<void> createProject(ProjectItem item, {double? clientPrice, String? updatedBy}) async {
+    final batch = _db.batch();
+    batch.set(_projectsRef.doc(item.id), item.toMap());
+    if (clientPrice != null && clientPrice > 0) {
+      batch.set(_financeRef(item.id), _financeData(clientPrice, updatedBy));
+    }
+    await batch.commit();
   }
 
-  /// Delete a project from Cloud Firestore
+  /// Delete a project (and its manager-only finance doc) from Cloud Firestore
   Future<void> deleteProject(String projectId) async {
-    await _projectsRef.doc(projectId).delete();
+    final batch = _db.batch();
+    batch.delete(_financeRef(projectId));
+    batch.delete(_projectsRef.doc(projectId));
+    await batch.commit();
+  }
+
+  // ── Manager-only finance (projects/{id}/private/finance) ──────────────
+
+  DocumentReference<Map<String, dynamic>> _financeRef(String projectId) =>
+      _projectsRef.doc(projectId).collection('private').doc('finance');
+
+  Map<String, dynamic> _financeData(double clientPrice, String? updatedBy) => {
+        'clientPrice': clientPrice,
+        'currency': 'BDT',
+        'updatedAt': FieldValue.serverTimestamp(),
+        'updatedBy': updatedBy,
+      };
+
+  /// Live client price for one project. Emits null when the doc is missing.
+  Stream<ProjectFinance?> streamProjectFinance(String projectId) => _financeRef(projectId)
+      .snapshots()
+      .map((d) => d.exists && d.data() != null ? ProjectFinance.fromMap(d.data()!) : null);
+
+  /// Saves the client price. Also drops a legacy `clientBudget` field from
+  /// the editor-readable project doc, if one is still there.
+  Future<void> setProjectFinance(String projectId, double clientPrice, {String? updatedBy, bool dropLegacy = false}) async {
+    final batch = _db.batch();
+    batch.set(_financeRef(projectId), _financeData(clientPrice, updatedBy));
+    if (dropLegacy) batch.update(_projectsRef.doc(projectId), {'clientBudget': FieldValue.delete()});
+    await batch.commit();
   }
 
   /// Update an open project's variables

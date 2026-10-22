@@ -13,7 +13,7 @@ void main() {
         home: Scaffold(
           body: WaraProjectCard(
             project: ProjectItem(
-              id: 'x', title: 'Urgent cut', clientName: 'C', clientBudget: 1,
+              id: 'x', title: 'Urgent cut', clientName: 'C', 
               editorPayout: 1, deadlineStr: 'Today', deadlineHoursLeft: 3,
               description: 'd', requiredSkills: const [],
             ),

@@ -279,6 +279,8 @@ class ManagerWorkflowScreen extends ConsumerWidget {
     // Offer is OPEN and can be edited!
     final titleCtrl = TextEditingController(text: project.title);
     final payoutCtrl = TextEditingController(text: project.editorPayout.toInt().toString());
+    final knownPrice = clientPriceOf(project, ref.read(projectFinanceProvider).valueOrNull ?? const {});
+    final clientPriceCtrl = TextEditingController(text: knownPrice?.toInt().toString() ?? '');
     final daysLeft = (project.deadlineHoursLeft / 24).ceil().clamp(1, 90);
     final deadlineCtrl = TextEditingController(text: daysLeft.toString());
     final descCtrl = TextEditingController(text: project.description);
@@ -329,30 +331,15 @@ class ManagerWorkflowScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 14),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: _NumberStepperField(
-                      controller: payoutCtrl,
-                      label: r'Editor Payout (৳)',
-                      hintText: '0৳',
-                      step: 50.0,
-                      isCurrency: true,
-                      minVal: 50,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _NumberStepperField(
-                      controller: deadlineCtrl,
-                      label: 'Deadline (Days)',
-                      hintText: 'e.g. 5',
-                      step: 1.0,
-                      isCurrency: false,
-                      minVal: 1,
-                    ),
-                  ),
-                ],
+              _PricingFields(clientPriceCtrl: clientPriceCtrl, payoutCtrl: payoutCtrl),
+              const SizedBox(height: 14),
+              _NumberStepperField(
+                controller: deadlineCtrl,
+                label: 'Deadline (Days)',
+                hintText: 'e.g. 5',
+                step: 1.0,
+                isCurrency: false,
+                minVal: 1,
               ),
               const SizedBox(height: 14),
 
@@ -382,6 +369,8 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                           editorPayout: double.tryParse(payoutCtrl.text) ?? project.editorPayout,
                           deadlineDays: int.tryParse(deadlineCtrl.text) ?? daysLeft,
                           description: descCtrl.text.trim(),
+                          clientPrice: double.tryParse(clientPriceCtrl.text),
+                          updatedBy: ref.read(authProvider).user?.id,
                         );
 
                     Navigator.pop(ctx);
@@ -823,6 +812,84 @@ class ManagerWorkflowScreen extends ConsumerWidget {
   }
 }
 
+/// Client price (manager-only, never on the project doc) + editor payout,
+/// with a live margin line. Payout above the price warns but never blocks.
+class _PricingFields extends StatelessWidget {
+  final TextEditingController clientPriceCtrl;
+  final TextEditingController payoutCtrl;
+  const _PricingFields({required this.clientPriceCtrl, required this.payoutCtrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _NumberStepperField(
+                controller: clientPriceCtrl,
+                label: r'Client price (৳)',
+                hintText: '0৳',
+                step: 100.0,
+                isCurrency: true,
+                minVal: 0,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _NumberStepperField(
+                controller: payoutCtrl,
+                label: r'Editor payout (৳)',
+                hintText: '0৳',
+                step: 50.0,
+                isCurrency: true,
+                minVal: 50,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ListenableBuilder(
+          listenable: Listenable.merge([clientPriceCtrl, payoutCtrl]),
+          builder: (context, _) {
+            final price = parseAmount(clientPriceCtrl.text);
+            final payout = parseAmount(payoutCtrl.text) ?? 0;
+            final m = projectMargin(price, payout);
+            if (m == null) {
+              return Text('Margin —', key: const ValueKey('margin-line'), style: TextStyle(color: colors.muted, fontSize: 12));
+            }
+            final negative = m.amount < 0;
+            return Row(
+              key: const ValueKey('margin-line'),
+              children: [
+                Icon(negative ? Icons.warning_amber_rounded : Icons.trending_up_rounded,
+                    size: 16, color: negative ? colors.warning : colors.success),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    negative
+                        ? 'Payout exceeds client price by ৳${(-m.amount).toInt()}'
+                        : 'Margin ৳${m.amount.toInt()} · ${m.percent.toStringAsFixed(0)}%',
+                    style: TextStyle(color: negative ? colors.warning : colors.success, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Parses "1,400", "৳1400" or "1400" into a number; null when empty.
+double? parseAmount(String raw) {
+  final clean = raw.replaceAll(RegExp(r'[^0-9.]'), '');
+  return clean.isEmpty ? null : double.tryParse(clean);
+}
+
 class _NumberStepperField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -945,6 +1012,7 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
   final titleCtrl = TextEditingController();
   final clientCtrl = TextEditingController();
   final payoutCtrl = TextEditingController();
+  final clientPriceCtrl = TextEditingController();
   final deadlineCtrl = TextEditingController();
   final descCtrl = TextEditingController();
 
@@ -953,6 +1021,7 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
     titleCtrl.dispose();
     clientCtrl.dispose();
     payoutCtrl.dispose();
+    clientPriceCtrl.dispose();
     deadlineCtrl.dispose();
     descCtrl.dispose();
     super.dispose();
@@ -1007,30 +1076,15 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
               ),
               const SizedBox(height: 14),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: _NumberStepperField(
-                      controller: payoutCtrl,
-                      label: r'Editor Payout (৳)',
-                      hintText: '0৳',
-                      step: 50.0,
-                      isCurrency: true,
-                      minVal: 50,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _NumberStepperField(
-                      controller: deadlineCtrl,
-                      label: 'Deadline (Days)',
-                      hintText: 'e.g. 5',
-                      step: 1.0,
-                      isCurrency: false,
-                      minVal: 1,
-                    ),
-                  ),
-                ],
+              _PricingFields(clientPriceCtrl: clientPriceCtrl, payoutCtrl: payoutCtrl),
+              const SizedBox(height: 14),
+              _NumberStepperField(
+                controller: deadlineCtrl,
+                label: 'Deadline (Days)',
+                hintText: 'e.g. 5',
+                step: 1.0,
+                isCurrency: false,
+                minVal: 1,
               ),
               const SizedBox(height: 14),
 
@@ -1064,7 +1118,8 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
                         .createNewProject(
                           title: titleCtrl.text.trim(),
                           clientName: clientCtrl.text.trim().isEmpty ? 'LuxeLiving Apparel' : clientCtrl.text.trim(),
-                          clientBudget: payout * 2.2,
+                          clientPrice: double.tryParse(clientPriceCtrl.text),
+                          createdBy: ref.read(authProvider).user?.id,
                           editorPayout: payout,
                           deadlineDays: int.tryParse(deadlineCtrl.text) ?? 5,
                           description: descCtrl.text.trim(),

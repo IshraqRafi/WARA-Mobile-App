@@ -6,7 +6,7 @@ ProjectItem _p(String id, {String? by, ProjectStatus status = ProjectStatus.clai
       id: id,
       title: id,
       clientName: 'c',
-      clientBudget: 200,
+      
       editorPayout: payout,
       deadlineStr: '',
       deadlineHoursLeft: 48,

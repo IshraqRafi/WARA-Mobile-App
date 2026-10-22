@@ -83,11 +83,32 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
+      function projectPath() { return /databases/$(database)/documents/projects/$(projectId); }
+
+      // The client price never lives on the project doc (editors read it);
+      // it is in private/finance. A legacy clientBudget may only be removed.
       allow read: if inAgency(resource.data.agencyId);
-      allow create: if inAgency(request.resource.data.agencyId);
+      allow create: if isManager() && inAgency(request.resource.data.agencyId)
+        && !('clientBudget' in request.resource.data);
       allow update: if inAgency(resource.data.agencyId)
-        && request.resource.data.agencyId == resource.data.agencyId;
+        && request.resource.data.agencyId == resource.data.agencyId
+        && (!('clientBudget' in request.resource.data)
+            || request.resource.data.clientBudget == resource.data.get('clientBudget', null));
       allow delete: if isManager() && inAgency(resource.data.agencyId);
+
+      // projects/{id}/private/finance: clientPrice, currency, updatedAt,
+      // updatedBy. Managers of the project's agency only. getAfter() lets the
+      // project and its finance doc be written in one batch.
+      match /private/{docId} {
+        allow read: if docId == 'finance' && isManager()
+          && exists(projectPath()) && inAgency(get(projectPath()).data.agencyId);
+        allow create, update: if docId == 'finance' && isManager()
+          && existsAfter(projectPath()) && inAgency(getAfter(projectPath()).data.agencyId)
+          && request.resource.data.keys().hasOnly(['clientPrice', 'currency', 'updatedAt', 'updatedBy'])
+          && request.resource.data.clientPrice is number && request.resource.data.clientPrice >= 0;
+        allow delete: if docId == 'finance' && isManager()
+          && exists(projectPath()) && inAgency(get(projectPath()).data.agencyId);
+      }
     }
   }
 }

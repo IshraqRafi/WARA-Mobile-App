@@ -113,7 +113,8 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   void createNewProject({
     required String title,
     required String clientName,
-    required double clientBudget,
+    double? clientPrice,
+    String? createdBy,
     required double editorPayout,
     required int deadlineDays,
     required String description,
@@ -126,7 +127,6 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
       agencyId: _agencyId,
       title: title,
       clientName: clientName,
-      clientBudget: clientBudget,
       editorPayout: editorPayout,
       deadlineStr: '$deadlineDays Days Left ($deadlineHours Hours)',
       deadlineHoursLeft: deadlineHours,
@@ -139,7 +139,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     state = [newItem, ...state];
 
     // Cloud Firestore write
-    _firestoreService.createProject(newItem);
+    _firestoreService.createProject(newItem, clientPrice: clientPrice, updatedBy: createdBy);
   }
 
   void deleteProject(String projectId) {
@@ -156,6 +156,8 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     required double editorPayout,
     required int deadlineDays,
     required String description,
+    double? clientPrice,
+    String? updatedBy,
   }) {
     final target = state.firstWhere((p) => p.id == projectId);
     if (target.status != ProjectStatus.open) {
@@ -186,6 +188,10 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
       'deadlineStr': newDeadlineStr,
       'description': description,
     });
+    if (clientPrice != null && clientPrice > 0) {
+      _firestoreService.setProjectFinance(projectId, clientPrice,
+          updatedBy: updatedBy, dropLegacy: target.legacyClientBudget != null);
+    }
     return true;
   }
 
@@ -432,3 +438,58 @@ final workspaceProjectsProvider = Provider<({List<ProjectItem> items, int earned
 final workspaceBadgeProvider = Provider<int>((ref) {
   return activeClaimCount(ref.watch(projectsProvider), ref.watch(currentUserIdProvider));
 });
+
+final _isManagerProvider = Provider<bool>((ref) => ref.watch(authProvider.select((s) => s.user?.role == UserRole.manager)));
+
+final _projectIdsProvider = Provider<List<String>>((ref) {
+  final ids = ref.watch(projectsProvider).map((p) => p.id).toList()..sort();
+  return ids;
+});
+
+/// Client prices by project id, from `projects/{id}/private/finance`.
+/// Manager-only: editors get an empty map and never touch the private docs.
+/// A project without a finance doc is simply absent (UI shows a dash).
+final projectFinanceProvider = StreamProvider<Map<String, ProjectFinance>>((ref) {
+  if (!ref.watch(_isManagerProvider)) return Stream.value(const {});
+  final ids = ref.watch(_projectIdsProvider.select((l) => l.join(','))).split(',').where((s) => s.isNotEmpty).toList();
+  if (ids.isEmpty) return Stream.value(const {});
+  final service = ref.watch(firestoreServiceProvider);
+  final controller = StreamController<Map<String, ProjectFinance>>();
+  final values = <String, ProjectFinance>{};
+  final subs = <StreamSubscription>[];
+  var pending = ids.toSet();
+  void emit() {
+    if (pending.isEmpty) controller.add(Map.unmodifiable(values));
+  }
+  for (final id in ids) {
+    subs.add(service.streamProjectFinance(id).listen((f) {
+      if (f == null) {
+        values.remove(id);
+      } else {
+        values[id] = f;
+      }
+      pending.remove(id);
+      emit();
+    }, onError: (Object _) {
+      // Missing permission or offline: treat as unknown, keep the rest.
+      pending.remove(id);
+      emit();
+    }));
+  }
+  ref.onDispose(() {
+    for (final s in subs) {
+      s.cancel();
+    }
+    controller.close();
+  });
+  return controller.stream;
+});
+
+/// Client price for [p]: the private finance doc, else a legacy
+/// `clientBudget` still on the project doc, else null (unknown).
+double? clientPriceOf(ProjectItem p, Map<String, ProjectFinance> finance) {
+  final f = finance[p.id]?.clientPrice;
+  if (f != null && f > 0) return f;
+  final legacy = p.legacyClientBudget;
+  return (legacy != null && legacy > 0) ? legacy : null;
+}

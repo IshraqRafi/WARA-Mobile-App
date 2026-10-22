@@ -33,16 +33,19 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
     // Filter pending works (claimed or submitted)
     final pendingProjects = projects.where((p) => p.status != ProjectStatus.approved).toList();
 
+    final finance = ref.watch(projectFinanceProvider).valueOrNull ?? const <String, ProjectFinance>{};
+    double priceOf(ProjectItem p) => clientPriceOf(p, finance) ?? -1;
+
     // Sort based on selection
     if (_sortBy == 'time') {
       pendingProjects.sort((a, b) => a.deadlineHoursLeft.compareTo(b.deadlineHoursLeft));
     } else {
-      pendingProjects.sort((a, b) => b.clientBudget.compareTo(a.clientBudget));
+      pendingProjects.sort((a, b) => priceOf(b).compareTo(priceOf(a)));
     }
 
     final margin = AppSpacing.screenMargin(context);
     final text = Theme.of(context).textTheme;
-    final pipelineValue = pendingProjects.fold<double>(0, (sum, p) => sum + p.clientBudget);
+    final pipelineValue = pendingProjects.fold<double>(0, (sum, p) => sum + (clientPriceOf(p, finance) ?? 0));
     final toReview = pendingProjects.where((p) => p.status == ProjectStatus.submitted).length;
 
     return Scaffold(
@@ -106,7 +109,8 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                           project: item,
                           listId: 'pending',
                           showAssignee: true,
-                          amount: item.clientBudget,
+                          amount: clientPriceOf(item, finance),
+                          amountMissing: clientPriceOf(item, finance) == null,
                           payoutLabel: 'Client value',
                           actions: [
                             if (item.status == ProjectStatus.submitted)

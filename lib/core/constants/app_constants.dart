@@ -56,7 +56,10 @@ class ProjectItem {
   final String? agencyId;
   final String title;
   final String clientName;
-  final double clientBudget;
+  /// Legacy client budget once stored on the (editor-readable) project doc.
+  /// Read-only fallback: new code keeps the client price in
+  /// `projects/{id}/private/finance` and never writes this field.
+  final double? legacyClientBudget;
   final double editorPayout;
   final String deadlineStr;
   final int deadlineHoursLeft;
@@ -76,7 +79,7 @@ class ProjectItem {
     this.agencyId,
     required this.title,
     required this.clientName,
-    required this.clientBudget,
+    this.legacyClientBudget,
     required this.editorPayout,
     required this.deadlineStr,
     required this.deadlineHoursLeft,
@@ -113,7 +116,7 @@ class ProjectItem {
       agencyId: agencyId ?? this.agencyId,
       title: title,
       clientName: clientName,
-      clientBudget: clientBudget,
+      legacyClientBudget: legacyClientBudget,
       editorPayout: editorPayout ?? this.editorPayout,
       deadlineStr: deadlineStr ?? this.deadlineStr,
       deadlineHoursLeft: deadlineHoursLeft ?? this.deadlineHoursLeft,
@@ -135,7 +138,6 @@ class ProjectItem {
       if (agencyId != null) 'agencyId': agencyId,
       'title': title,
       'clientName': clientName,
-      'clientBudget': clientBudget,
       'editorPayout': editorPayout,
       'deadlineStr': deadlineStr,
       'deadlineHoursLeft': deadlineHoursLeft,
@@ -158,7 +160,7 @@ class ProjectItem {
       agencyId: map['agencyId'] as String?,
       title: map['title'] as String? ?? '',
       clientName: map['clientName'] as String? ?? '',
-      clientBudget: (map['clientBudget'] as num?)?.toDouble() ?? 0.0,
+      legacyClientBudget: (map['clientBudget'] as num?)?.toDouble(),
       editorPayout: (map['editorPayout'] as num?)?.toDouble() ?? 0.0,
       deadlineStr: map['deadlineStr'] as String? ?? '',
       deadlineHoursLeft: (map['deadlineHoursLeft'] as num?)?.toInt() ?? 0,
@@ -177,4 +179,24 @@ class ProjectItem {
       isOverdue: map['isOverdue'] as bool? ?? false,
     );
   }
+}
+
+/// Manager-only pricing for a project, stored at
+/// `projects/{id}/private/finance`. Editors can never read it (rules).
+class ProjectFinance {
+  final double clientPrice;
+  final String currency;
+  const ProjectFinance({required this.clientPrice, this.currency = 'BDT'});
+
+  factory ProjectFinance.fromMap(Map<String, dynamic> map) => ProjectFinance(
+        clientPrice: (map['clientPrice'] as num?)?.toDouble() ?? 0,
+        currency: map['currency'] as String? ?? 'BDT',
+      );
+}
+
+/// Margin of [clientPrice] over [payout]; null when the price is unknown.
+({double amount, double percent})? projectMargin(double? clientPrice, double payout) {
+  if (clientPrice == null || clientPrice <= 0) return null;
+  final amount = clientPrice - payout;
+  return (amount: amount, percent: amount / clientPrice * 100);
 }

@@ -20,7 +20,7 @@ ProjectItem _p(String id) => ProjectItem(
       id: id,
       title: 'Reel cut $id',
       clientName: 'Client',
-      clientBudget: 9000,
+      
       editorPayout: 5000,
       deadlineStr: 'Fri',
       deadlineHoursLeft: 48,
