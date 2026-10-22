@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/motion/shimmer.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -170,12 +171,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                 stream: ref.watch(firestoreServiceProvider).streamAgencyTeamMembers(agencyId: user?.agencyId),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
+                    return const SkeletonList(item: InboxRowSkeleton(), count: 6);
                   }
 
                   if (snapshot.hasError && !snapshot.hasData) {

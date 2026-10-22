@@ -18,6 +18,8 @@ import '../../features/chat/domain/chat_models.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 import '../../shared/widgets/wara_bottom_bar.dart';
+import '../../shared/motion/page_transitions.dart';
+import '../../features/projects/domain/project_provider.dart';
 
 /// Bridges auth changes into GoRouter without rebuilding the router.
 /// Only the fields that affect redirects trigger a refresh.
@@ -74,51 +76,54 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) => fadeThroughPage(state, const LoginScreen()),
       ),
       GoRoute(
         path: '/welcome',
-        builder: (context, state) => const OnboardingScreen(),
+        pageBuilder: (context, state) => fadeThroughPage(state, const OnboardingScreen()),
       ),
       GoRoute(
         path: '/editor/profile-setup',
-        builder: (context, state) => const EditorProfileSetupScreen(),
+        pageBuilder: (context, state) => fadeThroughPage(state, const EditorProfileSetupScreen()),
       ),
 
       GoRoute(
         path: '/chat/:conversationId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final convoId = state.pathParameters['conversationId'] ?? 'agency_general';
           final title = state.uri.queryParameters['title'] ?? (convoId == 'agency_general' ? '# agency-room' : 'Direct Message');
           final isChannel = convoId == 'agency_general';
-          return ChatRoomScreen(
-            conversationId: convoId,
-            title: title,
-            type: isChannel ? ConversationType.channel : ConversationType.direct,
+          return fadeThroughPage(
+            state,
+            ChatRoomScreen(
+              conversationId: convoId,
+              title: title,
+              type: isChannel ? ConversationType.channel : ConversationType.direct,
+            ),
           );
         },
       ),
 
       // Editor Navigation Shell (4 Tabs)
       StatefulShellRoute.indexedStack(
-        builder: (context, state, shell) => _EditorShell(shell: shell),
+        pageBuilder: (context, state, shell) => fadeThroughPage(state, _EditorShell(shell: shell)),
         branches: [
-          StatefulShellBranch(routes: [GoRoute(path: '/editor/available', builder: (c, s) => const EditorAvailableScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/editor/workspace', builder: (c, s) => const EditorWorkspaceScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/editor/messages', builder: (c, s) => const ChatInboxScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/editor/settings', builder: (c, s) => const EditorSettingsScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/editor/available', pageBuilder: (c, s) => fadeThroughPage(s, const EditorAvailableScreen()))]),
+          StatefulShellBranch(routes: [GoRoute(path: '/editor/workspace', pageBuilder: (c, s) => fadeThroughPage(s, const EditorWorkspaceScreen()))]),
+          StatefulShellBranch(routes: [GoRoute(path: '/editor/messages', pageBuilder: (c, s) => fadeThroughPage(s, const ChatInboxScreen()))]),
+          StatefulShellBranch(routes: [GoRoute(path: '/editor/settings', pageBuilder: (c, s) => fadeThroughPage(s, const EditorSettingsScreen()))]),
         ],
       ),
 
       // Manager Navigation Shell (5 Tabs)
       StatefulShellRoute.indexedStack(
-        builder: (context, state, shell) => _ManagerShell(shell: shell),
+        pageBuilder: (context, state, shell) => fadeThroughPage(state, _ManagerShell(shell: shell)),
         branches: [
-          StatefulShellBranch(routes: [GoRoute(path: '/manager/workflow', builder: (c, s) => const ManagerWorkflowScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/manager/pending', builder: (c, s) => const ManagerPendingScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/manager/finance', builder: (c, s) => const ManagerFinanceScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/manager/messages', builder: (c, s) => const ChatInboxScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/manager/settings', builder: (c, s) => const ManagerSettingsScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/manager/workflow', pageBuilder: (c, s) => fadeThroughPage(s, const ManagerWorkflowScreen()))]),
+          StatefulShellBranch(routes: [GoRoute(path: '/manager/pending', pageBuilder: (c, s) => fadeThroughPage(s, const ManagerPendingScreen()))]),
+          StatefulShellBranch(routes: [GoRoute(path: '/manager/finance', pageBuilder: (c, s) => fadeThroughPage(s, const ManagerFinanceScreen()))]),
+          StatefulShellBranch(routes: [GoRoute(path: '/manager/messages', pageBuilder: (c, s) => fadeThroughPage(s, const ChatInboxScreen()))]),
+          StatefulShellBranch(routes: [GoRoute(path: '/manager/settings', pageBuilder: (c, s) => fadeThroughPage(s, const ManagerSettingsScreen()))]),
         ],
       ),
     ],
@@ -127,21 +132,23 @@ final routerProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-class _EditorShell extends StatelessWidget {
+class _EditorShell extends ConsumerWidget {
   final StatefulNavigationShell shell;
   const _EditorShell({required this.shell});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final active = ref.watch(projectsProvider.select(
+        (list) => list.where((p) => p.claimedByEditorId != null && p.status == ProjectStatus.claimed).length));
     return Scaffold(
       backgroundColor: colors.bg,
       body: shell,
       bottomNavigationBar: WaraBottomBar(
         selectedIndex: shell.currentIndex,
         onItemSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        items: const [
-          WaraNavItem(
+        items: [
+          const WaraNavItem(
             icon: Icons.storefront_outlined,
             label: 'Marketplace',
             selectedIcon: Icons.storefront_rounded,
@@ -150,13 +157,14 @@ class _EditorShell extends StatelessWidget {
             icon: Icons.work_outline_rounded,
             label: 'Workspace',
             selectedIcon: Icons.work_rounded,
+            badgeCount: active,
           ),
-          WaraNavItem(
+          const WaraNavItem(
             icon: Icons.chat_bubble_outline_rounded,
             label: 'Messages',
             selectedIcon: Icons.chat_bubble_rounded,
           ),
-          WaraNavItem(
+          const WaraNavItem(
             icon: Icons.person_outline_rounded,
             label: 'Settings',
             selectedIcon: Icons.person_rounded,

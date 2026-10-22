@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../motion/pop_badge.dart';
 
 class WaraNavItem {
   final IconData icon;
   final IconData? selectedIcon;
   final String label;
   final bool hasBadge;
+  final int badgeCount;
   final String? tooltip;
 
   const WaraNavItem({
@@ -13,6 +15,7 @@ class WaraNavItem {
     required this.label,
     this.selectedIcon,
     this.hasBadge = false,
+    this.badgeCount = 0,
     this.tooltip,
   });
 }
@@ -61,7 +64,7 @@ class WaraBottomBar extends StatelessWidget {
                 child: Semantics(
                   button: true,
                   selected: isSelected,
-                  label: '${item.label} tab',
+                  label: item.badgeCount > 0 ? '${item.label} tab, ${item.badgeCount}' : '${item.label} tab',
                   excludeSemantics: true,
                   child: Tooltip(
                     message: item.tooltip ?? item.label,
@@ -100,7 +103,18 @@ class WaraBottomBar extends StatelessWidget {
                                       ? colors.primary
                                       : colors.muted,
                                 ),
-                                if (item.hasBadge)
+                                if (item.badgeCount > 0)
+                                  Positioned(
+                                    top: -6,
+                                    right: -10,
+                                    child: PopBadge(
+                                      count: item.badgeCount,
+                                      color: colors.primary,
+                                      textColor: colors.onPrimary,
+                                      borderColor: colors.surface,
+                                    ),
+                                  )
+                                else if (item.hasBadge)
                                   Positioned(
                                     top: -2,
                                     right: -2,
