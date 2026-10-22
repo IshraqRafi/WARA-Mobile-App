@@ -14,6 +14,8 @@ class WaraProjectCard extends StatelessWidget {
   final bool showStatus;
   final int descriptionMaxLines;
   final String payoutLabel;
+  /// Overrides the amount in the footer (defaults to the editor payout).
+  final double? amount;
   final Widget? notice;
   final List<Widget> actions;
 
@@ -26,6 +28,7 @@ class WaraProjectCard extends StatelessWidget {
     this.showStatus = true,
     this.descriptionMaxLines = 2,
     this.payoutLabel = 'Editor payout',
+    this.amount,
     this.notice,
     this.actions = const [],
   });
@@ -152,7 +155,7 @@ class WaraProjectCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(payoutLabel.toUpperCase(), style: t.labelMedium?.copyWith(letterSpacing: 0.8)),
-                        Text('৳${p.editorPayout.toInt()}', style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                        Text('৳${(amount ?? p.editorPayout).toInt()}', style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                       ],
                     ),
                     if (actions.isNotEmpty)

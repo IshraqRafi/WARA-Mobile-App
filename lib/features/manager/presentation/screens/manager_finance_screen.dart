@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
+import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_logo.dart';
+import '../../../../shared/widgets/wara_project_card.dart';
 import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
 
@@ -80,7 +82,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
       backgroundColor: colors.bg,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.lg, AppSpacing.screenMargin(context), AppSpacing.bottomInset(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -115,7 +117,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
                   border: Border.all(color: colors.border),
                   boxShadow: [
                     BoxShadow(
-                      color: colors.isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03),
+                      color: colors.text.withValues(alpha: 0.03),
                       blurRadius: 20,
                       spreadRadius: 1,
                     ),
@@ -137,7 +139,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       '৳${_formatCurrency(totalPipelineVolume)}',
-                      style: TextStyle(color: colors.text, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(color: colors.text, fontWeight: FontWeight.w700, letterSpacing: -0.5),
                     ),
                     const SizedBox(height: 14),
 
@@ -151,12 +153,12 @@ class ManagerFinanceScreen extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.trending_up_rounded, color: colors.primary, size: 16),
+                          Icon(Icons.trending_up_rounded, color: colors.success, size: 16),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Agency Net Margin: ৳${_formatCurrency(netMargin)} ($marginPercent%)',
-                              style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: colors.success, fontSize: 12, fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -235,125 +237,27 @@ class ManagerFinanceScreen extends ConsumerWidget {
               const SizedBox(height: 12),
 
               if (projects.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: colors.border),
-                  ),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.receipt_long_outlined, color: colors.muted, size: 36),
-                        const SizedBox(height: 10),
-                        Text(
-                          'No Active Projects in Ledger',
-                          style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Post project offers from the Workflow tab to track real client budgets and editor payouts.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: colors.muted, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
+                const WaraEmptyState(
+                  compact: true,
+                  icon: Icons.receipt_long_outlined,
+                  title: 'No projects in the ledger',
+                  message: 'Post project offers from the Workflow tab to track client budgets and editor payouts.',
                 )
               else
                 Column(
-                  children: projects.map((p) {
-                    final isApproved = p.status == ProjectStatus.approved;
-                    final isSubmitted = p.status == ProjectStatus.submitted;
-                    final isClaimed = p.status == ProjectStatus.claimed;
-
-                    String statusText;
-                    Color statusColor;
-                    if (isApproved) {
-                      statusText = 'Paid Out';
-                      statusColor = Colors.greenAccent;
-                    } else if (isSubmitted) {
-                      statusText = 'In Review';
-                      statusColor = Colors.cyanAccent;
-                    } else if (isClaimed) {
-                      statusText = 'In Production';
-                      statusColor = Colors.blueAccent;
-                    } else {
-                      statusText = 'Unallocated';
-                      statusColor = colors.muted;
-                    }
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: colors.card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: colors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: colors.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: colors.border),
-                            ),
-                            child: Icon(
-                              isApproved ? Icons.check_circle_rounded : Icons.movie_creation_outlined,
-                              color: isApproved ? Colors.greenAccent : colors.primary,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  p.title,
-                                  style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.bold),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  '${p.clientName} • ${p.claimedByEditorName != null ? "Editor: ${p.claimedByEditorName}" : "Open Pool"}',
-                                  style: TextStyle(color: colors.muted, fontSize: 11),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '৳${p.clientBudget.toInt()}',
-                                style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 2),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  statusText,
-                                  style: TextStyle(color: statusColor, fontSize: 9.5, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ),
+                  children: [
+                    for (final p in projects)
+                      WaraProjectCard(
+                        project: p,
+                        showAssignee: true,
+                        descriptionMaxLines: 1,
+                        amount: p.clientBudget,
+                        payoutLabel: 'Client value',
+                        actions: [
+                          Text('Editor ৳${p.editorPayout.toInt()}', style: Theme.of(context).textTheme.bodySmall),
                         ],
                       ),
-                    );
-                  }).toList(),
+                  ],
                 ),
               const SizedBox(height: 28),
 
@@ -365,31 +269,11 @@ class ManagerFinanceScreen extends ConsumerWidget {
               const SizedBox(height: 12),
 
               if (editorEarningsMap.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: colors.border),
-                  ),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.groups_outlined, color: colors.muted, size: 36),
-                        const SizedBox(height: 10),
-                        Text(
-                          'No Editor Disbursements Yet',
-                          style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'As creative editors claim and complete project offers, their earned disbursements and escrow balances will appear here.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: colors.muted, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
+                const WaraEmptyState(
+                  compact: true,
+                  icon: Icons.groups_outlined,
+                  title: 'No editor payouts yet',
+                  message: 'As editors claim and complete projects, their earnings and escrow balances appear here.',
                 )
               else
                 Column(
