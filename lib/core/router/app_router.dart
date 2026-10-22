@@ -18,6 +18,10 @@ import '../../features/chat/domain/chat_models.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 import '../../shared/widgets/wara_bottom_bar.dart';
+import '../../shared/widgets/quick_actions_sheet.dart';
+import '../../shared/widgets/wara_toast.dart';
+import '../../features/notifications/domain/notification_provider.dart';
+import 'package:flutter/services.dart';
 import '../../shared/motion/page_transitions.dart';
 import '../../shared/motion/shared_axis.dart';
 import '../../features/projects/domain/project_provider.dart';
@@ -147,6 +151,7 @@ class _EditorShell extends ConsumerWidget {
       bottomNavigationBar: WaraBottomBar(
         selectedIndex: shell.currentIndex,
         onItemSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        onLongPress: () => showQuickActions(context, buildQuickActions(context, ref, shell, manager: false)),
         items: [
           const WaraNavItem(
             icon: Icons.storefront_outlined,
@@ -175,12 +180,67 @@ class _EditorShell extends ConsumerWidget {
   }
 }
 
-class _ManagerShell extends StatelessWidget {
+/// Quick actions for the tab-bar long-press palette. Editors only see
+/// their own active work, by title (no client pricing).
+List<QuickAction> buildQuickActions(BuildContext context, WidgetRef ref, StatefulNavigationShell shell,
+    {required bool manager}) {
+  final user = ref.read(authProvider).user;
+  final projects = ref.read(projectsProvider);
+  final mine = manager
+      ? projects.where((p) => p.status != ProjectStatus.approved)
+      : projects.where((p) => p.claimedByEditorId == user?.id && p.status != ProjectStatus.approved && p.status != ProjectStatus.open);
+  return [
+    if (manager)
+      QuickAction(
+        id: 'new_project',
+        label: 'New project',
+        icon: Icons.add_rounded,
+        run: () {
+          shell.goBranch(0);
+          ref.read(createProjectRequestProvider.notifier).state++;
+        },
+      ),
+    if (manager && (user?.agencyJoinKey ?? '').isNotEmpty)
+      QuickAction(
+        id: 'copy_key',
+        label: 'Copy join key',
+        icon: Icons.key_rounded,
+        run: () {
+          Clipboard.setData(ClipboardData(text: user!.agencyJoinKey!));
+          WaraToast.show(context, message: 'Join key copied', icon: Icons.copy_rounded);
+        },
+      ),
+    QuickAction(id: 'chat', label: 'Open chat', icon: Icons.chat_bubble_outline_rounded, run: () => shell.goBranch(manager ? 3 : 2)),
+    QuickAction(
+      id: 'mark_read',
+      label: 'Mark all read',
+      icon: Icons.done_all_rounded,
+      run: () => ref.read(notificationActionsProvider).markAllRead(),
+    ),
+    for (final p in mine)
+      QuickAction(
+        id: 'p_${p.id}',
+        label: p.title,
+        hint: p.status.name,
+        icon: Icons.arrow_outward_rounded,
+        run: () {
+          if (manager) {
+            shell.goBranch(p.status == ProjectStatus.submitted ? 1 : 0);
+          } else {
+            shell.goBranch(1);
+            ref.read(expandedCardProvider('workspace').notifier).state = p.id;
+          }
+        },
+      ),
+  ];
+}
+
+class _ManagerShell extends ConsumerWidget {
   final StatefulNavigationShell shell;
   const _ManagerShell({required this.shell});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
     return Scaffold(
       backgroundColor: colors.bg,
@@ -188,6 +248,7 @@ class _ManagerShell extends StatelessWidget {
       bottomNavigationBar: WaraBottomBar(
         selectedIndex: shell.currentIndex,
         onItemSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        onLongPress: () => showQuickActions(context, buildQuickActions(context, ref, shell, manager: true)),
         items: const [
           WaraNavItem(
             icon: Icons.dashboard_outlined,

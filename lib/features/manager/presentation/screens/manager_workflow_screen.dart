@@ -39,6 +39,9 @@ final _visibleProjectsProvider = Provider.autoDispose<List<ProjectItem>>((ref) {
   return filter == null ? projects : projects.where(_filterTests[filter]).toList(growable: false);
 });
 
+/// Bumped by the quick actions palette to open the create sheet.
+final createProjectRequestProvider = StateProvider<int>((ref) => 0);
+
 class ManagerWorkflowScreen extends ConsumerWidget {
   const ManagerWorkflowScreen({super.key});
 
@@ -714,6 +717,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
     final colors = context.colors;
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
+    ref.listen<int>(createProjectRequestProvider, (_, _) => _openCreate(context));
     if (projectsError != null && projects.isEmpty) {
       return ProjectsLoadError(error: projectsError);
     }

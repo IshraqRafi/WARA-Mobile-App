@@ -31,17 +31,32 @@ class WaraBottomBar extends StatelessWidget {
   final ValueChanged<int> onItemSelected;
   final List<WaraNavItem> items;
 
+  /// Long-press anywhere on the bar (opens quick actions).
+  final VoidCallback? onLongPress;
+
   const WaraBottomBar({
     super.key,
     required this.selectedIndex,
     required this.onItemSelected,
     required this.items,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
 
+    final bar = _bar(context, colors);
+    if (onLongPress == null) return bar;
+    return GestureDetector(
+      key: const Key('bottom_bar_longpress'),
+      behavior: HitTestBehavior.translucent,
+      onLongPress: onLongPress,
+      child: bar,
+    );
+  }
+
+  Widget _bar(BuildContext context, AppColors colors) {
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
