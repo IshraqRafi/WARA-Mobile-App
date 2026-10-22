@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/firestore_service.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/motion/motion.dart';
@@ -29,17 +30,25 @@ class EditorAvailableScreen extends ConsumerStatefulWidget {
 class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
   /// Claims waiting out the undo window; written when the timer fires.
   final Map<String, Timer> _pending = {};
+  /// Offers lost to another editor's claim; hidden until the stream drops them.
+  final Set<String> _taken = {};
   static const undoWindow = Duration(seconds: 5);
 
   void _claim(ProjectItem project, UserSession? user) {
-    if (_pending.containsKey(project.id)) return;
+    if (user == null || _pending.containsKey(project.id)) return;
     Haptics.medium();
     final notifier = ref.read(projectsProvider.notifier);
     final messenger = ScaffoldMessenger.of(context);
     Future<void> commit() async {
       _pending.remove(project.id);
       try {
-        await notifier.claimProject(project.id, user?.id ?? 'editor_1', '${user?.name ?? ''} (You)');
+        await notifier.claimProject(project.id, user.id, user.name);
+      } on AlreadyTakenException {
+        // Someone else won the race: drop the card, tell the editor.
+        _taken.add(project.id);
+        if (!mounted) return;
+        setState(() {});
+        WaraToast.show(context, message: 'Already taken', icon: Icons.block_rounded);
       } catch (e) {
         if (!mounted) return;
         setState(() {});
@@ -125,7 +134,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
     final hidden = ref.watch(hiddenOffersProvider);
     final loaded = ref.watch(projectsLoadedProvider);
     final availableProjects = projects
-        .where((p) => p.status == ProjectStatus.open && !hidden.contains(p.id) && !_pending.containsKey(p.id))
+        .where((p) => p.status == ProjectStatus.open && !hidden.contains(p.id) && !_pending.containsKey(p.id) && !_taken.contains(p.id))
         .toList();
 
     return Scaffold(

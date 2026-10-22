@@ -200,8 +200,18 @@ service cloud.firestore {
           || isManager()
           || resource.data.get('claimedByEditorId', '') == request.auth.uid;
       }
+      // An editor claims only an open, unclaimed project, for themselves.
+      function claimOk() {
+        let before = resource.data.get('claimedByEditorId', null);
+        let after = request.resource.data.get('claimedByEditorId', null);
+        return after == before || after == null || isManager()
+          || ((before == null || before == '')
+              && resource.data.get('status', '') == 'open'
+              && after == request.auth.uid);
+      }
       allow update: if inAgency(resource.data.agencyId)
         && request.resource.data.agencyId == resource.data.agencyId
+        && claimOk()
         && (!('clientBudget' in request.resource.data)
             || request.resource.data.clientBudget == resource.data.get('clientBudget', null))
         && versionOk()

@@ -240,12 +240,23 @@ class FirestoreService {
   }
 
   /// Claim a project offer
+  /// Claims in a transaction; throws [AlreadyTakenException] when another
+  /// editor got there first (or the offer is no longer open).
   Future<void> claimProject(String projectId, String editorId, String editorName) async {
-    await _projectsRef.doc(projectId).update({
-      'claimedByEditorId': editorId,
-      'claimedByEditorName': editorName,
-      'claimedAt': DateTime.now().toIso8601String(),
-      'status': ProjectStatus.claimed.name,
+    final ref = _projectsRef.doc(projectId);
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      final d = snap.data();
+      final holder = d?['claimedByEditorId'] as String?;
+      if (d == null || d['status'] != ProjectStatus.open.name || (holder != null && holder.isNotEmpty)) {
+        throw const AlreadyTakenException();
+      }
+      tx.update(ref, {
+        'claimedByEditorId': editorId,
+        'claimedByEditorName': editorName,
+        'claimedAt': DateTime.now().toIso8601String(),
+        'status': ProjectStatus.claimed.name,
+      });
     });
   }
 
@@ -650,4 +661,11 @@ class FirestoreService {
       await b.commit();
     } catch (_) {}
   }
+}
+
+/// The offer was claimed by someone else (or closed) before this claim.
+class AlreadyTakenException implements Exception {
+  const AlreadyTakenException();
+  @override
+  String toString() => 'Already taken';
 }

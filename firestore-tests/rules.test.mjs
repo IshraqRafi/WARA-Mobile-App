@@ -178,3 +178,12 @@ test('legacy agency notifications are locked', async () => {
   await assertFails(getDocs(collection(as('eA'), 'agencies/A/notifications')));
   await assertFails(setDoc(doc(as('mA'), 'agencies/A/notifications/x'), { title: 't' }));
 });
+
+test('claim race: second editor cannot take a claimed project; no claiming for others', async () => {
+  const claim = (uid) => ({ claimedByEditorId: uid, claimedByEditorName: uid, status: 'claimed' });
+  await assertFails(updateDoc(doc(as('eA'), 'projects/p1'), claim('eA2')));
+  await assertSucceeds(updateDoc(doc(as('eA'), 'projects/p1'), claim('eA')));
+  await assertFails(updateDoc(doc(as('eA2'), 'projects/p1'), claim('eA2')));
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'projects/p2'), { agencyId: 'A', title: 'Q', status: 'approved' }));
+  await assertFails(updateDoc(doc(as('eA2'), 'projects/p2'), claim('eA2')));
+});

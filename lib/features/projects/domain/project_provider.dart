@@ -246,6 +246,10 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     // Cloud Firestore write
     try {
       await _firestoreService.claimProject(projectId, editorId, editorName);
+    } on AlreadyTakenException {
+      // Lost the race: the stream will bring the winner's state; drop ours.
+      state = [for (final item in state) if (item.id != projectId) item];
+      rethrow;
     } catch (_) {
       if (previous != null) {
         state = [for (final item in state) if (item.id == projectId) previous else item];
