@@ -60,9 +60,20 @@ void main() {
       ),
     )));
     expect(tester.takeException(), isNull);
+    expect(find.descendant(of: find.byType(WaraStatStrip), matching: find.byType(InkWell)), findsNothing);
     await tester.tap(find.text('Active'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(selected, 1);
+    final pillA = tester.getRect(find.byKey(const ValueKey('stat_pill')));
+    await tester.tap(find.text('Overdue'));
+    await tester.pumpAndSettle();
+    expect(selected, 3);
+    expect(tester.getRect(find.byKey(const ValueKey('stat_pill'))).left, greaterThan(pillA.left));
+    await tester.tap(find.text('Overdue'));
+    await tester.pumpAndSettle();
+    expect(selected, isNull);
+    await tester.tap(find.text('Active'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Active'));
     await tester.pump();
     expect(selected, isNull);
