@@ -88,7 +88,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
         ),
       );
     }
-    final user = ref.watch(authProvider).user;
+    final user = ref.watch(authProvider.select((s) => s.user));
 
     // Filter only open offers in the marketplace
     final hidden = ref.watch(hiddenOffersProvider);

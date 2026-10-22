@@ -133,46 +133,37 @@ class _WaraThemeToggleState extends ConsumerState<WaraThemeToggle>
                   Positioned(
                     right: compact ? 10 : 12,
                     top: compact ? 7 : 8,
-                    child: Opacity(
-                      opacity: (t * 0.9).clamp(0.0, 1.0),
-                      child: Container(
+                    child: Container(
                         width: 3,
                         height: 3,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE0E7FF),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFE0E7FF).withValues(alpha: (t * 0.9).clamp(0.0, 1.0)),
                           shape: BoxShape.circle,
                         ),
-                      ),
                     ),
                   ),
                   Positioned(
                     right: compact ? 18 : 22,
                     bottom: compact ? 7 : 9,
-                    child: Opacity(
-                      opacity: (t * 0.65).clamp(0.0, 1.0),
-                      child: Container(
+                    child: Container(
                         width: 2,
                         height: 2,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFC7D2FE),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFC7D2FE).withValues(alpha: (t * 0.65).clamp(0.0, 1.0)),
                           shape: BoxShape.circle,
                         ),
-                      ),
                     ),
                   ),
                   Positioned(
                     right: compact ? 7 : 8,
                     bottom: compact ? 9 : 11,
-                    child: Opacity(
-                      opacity: (t * 0.75).clamp(0.0, 1.0),
-                      child: Container(
+                    child: Container(
                         width: 2.5,
                         height: 2.5,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE0E7FF),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFE0E7FF).withValues(alpha: (t * 0.75).clamp(0.0, 1.0)),
                           shape: BoxShape.circle,
                         ),
-                      ),
                     ),
                   ),
 
@@ -180,16 +171,13 @@ class _WaraThemeToggleState extends ConsumerState<WaraThemeToggle>
                   Positioned(
                     left: compact ? 10 : 12,
                     bottom: compact ? 6 : 7,
-                    child: Opacity(
-                      opacity: ((1.0 - t) * 0.45).clamp(0.0, 1.0),
-                      child: Container(
+                    child: Container(
                         width: compact ? 10 : 14,
                         height: 3,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.white.withValues(alpha: ((1.0 - t) * 0.45).clamp(0.0, 1.0)),
                           borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
+                    ),
                     ),
                   ),
 

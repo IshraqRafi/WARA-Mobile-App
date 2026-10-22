@@ -207,7 +207,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final user = ref.watch(authProvider).user;
+    final user = ref.watch(authProvider.select((s) => s.user));
     final currentSkills = user?.skills ?? ['Video Editing', 'Color Grading'];
     final currentHours = user?.hoursPerWeek ?? 35;
     final currentDays = user?.activeDays ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];

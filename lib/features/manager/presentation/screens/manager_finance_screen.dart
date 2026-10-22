@@ -23,7 +23,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
-    final user = ref.watch(authProvider).user;
+    final user = ref.watch(authProvider.select((s) => s.user));
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
     if (projectsError != null && projects.isEmpty) {
