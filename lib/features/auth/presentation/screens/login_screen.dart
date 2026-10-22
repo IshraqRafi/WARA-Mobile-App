@@ -7,7 +7,8 @@ import '../../../../shared/widgets/wara_banner.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../domain/auth_provider.dart';
 
-/// Google is the only sign-in method. New accounts continue to onboarding.
+/// Google sign-in with a role selector. The selected role applies to new
+/// accounts; existing accounts always keep their stored role.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -16,15 +17,24 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  UserRole _role = UserRole.editor;
   bool _isLoading = false;
   String? _errorMessage;
 
   Future<void> _handleGoogleSignIn() async {
+    final messenger = ScaffoldMessenger.of(context);
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
-    final res = await ref.read(authProvider.notifier).signInWithGoogle();
+    final res = await ref.read(authProvider.notifier).signInWithGoogle(role: _role);
+    final mismatch = res.roleMismatch;
+    if (mismatch != null) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('Signed in as ${mismatch == UserRole.manager ? 'Manager' : 'Editor'}'),
+        duration: const Duration(seconds: 3),
+      ));
+    }
     if (!mounted) return;
     setState(() {
       _isLoading = false;
@@ -49,22 +59,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Center(child: WaraLogo(size: 72)),
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(AppInfo.name, textAlign: TextAlign.center, style: text.displayLarge),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    AppInfo.tagline.toUpperCase(),
-                    textAlign: TextAlign.center,
-                    style: text.labelMedium?.copyWith(letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(
-                    'Run projects, editors and payouts for your media agency in one place.',
-                    textAlign: TextAlign.center,
-                    style: text.bodyLarge?.copyWith(color: colors.muted),
-                  ),
+                  const Center(child: WaraLogo(size: 96)),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(AppInfo.name, textAlign: TextAlign.center, style: text.headlineMedium),
                   const SizedBox(height: AppSpacing.xxl),
+                  RoleSlider(
+                    value: _role,
+                    enabled: !_isLoading,
+                    onChanged: (r) => setState(() => _role = r),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
                   if (_errorMessage != null) ...[
                     WaraBanner(message: _errorMessage!),
                     const SizedBox(height: AppSpacing.lg),
@@ -100,16 +104,85 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  Text(
-                    'By continuing you agree to the wara.io Terms of Service and Privacy Policy.',
-                    textAlign: TextAlign.center,
-                    style: text.bodySmall,
-                  ),
+                  Text('By continuing you accept the Terms and Privacy Policy.', textAlign: TextAlign.center, style: text.bodySmall),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Two-segment [Editor | Manager] selector with a sliding thumb.
+class RoleSlider extends StatelessWidget {
+  final UserRole value;
+  final ValueChanged<UserRole> onChanged;
+  final bool enabled;
+
+  const RoleSlider({super.key, required this.value, required this.onChanged, this.enabled = true});
+
+  static const _roles = [UserRole.editor, UserRole.manager];
+  static const _labels = {UserRole.editor: 'Editor', UserRole.manager: 'Manager'};
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = Theme.of(context).textTheme;
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final isLeft = value == _roles.first;
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.border),
+      ),
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            alignment: isLeft ? Alignment.centerLeft : Alignment.centerRight,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              heightFactor: 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              for (final r in _roles)
+                Expanded(
+                  child: Semantics(
+                    button: true,
+                    selected: r == value,
+                    label: _labels[r],
+                    excludeSemantics: true,
+                    child: InkWell(
+                      key: ValueKey('role_${r.name}'),
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: enabled ? () => onChanged(r) : null,
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 220),
+                          style: (text.labelLarge ?? const TextStyle()).copyWith(
+                            color: r == value ? onPrimary : colors.muted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          child: Text(_labels[r]!),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
