@@ -230,7 +230,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                         children: [
                           Text(user?.name ?? 'Ishraq Rafi', style: TextStyle(color: colors.text, fontSize: 17, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 2),
-                          Text(user?.email ?? 'abdullahishraqrafi@gmail.com', style: TextStyle(color: colors.muted, fontSize: 12)),
+                          Text(user?.email ?? '', style: TextStyle(color: colors.muted, fontSize: 12)),
                           const SizedBox(height: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

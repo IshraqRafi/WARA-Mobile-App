@@ -65,3 +65,38 @@ device and check projects, chat and notifications load.
 
 Existing devices that saved an old local demo session: log out and back in
 once so a real Firebase session exists.
+
+## Build-time config (--dart-define)
+
+The Google sign-in server client ID and the owner email are no longer in the
+source. Pass them at build/run time:
+
+| Define                    | What it is                                                     | If omitted |
+|---------------------------|----------------------------------------------------------------|------------|
+| `GOOGLE_SERVER_CLIENT_ID` | OAuth **Web** client ID (Firebase console -> Authentication -> Sign-in method -> Google -> Web SDK configuration, or Google Cloud -> Credentials) | Android falls back to `default_web_client_id` from `google-services.json` |
+| `OWNER_EMAIL`             | Agency owner's email; that account gets the owner display name | No special-casing; manager shows "Agency Director" unless a profile name exists |
+| `OWNER_NAME` (optional)   | Display name for the owner                                      | `Ishraq Rafi` |
+
+Easiest: create `config/dart_defines.json` (already ignored by git, see below):
+
+```json
+{
+  "GOOGLE_SERVER_CLIENT_ID": "<web-client-id>.apps.googleusercontent.com",
+  "OWNER_EMAIL": "<owner email>"
+}
+```
+
+Run / build:
+
+```
+flutter run --dart-define-from-file=config/dart_defines.json
+flutter build apk --release --dart-define-from-file=config/dart_defines.json
+```
+
+Or inline:
+
+```
+flutter build apk --release --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>.apps.googleusercontent.com --dart-define=OWNER_EMAIL=<owner email>
+```
+
+Never commit `config/dart_defines.json`.

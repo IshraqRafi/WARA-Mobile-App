@@ -48,3 +48,6 @@ lib/firebase_options.dart
 .DS_Store
 Thumbs.db
 
+
+# Local build-time config (--dart-define-from-file)
+config/dart_defines.json

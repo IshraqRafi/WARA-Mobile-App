@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../../core/constants/app_config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -127,7 +128,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '3110629658-0kl05tqd8l7fbqu21nqoifd1i9c9r3dr.apps.googleusercontent.com',
+    serverClientId: AppConfig.googleServerClientId,
   );
   final FirestoreService _firestoreService = FirestoreService();
 
@@ -206,8 +207,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     List<String>? activeDays,
     bool isProfileComplete = true,
   }) {
-    final cleanEmail = email?.trim().toLowerCase() ?? '';
-    final defaultManagerName = (cleanEmail == 'abdullahishraqrafi@gmail.com') ? 'Ishraq Rafi' : 'Agency Director';
+    final defaultManagerName = AppConfig.isOwnerEmail(email) ? AppConfig.ownerName : 'Agency Director';
 
     if (role == UserRole.manager) {
       return UserSession(
