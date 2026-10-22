@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/motion/claim_handoff.dart';
+import '../../../../shared/motion/diff_list.dart';
 import '../../../payments/presentation/payout_widgets.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +35,8 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
   final Map<String, Timer> _pending = {};
   /// Offers lost to another editor's claim; hidden until the stream drops them.
   final Set<String> _taken = {};
+  /// Swiped away: their Dismissible is gone, so no collapse on exit.
+  final Set<String> _swiped = {};
   static const undoWindow = Duration(seconds: 5);
 
   /// Card keys, for the hand-off origin.
@@ -206,30 +209,41 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                         icon: Icons.check_circle_outline_rounded,
                         title: 'No open offers',
                       )
-                    : ListView.builder(
+                    : ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: EdgeInsets.only(bottom: AppSpacing.bottomInset(context)),
-                        itemCount: availableProjects.length,
-                        itemBuilder: (context, index) {
-                          final project = availableProjects[index];
-                          return StaggerIn(
-                            key: ValueKey(project.id),
-                            screen: 'marketplace',
-                            index: index,
-                            child: SwipeFeedback(
-                              builder: (context, progress, onUpdate) => Dismissible(
-                                key: ValueKey('swipe_${project.id}'),
-                                background: _swipeBg(colors, progress, claim: true),
-                                secondaryBackground: _swipeBg(colors, progress, claim: false),
-                                onUpdate: onUpdate,
-                                onDismissed: (dir) => dir == DismissDirection.endToStart
-                                    ? _hide(project)
-                                    : _claim(project, user),
-                                child: KeyedSubtree(key: _cardKeys.putIfAbsent(project.id, GlobalKey.new), child: OfferCard(project: project, onTap: () => showOfferDetail(context, project, agencyName: user?.agencyName, onClaim: () => _claim(project, user)), onLongPress: () => _claim(project, user))),
+                        children: [
+                          DiffList<ProjectItem>(
+                            items: availableProjects,
+                            idOf: (p) => p.id,
+                            skipExit: _swiped.contains,
+                            itemBuilder: (context, project, index) => StaggerIn(
+                              key: ValueKey(project.id),
+                              screen: 'marketplace',
+                              index: index < 0 ? 0 : index,
+                              child: SwipeFeedback(
+                                builder: (context, progress, onUpdate) => Dismissible(
+                                  key: ValueKey('swipe_${project.id}'),
+                                  background: _swipeBg(colors, progress, claim: true),
+                                  secondaryBackground: _swipeBg(colors, progress, claim: false),
+                                  onUpdate: onUpdate,
+                                  onDismissed: (dir) {
+                                    _swiped.add(project.id);
+                                    dir == DismissDirection.endToStart ? _hide(project) : _claim(project, user);
+                                  },
+                                  child: KeyedSubtree(
+                                    key: _cardKeys.putIfAbsent(project.id, GlobalKey.new),
+                                    child: OfferCard(
+                                      project: project,
+                                      onTap: () => showOfferDetail(context, project, agencyName: user?.agencyName, onClaim: () => _claim(project, user)),
+                                      onLongPress: () => _claim(project, user),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ],
                       ),
               ),
             ],
