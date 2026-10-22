@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../payments/presentation/bkash_pay_screen.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/motion/motion.dart';
@@ -126,27 +127,11 @@ class UrgencyBar extends StatelessWidget {
   }
 }
 
-/// Asks before marking paid; resolves true on confirm.
-Future<bool> confirmPaid(BuildContext context, {required String title, required String detail}) async {
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: Text(detail),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-        FilledButton(key: const ValueKey('confirm_paid'), onPressed: () => Navigator.pop(ctx, true), child: const Text('Mark paid')),
-      ],
-    ),
-  );
-  return ok ?? false;
-}
-
 /// One editor: avatar, name, owed, count and earliest due; tap to expand the
 /// project rows. [onPay] receives the projects to approve (already confirmed).
 class EditorOwedCard extends StatefulWidget {
   final EditorOwed editor;
-  final void Function(List<ProjectItem> projects) onPay;
+  final void Function(List<ProjectItem> projects, PayMethod method) onPay;
   const EditorOwedCard({super.key, required this.editor, required this.onPay});
 
   @override
@@ -159,12 +144,12 @@ class _EditorOwedCardState extends State<EditorOwedCard> {
   Future<void> _pay(List<ProjectItem> ps) async {
     final e = widget.editor;
     final sum = ps.fold<double>(0, (a, p) => a + p.editorPayout);
-    final ok = await confirmPaid(
+    final m = await choosePayMethod(
       context,
       title: 'Mark paid?',
       detail: ps.length == 1 ? '${taka(sum)} to ${e.name} for ${ps.first.title}.' : '${taka(sum)} to ${e.name} for ${ps.length} projects.',
     );
-    if (ok && mounted) widget.onPay(ps);
+    if (m != null && mounted) widget.onPay(ps, m);
   }
 
   @override

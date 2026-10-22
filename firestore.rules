@@ -86,7 +86,7 @@ service cloud.firestore {
       function validNotif(d) {
         return d.keys().hasOnly(['type', 'projectId', 'chatId', 'title', 'body', 'fromUid', 'createdAt', 'read'])
           && d.keys().hasAll(['type', 'title', 'body', 'fromUid', 'createdAt', 'read'])
-          && d.type in ['revision', 'approved', 'message', 'assigned', 'submitted']
+          && d.type in ['revision', 'approved', 'message', 'assigned', 'submitted', 'payment']
           && d.title is string && d.title.size() > 0 && d.title.size() <= 120
           && d.body is string && d.body.size() <= 500
           && d.read == false
@@ -95,7 +95,7 @@ service cloud.firestore {
       }
       function allowedPair(type) {
         return (isManager() && recipient().get('role', '') == 'editor'
-                && type in ['revision', 'approved', 'message', 'assigned'])
+                && type in ['revision', 'approved', 'message', 'assigned', 'payment'])
           || (me().get('role', '') == 'editor' && recipient().get('role', '') == 'manager'
                 && type in ['message', 'submitted']);
       }
@@ -153,6 +153,26 @@ service cloud.firestore {
 
       // Legacy agency-wide feed, replaced by users/{uid}/notifications.
       // Locked; existing docs are left in place (not deleted).
+      // Simulated (test-mode) payout receipts, id = project id. The agency's
+      // manager writes once; the manager and the paid editor read.
+      match /payouts/{projectId} {
+        allow read: if signedIn()
+          && ((isManager() && inAgency(agencyId)) || resource.data.editorId == request.auth.uid);
+        allow create: if isManager() && inAgency(agencyId)
+          && request.resource.data.keys().hasOnly(['projectTitle', 'method', 'mode', 'trxId', 'amount', 'editorId', 'wallet', 'paidAt', 'paidBy'])
+          && request.resource.data.keys().hasAll(['method', 'mode', 'trxId', 'amount', 'editorId', 'wallet', 'paidAt', 'paidBy'])
+          && request.resource.data.method == 'bkash'
+          && request.resource.data.mode == 'test'
+          && request.resource.data.trxId is string && request.resource.data.trxId.matches('BK[A-Z0-9]{10}')
+          && request.resource.data.amount is number && request.resource.data.amount > 0
+          && request.resource.data.editorId is string && request.resource.data.editorId.size() > 0
+          && request.resource.data.wallet is string && request.resource.data.wallet.size() <= 16
+          && request.resource.data.get('projectTitle', '') is string && request.resource.data.get('projectTitle', '').size() <= 200
+          && request.resource.data.paidBy == request.auth.uid
+          && request.resource.data.paidAt == request.time;
+        allow update, delete: if false;
+      }
+
       match /notifications/{notifId} {
         allow read, write: if false;
       }

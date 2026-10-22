@@ -187,3 +187,34 @@ test('claim race: second editor cannot take a claimed project; no claiming for o
   await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'projects/p2'), { agencyId: 'A', title: 'Q', status: 'approved' }));
   await assertFails(updateDoc(doc(as('eA2'), 'projects/p2'), claim('eA2')));
 });
+
+const payout = (over = {}) => ({ projectTitle: 'P', method: 'bkash', mode: 'test', trxId: 'BKA1B2C3D4E5', amount: 1200,
+  editorId: 'eA', wallet: '017*****678', paidAt: serverTimestamp(), paidBy: 'mA', ...over });
+
+test('payouts: agency manager creates once; editors and other agencies cannot write', async () => {
+  await assertFails(setDoc(doc(as('eA'), 'agencies/A/payouts/p1'), payout({ paidBy: 'eA' })));
+  await assertFails(setDoc(doc(as('mB'), 'agencies/A/payouts/p1'), payout({ paidBy: 'mB' })));
+  await assertFails(setDoc(doc(as('mA'), 'agencies/A/payouts/p1'), payout({ mode: 'live' })));
+  await assertFails(setDoc(doc(as('mA'), 'agencies/A/payouts/p1'), payout({ trxId: 'nope' })));
+  await assertFails(setDoc(doc(as('mA'), 'agencies/A/payouts/p1'), payout({ paidBy: 'eA' })));
+  await assertSucceeds(setDoc(doc(as('mA'), 'agencies/A/payouts/p1'), payout()));
+  await assertFails(updateDoc(doc(as('mA'), 'agencies/A/payouts/p1'), { amount: 5 }));
+  await assertFails(deleteDoc(doc(as('mA'), 'agencies/A/payouts/p1')));
+});
+
+test('payouts: manager and the paid editor read; other editors cannot', async () => {
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'agencies/A/payouts/p1'), payout({ paidAt: new Date() })));
+  await assertSucceeds(getDoc(doc(as('mA'), 'agencies/A/payouts/p1')));
+  await assertSucceeds(getDoc(doc(as('eA'), 'agencies/A/payouts/p1')));
+  await assertFails(getDoc(doc(as('eA2'), 'agencies/A/payouts/p1')));
+  await assertFails(getDoc(doc(as('mB'), 'agencies/A/payouts/p1')));
+  const { query, where } = await import('firebase/firestore');
+  await assertSucceeds(getDocs(query(collection(as('eA'), 'agencies/A/payouts'), where('editorId', '==', 'eA'))));
+  await assertFails(getDocs(collection(as('eA'), 'agencies/A/payouts')));
+});
+
+test('notifications: manager may send payment to own editor; editor may not', async () => {
+  const n = (from) => ({ type: 'payment', title: 'Payment received', body: 'x', fromUid: from, createdAt: serverTimestamp(), read: false });
+  await assertSucceeds(setDoc(doc(as('mA'), 'users/eA/notifications/pay1'), n('mA')));
+  await assertFails(setDoc(doc(as('eA'), 'users/mA/notifications/pay2'), n('eA')));
+});

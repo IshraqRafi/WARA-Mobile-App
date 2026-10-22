@@ -1,3 +1,4 @@
+import '../../features/payments/domain/payout.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -618,6 +619,24 @@ class FirestoreService {
   final Map<String, String> _managerUids = {};
 
   /// The agency's manager uid (cached), or null.
+  CollectionReference<Map<String, dynamic>> _payouts(String agencyId) => _agenciesRef.doc(agencyId).collection('payouts');
+
+  /// Writes one test-mode receipt per project (doc id = project id).
+  Future<void> recordPayouts(String agencyId, List<PayoutRecord> records, String paidBy) async {
+    final batch = FirebaseFirestore.instance.batch();
+    for (final r in records) {
+      batch.set(_payouts(agencyId).doc(r.projectId), r.draft(paidBy));
+    }
+    await batch.commit();
+  }
+
+  /// All agency receipts (manager) or only [editorId]'s (editor).
+  Stream<List<PayoutRecord>> streamPayouts(String agencyId, {String? editorId}) {
+    Query<Map<String, dynamic>> q = _payouts(agencyId);
+    if (editorId != null) q = q.where('editorId', isEqualTo: editorId);
+    return q.snapshots().map((s) => [for (final d in s.docs) PayoutRecord.fromMap(d.id, d.data())]);
+  }
+
   Future<String?> managerUidOf(String agencyId) async {
     final hit = _managerUids[agencyId];
     if (hit != null) return hit;

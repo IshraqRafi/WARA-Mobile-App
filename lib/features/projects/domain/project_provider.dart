@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firestore_service.dart';
+import '../../payments/domain/payout.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../../shared/motion/haptics.dart';
 
@@ -373,7 +374,46 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     }
   }
 
-  void approveProject(String projectId) {
+  /// Approve (= paid) after a simulated bKash payment: one receipt per
+  /// project, one 'Payment received' note per editor.
+  Future<void> payWithBkash(List<ProjectItem> projects, {required String trxId, required String wallet}) async {
+    final a = actor;
+    final agencyId = _agencyId;
+    if (a == null || agencyId == null || projects.isEmpty) return;
+    for (final p in projects) {
+      approveProject(p.id, notify: false);
+    }
+    await _firestoreService.recordPayouts(agencyId, [
+      for (final p in projects)
+        PayoutRecord(
+          projectId: p.id,
+          projectTitle: p.title,
+          trxId: trxId,
+          amount: p.editorPayout,
+          editorId: p.claimedByEditorId ?? '',
+          wallet: maskWallet(wallet),
+        ),
+    ], a.id);
+    final byEditor = <String, double>{};
+    for (final p in projects) {
+      final e = p.claimedByEditorId;
+      if (e != null) byEditor[e] = (byEditor[e] ?? 0) + p.editorPayout;
+    }
+    for (final e in byEditor.entries) {
+      await _firestoreService.notifyUser(
+        e.key,
+        AppNotification.draft(
+          type: NotificationType.payment,
+          title: 'Payment received',
+          body: '${takaAmount(e.value)} · TrxID $trxId',
+          fromUid: a.id,
+          projectId: projects.length == 1 ? projects.first.id : null,
+        ),
+      );
+    }
+  }
+
+  void approveProject(String projectId, {bool notify = true}) {
     Haptics.statusChange(ProjectStatus.approved);
     // Optimistic update
     state = [
@@ -387,7 +427,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     // Cloud Firestore write
     _firestoreService.approveProject(projectId);
     final p = _byId(projectId);
-    _notifyEditor(p, NotificationType.approved, 'Approved', p?.title ?? '');
+    if (notify) _notifyEditor(p, NotificationType.approved, 'Approved', p?.title ?? '');
   }
 
   void requestRevision(String projectId, String feedback) {
@@ -577,3 +617,6 @@ double? clientPriceOf(ProjectItem p, Map<String, ProjectFinance> finance) {
   final legacy = p.legacyClientBudget;
   return (legacy != null && legacy > 0) ? legacy : null;
 }
+
+/// '৳1,200'.
+String takaAmount(num v) => '৳${v.round().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';

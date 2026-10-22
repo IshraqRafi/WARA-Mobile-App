@@ -96,3 +96,8 @@ collection is locked by the rules; existing docs were not deleted.
 
 Future work: push notifications via FCM (needs device tokens and a trusted
 sender, i.e. Cloud Functions on the Blaze plan).
+
+## Simulated bKash payouts (test mode)
+Managers can settle via "Pay with bKash" (Pending → Mark paid / Mark all paid, Workflow → Approve & pay). The flow is a
+simulation: any 6-digit OTP and 5-digit PIN; no money moves. Receipts live at `agencies/{agencyId}/payouts/{projectId}`
+(`method: 'bkash', mode: 'test'`, masked wallet). Deploy the updated `firestore.rules` (payouts + `payment` notification type).

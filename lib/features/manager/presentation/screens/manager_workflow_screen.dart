@@ -3,6 +3,8 @@ import '../../../../shared/widgets/availability_badge.dart';
 import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../payments/presentation/bkash_pay_screen.dart';
+import '../../../payments/presentation/pay_flow.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -658,8 +660,15 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             child: const Text('Revision'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (project.claimedByEditorId != null) {
+                final name = project.claimedByEditorName ?? 'Editor';
+                final m = await choosePayMethod(context, title: 'Approve & pay?', detail: '${takaAmount(project.editorPayout)} to $name for ${project.title}.');
+                if (m == null || !context.mounted) return;
+                if (m == PayMethod.bkash) {
+                  await payWithBkashFlow(context, ref, [project], editorName: name);
+                  return;
+                }
                 showRateEditorSheet(
                   context: context,
                   ref: ref,

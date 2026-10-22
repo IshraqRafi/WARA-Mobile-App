@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../payments/domain/payout.dart';
+import '../../../payments/presentation/payout_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -190,12 +192,13 @@ class FinanceMetricStrip extends StatelessWidget {
   }
 }
 
-class _LedgerRow extends StatelessWidget {
+class _LedgerRow extends ConsumerWidget {
   final ProjectItem project;
   const _LedgerRow({required this.project});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final payout = ref.watch(payoutsProvider.select((v) => v.valueOrNull?[project.id]));
     final c = context.colors;
     final text = Theme.of(context).textTheme;
     final p = project;
@@ -215,6 +218,7 @@ class _LedgerRow extends StatelessWidget {
                     style: text.titleSmall?.copyWith(color: c.text, fontWeight: FontWeight.w600)),
                 const SizedBox(height: AppSpacing.xs),
                 Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.bodySmall?.copyWith(color: c.muted)),
+                if (payout != null) ...[const SizedBox(height: 2), PayoutMethodLine(record: payout)],
               ],
             ),
           ),

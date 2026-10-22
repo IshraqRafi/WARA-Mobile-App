@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../payments/presentation/payout_widgets.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/firestore_service.dart';
@@ -166,6 +167,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
               ],
               const SizedBox(height: AppSpacing.xl),
               EarningsHeader(earnings: ref.watch(editorEarningsProvider)),
+              const RecentPayouts(),
               const SizedBox(height: AppSpacing.xl),
 
               WaraSectionHeader(

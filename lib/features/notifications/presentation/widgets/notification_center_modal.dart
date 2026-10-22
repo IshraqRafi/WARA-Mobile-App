@@ -121,6 +121,7 @@ IconData notificationIcon(NotificationType t) => switch (t) {
       NotificationType.message => Icons.chat_bubble_outline_rounded,
       NotificationType.assigned => Icons.person_add_alt_rounded,
       NotificationType.submitted => Icons.upload_rounded,
+      NotificationType.payment => Icons.account_balance_wallet_outlined,
     };
 
 class NotificationSheet extends ConsumerWidget {

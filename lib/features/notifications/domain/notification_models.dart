@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Per-user inbox item at users/{uid}/notifications/{id}.
-enum NotificationType { revision, approved, message, assigned, submitted }
+enum NotificationType { revision, approved, message, assigned, submitted, payment }
 
 class AppNotification {
   final String id;

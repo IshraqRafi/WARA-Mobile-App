@@ -10,6 +10,8 @@ import '../../../auth/domain/auth_provider.dart';
 import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../widgets/editor_ledger.dart';
+import '../../../payments/presentation/bkash_pay_screen.dart';
+import '../../../payments/presentation/pay_flow.dart';
 
 /// Editor ledger: what is owed, how urgent, and to whom. Marking paid uses
 /// the existing approve flow (approved = paid).
@@ -28,7 +30,12 @@ class ManagerPendingScreen extends ConsumerWidget {
     final ledger = EditorLedger.of(projects);
     final m = AppSpacing.screenMargin(context);
 
-    void pay(List<ProjectItem> ps) {
+    Future<void> pay(List<ProjectItem> ps, PayMethod method) async {
+      if (method == PayMethod.bkash) {
+        final name = ps.first.claimedByEditorName ?? 'Editor';
+        await payWithBkashFlow(context, ref, ps, editorName: name);
+        return;
+      }
       final notifier = ref.read(projectsProvider.notifier);
       for (final p in ps) {
         notifier.approveProject(p.id);

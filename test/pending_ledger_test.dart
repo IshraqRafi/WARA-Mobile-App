@@ -33,7 +33,7 @@ void main() {
     final e = EditorLedger.of(items).editors.first;
     await t.pumpWidget(MaterialApp(
       theme: AppTheme.dark,
-      home: Scaffold(body: EditorOwedCard(editor: e, onPay: (ps) => paid.addAll(ps.map((x) => x.id)))),
+      home: Scaffold(body: EditorOwedCard(editor: e, onPay: (ps, _) => paid.addAll(ps.map((x) => x.id)))),
     ));
     expect(find.byKey(const ValueKey('row_3')), findsNothing);
     await t.tap(find.byKey(const ValueKey('editor_b')));

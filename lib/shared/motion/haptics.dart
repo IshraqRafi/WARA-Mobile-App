@@ -9,6 +9,8 @@ class Haptics {
   static void tick() => HapticFeedback.selectionClick();
   static void light() => HapticFeedback.lightImpact();
   static void medium() => HapticFeedback.mediumImpact();
+  /// Payment / payout confirmed.
+  static void success() => HapticFeedback.heavyImpact();
 
   /// Paired with every project status change: a light tick for routine
   /// moves, a firmer tap for the milestones (submitted, approved).
