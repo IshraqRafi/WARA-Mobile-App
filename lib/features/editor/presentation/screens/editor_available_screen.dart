@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,12 +8,12 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
-import '../../../../shared/widgets/wara_project_card.dart';
 import '../../../../shared/widgets/wara_section_header.dart';
 import '../../../../shared/widgets/wara_page_header.dart';
 import '../../domain/editor_earnings.dart';
 import '../widgets/earnings_header.dart';
 import '../widgets/today_strip.dart';
+import '../widgets/offer_card.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
@@ -26,23 +27,54 @@ class EditorAvailableScreen extends ConsumerStatefulWidget {
 }
 
 class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
-  /// Claimed offers kept on screen until their exit animation finishes.
-  final Set<String> _settling = {};
-  final Set<String> _leaving = {};
+  /// Claims waiting out the undo window; written when the timer fires.
+  final Map<String, Timer> _pending = {};
+  static const undoWindow = Duration(seconds: 5);
 
-  Future<void> _claim(ProjectItem project, UserSession? user) {
-    setState(() => _settling.add(project.id));
-    return ref
-        .read(projectsProvider.notifier)
-        .claimProject(project.id, user?.id ?? 'editor_1', '${user?.name ?? ''} (You)')
-        .catchError((Object e) {
-      if (mounted) setState(() => _settling.remove(project.id));
-      throw e;
-    });
+  void _claim(ProjectItem project, UserSession? user) {
+    if (_pending.containsKey(project.id)) return;
+    Haptics.medium();
+    final notifier = ref.read(projectsProvider.notifier);
+    final messenger = ScaffoldMessenger.of(context);
+    Future<void> commit() async {
+      _pending.remove(project.id);
+      try {
+        await notifier.claimProject(project.id, user?.id ?? 'editor_1', '${user?.name ?? ''} (You)');
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {});
+        WaraToast.show(context, message: friendlyErrorMessage(e), icon: Icons.error_outline_rounded);
+      }
+    }
+    setState(() => _pending[project.id] = Timer(undoWindow, () {
+          if (mounted) setState(() {});
+          commit();
+        }));
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(
+      content: Text('Claimed ${project.title}'),
+      duration: undoWindow,
+      action: SnackBarAction(
+        label: 'Undo',
+        onPressed: () {
+          _pending.remove(project.id)?.cancel();
+          if (mounted) setState(() {});
+        },
+      ),
+    ));
+    _commits[project.id] = commit;
   }
 
-  void _showClaimError(Object e) {
-    WaraToast.show(context, message: friendlyErrorMessage(e), icon: Icons.error_outline_rounded);
+  final Map<String, Future<void> Function()> _commits = {};
+
+  @override
+  void dispose() {
+    // Leaving the screen inside the undo window still claims.
+    for (final id in _pending.keys.toList()) {
+      _pending[id]!.cancel();
+      _commits[id]?.call();
+    }
+    super.dispose();
   }
 
   void _hide(ProjectItem project) {
@@ -93,7 +125,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
     final hidden = ref.watch(hiddenOffersProvider);
     final loaded = ref.watch(projectsLoadedProvider);
     final availableProjects = projects
-        .where((p) => (p.status == ProjectStatus.open || _settling.contains(p.id)) && !hidden.contains(p.id))
+        .where((p) => p.status == ProjectStatus.open && !hidden.contains(p.id) && !_pending.containsKey(p.id))
         .toList();
 
     return Scaffold(
@@ -145,61 +177,21 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                         itemCount: availableProjects.length,
                         itemBuilder: (context, index) {
                           final project = availableProjects[index];
-                          final card = WaraProjectCard(
-                            project: project,
-                            listId: 'marketplace',
-                            showStatus: false,
-                            showSkills: true,
-                            payoutLabel: 'Offer payout',
-                            actions: [
-                              ClaimButton(
-                                key: ValueKey('claim_${project.id}'),
-                                label: 'Claim',
-                                icon: Icons.touch_app_rounded,
-                                onPressed: () => _claim(project, user),
-                                onError: _showClaimError,
-                                onCompleted: () => setState(() => _leaving.add(project.id)),
-                              ),
-                            ],
-                          );
                           return StaggerIn(
                             key: ValueKey(project.id),
                             screen: 'marketplace',
                             index: index,
-                            child: CollapseOut(
-                              out: _leaving.contains(project.id),
-                              onEnd: () => setState(() {
-                                _leaving.remove(project.id);
-                                _settling.remove(project.id);
-                              }),
-                              child: _settling.contains(project.id)
-                                  ? card
-                                  : SwipeFeedback(
-                                      builder: (context, progress, onUpdate) => Dismissible(
-                                      key: ValueKey('swipe_${project.id}'),
-                                      background: _swipeBg(colors, progress, claim: true),
-                                      onUpdate: onUpdate,
-                                      secondaryBackground: _swipeBg(colors, progress, claim: false),
-                                      confirmDismiss: (dir) async {
-                                        if (dir == DismissDirection.endToStart) return true;
-                                        try {
-                                          await _claim(project, user);
-                                          return true;
-                                        } catch (e) {
-                                          _showClaimError(e);
-                                          return false;
-                                        }
-                                      },
-                                      onDismissed: (dir) {
-                                        if (dir == DismissDirection.endToStart) {
-                                          _hide(project);
-                                        } else {
-                                          setState(() => _settling.remove(project.id));
-                                          WaraToast.show(context, message: 'Claimed', icon: Icons.check_circle_rounded);
-                                        }
-                                      },
-                                      child: card,
-                                    )),
+                            child: SwipeFeedback(
+                              builder: (context, progress, onUpdate) => Dismissible(
+                                key: ValueKey('swipe_${project.id}'),
+                                background: _swipeBg(colors, progress, claim: true),
+                                secondaryBackground: _swipeBg(colors, progress, claim: false),
+                                onUpdate: onUpdate,
+                                onDismissed: (dir) => dir == DismissDirection.endToStart
+                                    ? _hide(project)
+                                    : _claim(project, user),
+                                child: OfferCard(project: project, onLongPress: () => _claim(project, user)),
+                              ),
                             ),
                           );
                         },
