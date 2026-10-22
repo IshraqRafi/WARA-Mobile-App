@@ -4,6 +4,7 @@ export 'celebration.dart';
 export 'chat_motion.dart';
 export 'claim_button.dart';
 export 'collapse_out.dart';
+export 'collapsing_header.dart';
 export 'container_transform.dart';
 export 'glow_pulse.dart';
 export 'haptics.dart';

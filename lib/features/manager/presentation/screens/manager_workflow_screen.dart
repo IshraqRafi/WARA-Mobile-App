@@ -725,31 +725,20 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                         child: CustomScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
+            CollapsingHeader(
+              leading: (size) => WaraLogo(size: size),
+              title: 'wara.io',
+              titleStyle: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5),
+              trailing: const NotificationBellButton(),
+              background: colors.bg,
+              divider: colors.border,
+              padding: EdgeInsets.symmetric(horizontal: margin),
+            ),
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(margin, AppSpacing.lg, margin, 0),
+              padding: EdgeInsets.fromLTRB(margin, 0, margin, 0),
               sliver: SliverList.list(
                 children: [
-                  // Header with logo
-                  Row(
-                    children: [
-                      const WaraLogo(),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'wara.io',
-                              style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      const NotificationBellButton(),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.md),
                   WaraStatStrip(
                     stats: [
                       WaraStat(label: 'Open', value: counts.open, tone: WaraTone.info),
