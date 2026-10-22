@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../../payments/presentation/payout_reveal.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -127,12 +128,23 @@ IconData notificationIcon(NotificationType t) => switch (t) {
 class NotificationSheet extends ConsumerWidget {
   const NotificationSheet({super.key});
 
-  void _open(BuildContext context, WidgetRef ref, AppNotification n) {
+  Future<void> _open(BuildContext context, WidgetRef ref, AppNotification n) async {
     if (!n.read) ref.read(notificationActionsProvider).markRead(n.id);
+    final rootCtx = Navigator.of(context, rootNavigator: true).context;
     Navigator.of(context).pop();
     final router = GoRouter.maybeOf(context);
-    if (router == null) return;
     final isManager = ref.read(authProvider).user?.role == UserRole.manager;
+    if (!isManager && (n.type == NotificationType.payment || n.type == NotificationType.approved)) {
+      final project = ref.read(projectsProvider).where((p) => p.id == n.projectId).firstOrNull;
+      final amount = amountFromBody(n.body) ?? project?.editorPayout;
+      if (amount != null && amount > 0 && rootCtx.mounted) {
+        final trx = trxFromBody(n.body);
+        await showPayoutReveal(rootCtx, amount: amount,
+            title: n.type == NotificationType.payment ? 'Payment received' : 'Approved',
+            detail: trx != null ? 'TrxID $trx' : project?.title);
+      }
+    }
+    if (router == null) return;
     if (n.chatId != null) {
       router.push('/chat/${n.chatId}');
     } else if (n.projectId != null) {
