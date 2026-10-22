@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/domain/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/onboarding_screen.dart';
 import '../../features/editor/presentation/screens/editor_profile_setup_screen.dart';
 import '../../features/editor/presentation/screens/editor_available_screen.dart';
 import '../../features/editor/presentation/screens/editor_workspace_screen.dart';
@@ -22,9 +23,10 @@ import '../../shared/widgets/wara_bottom_bar.dart';
 /// Only the fields that affect redirects trigger a refresh.
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(Ref ref) {
-    ref.listen<(bool, UserRole?, bool)>(
+    ref.listen<(bool, bool, UserRole?, bool)>(
       authProvider.select((s) => (
             s.isAuthenticated,
+            s.needsOnboarding,
             s.user?.role,
             s.user?.isProfileComplete ?? true,
           )),
@@ -53,12 +55,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isProfileComplete = auth.user?.isProfileComplete ?? true;
       final loc = state.matchedLocation;
 
-      if (!isAuth) return loc == '/login' ? null : '/login';
+      if (!isAuth) {
+        if (auth.needsOnboarding) return loc == '/welcome' ? null : '/welcome';
+        return loc == '/login' ? null : '/login';
+      }
 
       if (isEditor && !isProfileComplete) {
         return loc == '/editor/profile-setup' ? null : '/editor/profile-setup';
       }
-      if (loc == '/login' || loc == '/editor/profile-setup') {
+      if (loc == '/login' || loc == '/welcome' || loc == '/editor/profile-setup') {
         return homeFor(isEditor, isProfileComplete);
       }
       // Keep users inside their own role's shell.
@@ -70,6 +75,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/welcome',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/editor/profile-setup',

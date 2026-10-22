@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../../../core/constants/app_config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,11 +62,11 @@ class UserSession {
 
   factory UserSession.fromMap(Map<String, dynamic> map) {
     return UserSession(
-      id: map['id'] as String? ?? 'user_1',
+      id: map['id'] as String? ?? '',
       email: map['email'] as String? ?? '',
       name: map['name'] as String? ?? '',
       role: map['role'] == 'manager' ? UserRole.manager : UserRole.editor,
-      agencyName: map['agencyName'] as String? ?? 'Agency Workspace',
+      agencyName: map['agencyName'] as String? ?? '',
       agencyId: map['agencyId'] as String?,
       agencyJoinKey: map['agencyJoinKey'] as String?,
       skills: List<String>.from(map['skills'] ?? []),
@@ -111,15 +112,37 @@ class UserSession {
   }
 }
 
+/// A Google account that signed in but has no wara.io profile yet. The user
+/// picks a path on the welcome screen: create an agency or join as an editor.
+class PendingGoogleUser {
+  final String uid;
+  final String email;
+  final String name;
+  final String? photoUrl;
+
+  const PendingGoogleUser({
+    required this.uid,
+    required this.email,
+    required this.name,
+    this.photoUrl,
+  });
+}
+
 class AuthState {
   final bool isAuthenticated;
   final UserSession? user;
+  final PendingGoogleUser? pendingUser;
 
   const AuthState({
     required this.isAuthenticated,
     this.user,
+    this.pendingUser,
   });
+
+  bool get needsOnboarding => !isAuthenticated && pendingUser != null;
 }
+
+typedef AuthResult = ({bool success, String? error});
 
 class AuthNotifier extends StateNotifier<AuthState> {
   static const _keyIsLoggedIn = 'wara_auth_is_logged_in';
@@ -138,46 +161,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _loadInitialState() async {
     try {
+      final fbUser = _auth.currentUser;
       final prefs = await SharedPreferences.getInstance();
       final isLoggedIn = prefs.getBool(_keyIsLoggedIn) ?? false;
       final sessionJson = prefs.getString(_keyUserSessionJson);
 
-      // 1. Instant local restore from SharedPreferences (Runs in ~2ms)
-      if (isLoggedIn && sessionJson != null && sessionJson.isNotEmpty) {
-        final map = jsonDecode(sessionJson) as Map<String, dynamic>;
-        final session = UserSession.fromMap(map);
-        state = AuthState(isAuthenticated: true, user: session);
-        return;
-      }
-
-      // 2. Check active Firebase Auth user session
-      final fbUser = _auth.currentUser;
-      if (fbUser != null) {
-        final profile = await _firestoreService.getUserProfile(fbUser.uid);
-        if (profile != null) {
-          final role = profile['role'] == 'manager' ? UserRole.manager : UserRole.editor;
-          final session = _buildSessionForRole(
-            role,
-            email: fbUser.email,
-            name: profile['name'] as String?,
-            uid: fbUser.uid,
-            photoUrl: profile['photoUrl'] as String? ?? fbUser.photoURL,
-            specialization: profile['specialization'] as String?,
-            portfolioLink: profile['portfolioLink'] as String?,
-            agencyId: profile['agencyId'] as String?,
-            agencyName: profile['agencyName'] as String?,
-            agencyJoinKey: profile['agencyJoinKey'] as String?,
-            skills: profile['skills'] != null ? List<String>.from(profile['skills']) : null,
-            hoursPerWeek: (profile['hoursPerWeek'] as num?)?.toInt(),
-            activeDays: profile['activeDays'] != null ? List<String>.from(profile['activeDays']) : null,
-            isProfileComplete: profile['isProfileComplete'] == true || role == UserRole.manager,
-          );
-          await _persistSession(session);
+      // 1. Instant restore of the cached session, only if it belongs to the
+      //    Firebase user that is still signed in.
+      if (fbUser != null && isLoggedIn && sessionJson != null && sessionJson.isNotEmpty) {
+        final session = UserSession.fromMap(jsonDecode(sessionJson) as Map<String, dynamic>);
+        if (session.id == fbUser.uid) {
           state = AuthState(isAuthenticated: true, user: session);
           return;
         }
       }
-    } catch (_) {}
+
+      // 2. Rebuild from Firestore for the signed-in Firebase user.
+      if (fbUser != null) {
+        await _resolveSignedInUser(fbUser);
+        return;
+      }
+    } catch (e) {
+      debugPrint('Auth restore failed: $e');
+    }
 
     state = const AuthState(isAuthenticated: false);
   }
@@ -191,421 +197,184 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {}
   }
 
-  UserSession _buildSessionForRole(
-    UserRole role, {
-    String? email,
-    String? name,
-    String? uid,
-    String? photoUrl,
-    String? specialization,
-    String? portfolioLink,
-    String? agencyName,
-    String? agencyId,
-    String? agencyJoinKey,
-    List<String>? skills,
-    int? hoursPerWeek,
-    List<String>? activeDays,
-    bool isProfileComplete = true,
-  }) {
-    final defaultManagerName = AppConfig.isOwnerEmail(email) ? AppConfig.ownerName : 'Agency Director';
+  Future<void> _setSession(UserSession session) async {
+    await _persistSession(session);
+    state = AuthState(isAuthenticated: true, user: session);
+  }
+
+  PendingGoogleUser _pendingFrom(User fbUser) {
+    final email = (fbUser.email ?? '').trim().toLowerCase();
+    final display = (fbUser.displayName ?? '').trim();
+    return PendingGoogleUser(
+      uid: fbUser.uid,
+      email: email,
+      name: display.isNotEmpty ? display : email.split('@').first,
+      photoUrl: fbUser.photoURL,
+    );
+  }
+
+  /// Loads the profile for [fbUser]. Users without a profile (or a manager
+  /// without an agency) are sent to onboarding instead of getting defaults.
+  Future<void> _resolveSignedInUser(User fbUser) async {
+    final profile = await _firestoreService.getUserProfile(fbUser.uid);
+    if (profile == null || profile['role'] == null) {
+      state = AuthState(isAuthenticated: false, pendingUser: _pendingFrom(fbUser));
+      return;
+    }
+
+    final role = profile['role'] == 'manager' ? UserRole.manager : UserRole.editor;
+    String? agencyId = profile['agencyId'] as String?;
+    String? agencyName = profile['agencyName'] as String?;
+    String? agencyJoinKey = profile['agencyJoinKey'] as String?;
 
     if (role == UserRole.manager) {
-      return UserSession(
-        id: uid ?? 'manager_1',
-        email: email ?? 'manager@gmail.com',
-        name: name?.isNotEmpty == true ? name! : defaultManagerName,
-        role: UserRole.manager,
-        agencyName: agencyName?.isNotEmpty == true ? agencyName! : 'Wara Media Group',
-        agencyId: agencyId ?? 'agency_demo_wara',
-        agencyJoinKey: agencyJoinKey ?? 'WARA-7742',
-        skills: skills ?? ['Agency Management', 'Creative Direction', 'Client Relations'],
-        hoursPerWeek: hoursPerWeek ?? 40,
-        activeDays: activeDays ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-        photoUrl: photoUrl,
-        isProfileComplete: true,
-      );
-    } else {
-      return UserSession(
-        id: uid ?? 'editor_1',
-        email: email ?? 'editor@gmail.com',
-        name: name?.isNotEmpty == true ? name! : 'Editor',
-        role: UserRole.editor,
-        agencyName: agencyName?.isNotEmpty == true ? agencyName! : 'Wara Media Group',
-        agencyId: agencyId ?? 'agency_demo_wara',
-        agencyJoinKey: agencyJoinKey ?? 'WARA-7742',
-        skills: skills ?? ['Video Editing', 'Color Grading', 'Sound Design', 'Thumbnail Design'],
-        hoursPerWeek: hoursPerWeek ?? 35,
-        activeDays: activeDays ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-        photoUrl: photoUrl,
-        specialization: specialization,
-        portfolioLink: portfolioLink,
-        isProfileComplete: isProfileComplete,
-      );
+      if (agencyId == null || agencyId.isEmpty) {
+        state = AuthState(isAuthenticated: false, pendingUser: _pendingFrom(fbUser));
+        return;
+      }
+      // Keep the manager's copy of the join key in sync with the agency doc.
+      final agency = await _firestoreService.getAgencyById(agencyId);
+      if (agency != null) {
+        agencyName = agency.name;
+        agencyJoinKey = agency.joinKey;
+      }
     }
+
+    final pending = _pendingFrom(fbUser);
+    final profileName = (profile['name'] as String? ?? '').trim();
+    final session = UserSession(
+      id: fbUser.uid,
+      email: (profile['email'] as String?) ?? pending.email,
+      name: profileName.isNotEmpty ? profileName : (role == UserRole.manager ? pending.name : ''),
+      role: role,
+      agencyName: agencyName ?? '',
+      agencyId: agencyId,
+      agencyJoinKey: agencyJoinKey,
+      skills: List<String>.from(profile['skills'] ?? const <String>[]),
+      hoursPerWeek: (profile['hoursPerWeek'] as num?)?.toInt() ?? 35,
+      activeDays: List<String>.from(profile['activeDays'] ?? const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']),
+      photoUrl: (profile['photoUrl'] as String?) ?? fbUser.photoURL,
+      specialization: profile['specialization'] as String?,
+      portfolioLink: profile['portfolioLink'] as String?,
+      isProfileComplete: role == UserRole.manager || profile['isProfileComplete'] == true,
+    );
+    await _setSession(session);
   }
 
-  /// Email / Password login
-  Future<({bool success, String? error})> login(
-    String email,
-    String password, {
-    UserRole selectedRole = UserRole.manager,
-  }) async {
-    final cleanEmail = email.trim().toLowerCase();
-    final cleanPassword = password.trim();
-
-    if (cleanEmail.isEmpty || cleanPassword.isEmpty) {
-      return (success: false, error: 'Please enter both email and password.');
-    }
-
-    // Demo accounts are real Firebase Auth users (see DEMO_SETUP.md); no
-    // credentials live in the app, so they go through the same path as everyone.
-    // Firebase email/password sign-in
-    try {
-      final userCred = await _auth.signInWithEmailAndPassword(
-        email: cleanEmail,
-        password: cleanPassword,
-      );
-
-      final fbUser = userCred.user;
-      if (fbUser != null) {
-        final profile = await _firestoreService.getUserProfile(fbUser.uid);
-        final UserRole userRole = profile?['role'] != null
-            ? (profile!['role'] == 'manager' ? UserRole.manager : UserRole.editor)
-            : selectedRole;
-
-        String userName = fbUser.displayName ?? cleanEmail.split('@').first;
-        bool profileComplete = userRole == UserRole.manager;
-        String? spec;
-        String? port;
-        String? photo = fbUser.photoURL;
-        String? agencyId;
-        String? agencyName;
-        String? agencyJoinKey;
-        List<String>? userSkills;
-        int? userHours;
-        List<String>? userDays;
-
-        if (profile != null) {
-          userName = profile['name'] as String? ?? userName;
-          photo = (profile['photoUrl'] as String?) ?? photo;
-          profileComplete = profile['isProfileComplete'] == true || userRole == UserRole.manager;
-          spec = profile['specialization'] as String?;
-          port = profile['portfolioLink'] as String?;
-          agencyId = profile['agencyId'] as String?;
-          agencyName = profile['agencyName'] as String?;
-          agencyJoinKey = profile['agencyJoinKey'] as String?;
-          if (profile['skills'] != null) {
-            userSkills = List<String>.from(profile['skills']);
-          }
-          if (profile['hoursPerWeek'] != null) {
-            userHours = (profile['hoursPerWeek'] as num).toInt();
-          }
-          if (profile['activeDays'] != null) {
-            userDays = List<String>.from(profile['activeDays']);
-          }
-        }
-
-        // If manager has an agency, ensure joinKey is synced
-        if (userRole == UserRole.manager) {
-          if (agencyId != null && agencyJoinKey == null) {
-            final ag = await _firestoreService.getAgencyById(agencyId);
-            if (ag != null) {
-              agencyJoinKey = ag.joinKey;
-              agencyName = ag.name;
-            }
-          } else if (agencyId == null) {
-            // Auto-create agency workspace for manager if not existing
-            final newAgency = await _firestoreService.createAgency(
-              name: "$userName's Studio",
-              managerUid: fbUser.uid,
-              managerName: userName,
-            );
-            agencyId = newAgency.id;
-            agencyName = newAgency.name;
-            agencyJoinKey = newAgency.joinKey;
-            await _firestoreService.updateUserProfile(fbUser.uid, {
-              'agencyId': agencyId,
-              'agencyName': agencyName,
-              'agencyJoinKey': agencyJoinKey,
-            });
-          }
-        }
-
-        final session = _buildSessionForRole(
-          userRole,
-          email: cleanEmail,
-          name: userName,
-          uid: fbUser.uid,
-          photoUrl: photo,
-          specialization: spec,
-          portfolioLink: port,
-          agencyId: agencyId,
-          agencyName: agencyName,
-          agencyJoinKey: agencyJoinKey,
-          skills: userSkills,
-          hoursPerWeek: userHours,
-          activeDays: userDays,
-          isProfileComplete: profileComplete,
-        );
-
-        await _persistSession(session);
-        state = AuthState(isAuthenticated: true, user: session);
-        return (success: true, error: null);
-      }
-      return (success: false, error: 'Unable to retrieve user credentials.');
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-        return (
-          success: false,
-          error: 'Account not found. Please click "Create Account" to register.',
-        );
-      }
-      return (success: false, error: e.message ?? 'Authentication failed.');
-    } catch (e) {
-      return (success: false, error: e.toString());
-    }
-  }
-
-  /// New Manager Registration + Creates Agency Workspace
-  Future<({bool success, String? error})> registerManager({
-    required String email,
-    required String password,
-    required String name,
-    required String agencyName,
-  }) async {
-    final cleanEmail = email.trim().toLowerCase();
-    final cleanPassword = password.trim();
-    final cleanName = name.trim();
-    final cleanAgency = agencyName.trim();
-
-    if (cleanEmail.isEmpty || cleanPassword.isEmpty || cleanName.isEmpty || cleanAgency.isEmpty) {
-      return (success: false, error: 'Please fill in all fields (Name, Agency Name, Email, Password).');
-    }
-    if (cleanPassword.length < 6) {
-      return (success: false, error: 'Password must be at least 6 characters.');
-    }
-
-    try {
-      final userCred = await _auth.createUserWithEmailAndPassword(
-        email: cleanEmail,
-        password: cleanPassword,
-      );
-
-      final fbUser = userCred.user;
-      if (fbUser != null) {
-        await fbUser.updateDisplayName(cleanName);
-
-        // 1. Create the new Agency in Firestore
-        final agency = await _firestoreService.createAgency(
-          name: cleanAgency,
-          managerUid: fbUser.uid,
-          managerName: cleanName,
-        );
-
-        // 2. Save Manager user profile in Firestore
-        await _firestoreService.saveUserProfile(
-          uid: fbUser.uid,
-          email: cleanEmail,
-          name: cleanName,
-          role: UserRole.manager,
-          skills: ['Agency Management', 'Creative Direction', 'Client Relations'],
-          hoursPerWeek: 40,
-          activeDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-          isProfileComplete: true,
-          agencyId: agency.id,
-          agencyName: agency.name,
-          agencyJoinKey: agency.joinKey,
-        );
-
-        final session = _buildSessionForRole(
-          UserRole.manager,
-          email: cleanEmail,
-          name: cleanName,
-          uid: fbUser.uid,
-          agencyId: agency.id,
-          agencyName: agency.name,
-          agencyJoinKey: agency.joinKey,
-          isProfileComplete: true,
-        );
-
-        await _persistSession(session);
-        state = AuthState(isAuthenticated: true, user: session);
-        return (success: true, error: null);
-      }
-      return (success: false, error: 'Registration failed.');
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        return (success: false, error: 'This email is already registered. Please click "Sign In".');
-      }
-      return (success: false, error: e.message ?? 'Registration failed.');
-    } catch (e) {
-      return (success: false, error: e.toString());
-    }
-  }
-
-  /// New Editor Email/Password Registration
-  Future<({bool success, String? error})> registerEditor(String email, String password) async {
-    final cleanEmail = email.trim().toLowerCase();
-    final cleanPassword = password.trim();
-
-    if (cleanEmail.isEmpty || cleanPassword.isEmpty) {
-      return (success: false, error: 'Please enter both email and password.');
-    }
-    if (cleanPassword.length < 6) {
-      return (success: false, error: 'Password must be at least 6 characters.');
-    }
-
-    try {
-      final userCred = await _auth.createUserWithEmailAndPassword(
-        email: cleanEmail,
-        password: cleanPassword,
-      );
-
-      final fbUser = userCred.user;
-      if (fbUser != null) {
-        // Create initial Firestore doc with isProfileComplete = false
-        await _firestoreService.saveUserProfile(
-          uid: fbUser.uid,
-          email: cleanEmail,
-          name: '',
-          role: UserRole.editor,
-          skills: [],
-          hoursPerWeek: 35,
-          activeDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-          isProfileComplete: false,
-        );
-
-        final session = _buildSessionForRole(
-          UserRole.editor,
-          email: cleanEmail,
-          name: '',
-          uid: fbUser.uid,
-          isProfileComplete: false, // Triggers Profile Setup!
-        );
-
-        await _persistSession(session);
-        state = AuthState(isAuthenticated: true, user: session);
-        return (success: true, error: null);
-      }
-      return (success: false, error: 'Registration failed.');
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        return (success: false, error: 'This email is already registered. Please click "Sign In".');
-      }
-      return (success: false, error: e.message ?? 'Registration failed.');
-    } catch (e) {
-      return (success: false, error: e.toString());
-    }
-  }
-
-  /// Google Sign-In Authentication: supports both Manager & Editor
-  Future<({bool success, String? error})> signInWithGoogle(UserRole selectedRole) async {
+  /// Google is the only sign-in method.
+  Future<AuthResult> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        return (success: false, error: 'Google sign-in was cancelled.');
+        return (success: false, error: null); // cancelled by the user
       }
 
-      final cleanEmail = googleUser.email.trim().toLowerCase();
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final OAuthCredential credential = GoogleAuthProvider.credential(
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCred = await _auth.signInWithCredential(credential);
-      final User? fbUser = userCred.user;
-
-      if (fbUser != null) {
-        final profile = await _firestoreService.getUserProfile(fbUser.uid);
-        final UserRole userRole = profile?['role'] != null
-            ? (profile!['role'] == 'manager' ? UserRole.manager : UserRole.editor)
-            : selectedRole;
-
-        bool profileComplete = userRole == UserRole.manager;
-        String userName = fbUser.displayName ?? '';
-        String? spec;
-        String? port;
-        String? photo = fbUser.photoURL;
-        String? agencyId;
-        String? agencyName;
-        String? agencyJoinKey;
-        List<String>? userSkills;
-        int? userHours;
-        List<String>? userDays;
-
-        if (profile != null) {
-          userName = profile['name'] as String? ?? userName;
-          photo = (profile['photoUrl'] as String?) ?? photo;
-          profileComplete = profile['isProfileComplete'] == true || userRole == UserRole.manager;
-          spec = profile['specialization'] as String?;
-          port = profile['portfolioLink'] as String?;
-          agencyId = profile['agencyId'] as String?;
-          agencyName = profile['agencyName'] as String?;
-          agencyJoinKey = profile['agencyJoinKey'] as String?;
-          if (profile['skills'] != null) {
-            userSkills = List<String>.from(profile['skills']);
-          }
-          if (profile['hoursPerWeek'] != null) {
-            userHours = (profile['hoursPerWeek'] as num).toInt();
-          }
-          if (profile['activeDays'] != null) {
-            userDays = List<String>.from(profile['activeDays']);
-          }
-        } else {
-          // Brand new user from Google
-          if (userRole == UserRole.manager) {
-            final newAgency = await _firestoreService.createAgency(
-              name: "$userName's Studio",
-              managerUid: fbUser.uid,
-              managerName: userName,
-            );
-            agencyId = newAgency.id;
-            agencyName = newAgency.name;
-            agencyJoinKey = newAgency.joinKey;
-          }
-
-          await _firestoreService.saveUserProfile(
-            uid: fbUser.uid,
-            email: cleanEmail,
-            name: userName,
-            role: userRole,
-            skills: userRole == UserRole.manager
-                ? ['Agency Management', 'Creative Direction', 'Client Relations']
-                : [],
-            hoursPerWeek: 35,
-            activeDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-            isProfileComplete: profileComplete,
-            agencyId: agencyId,
-            agencyName: agencyName,
-            agencyJoinKey: agencyJoinKey,
-          );
-        }
-
-        final session = _buildSessionForRole(
-          userRole,
-          email: cleanEmail,
-          name: userName,
-          uid: fbUser.uid,
-          photoUrl: photo,
-          specialization: spec,
-          portfolioLink: port,
-          agencyId: agencyId,
-          agencyName: agencyName,
-          agencyJoinKey: agencyJoinKey,
-          skills: userSkills,
-          hoursPerWeek: userHours,
-          activeDays: userDays,
-          isProfileComplete: profileComplete,
-        );
-
-        await _persistSession(session);
-        state = AuthState(isAuthenticated: true, user: session);
-        return (success: true, error: null);
+      final userCred = await _auth.signInWithCredential(credential);
+      final fbUser = userCred.user;
+      if (fbUser == null) {
+        return (success: false, error: 'Google sign-in failed. Please try again.');
       }
-      return (success: false, error: 'Google authentication failed.');
+      await _resolveSignedInUser(fbUser);
+      return (success: true, error: null);
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Google sign-in FirebaseAuthException: ${e.code}');
+      return (success: false, error: 'Google sign-in failed (${e.code}). Please try again.');
     } catch (e) {
-      return (success: false, error: e.toString());
+      debugPrint('Google sign-in failed: $e');
+      return (success: false, error: 'Google sign-in failed. Check your connection and try again.');
+    }
+  }
+
+  /// Onboarding: the pending Google user creates a new agency and becomes its manager.
+  Future<AuthResult> createAgencyAsManager(String agencyName) async {
+    final pending = state.pendingUser;
+    if (pending == null) return (success: false, error: 'Please sign in again.');
+    final cleanAgency = agencyName.trim();
+    if (cleanAgency.length < 2) {
+      return (success: false, error: 'Please enter your agency name.');
+    }
+
+    try {
+      final agency = await _firestoreService.createAgency(
+        name: cleanAgency,
+        managerUid: pending.uid,
+        managerName: pending.name,
+      );
+      await _firestoreService.saveUserProfile(
+        uid: pending.uid,
+        email: pending.email,
+        name: pending.name,
+        role: UserRole.manager,
+        skills: const [],
+        hoursPerWeek: 40,
+        activeDays: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+        isProfileComplete: true,
+        agencyId: agency.id,
+        agencyName: agency.name,
+        agencyJoinKey: agency.joinKey,
+        photoUrl: pending.photoUrl,
+      );
+      await _setSession(UserSession(
+        id: pending.uid,
+        email: pending.email,
+        name: pending.name,
+        role: UserRole.manager,
+        agencyName: agency.name,
+        agencyId: agency.id,
+        agencyJoinKey: agency.joinKey,
+        skills: const [],
+        hoursPerWeek: 40,
+        activeDays: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+        photoUrl: pending.photoUrl,
+        isProfileComplete: true,
+      ));
+      return (success: true, error: null);
+    } catch (e) {
+      debugPrint('createAgencyAsManager failed: $e');
+      return (success: false, error: 'Could not create your agency. Please try again.');
+    }
+  }
+
+  /// Onboarding: the pending Google user continues as an editor. They finish
+  /// their profile (including the agency join key) on the profile setup screen.
+  Future<AuthResult> continueAsEditor() async {
+    final pending = state.pendingUser;
+    if (pending == null) return (success: false, error: 'Please sign in again.');
+
+    try {
+      await _firestoreService.saveUserProfile(
+        uid: pending.uid,
+        email: pending.email,
+        name: pending.name,
+        role: UserRole.editor,
+        skills: const [],
+        hoursPerWeek: 35,
+        activeDays: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+        isProfileComplete: false,
+        photoUrl: pending.photoUrl,
+      );
+      await _setSession(UserSession(
+        id: pending.uid,
+        email: pending.email,
+        name: pending.name,
+        role: UserRole.editor,
+        agencyName: '',
+        skills: const [],
+        hoursPerWeek: 35,
+        activeDays: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+        photoUrl: pending.photoUrl,
+        isProfileComplete: false,
+      ));
+      return (success: true, error: null);
+    } catch (e) {
+      debugPrint('continueAsEditor failed: $e');
+      return (success: false, error: 'Could not set up your account. Please try again.');
     }
   }
 
@@ -634,6 +403,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         agencyId = agency.id;
         agencyName = agency.name;
         validJoinKey = agency.joinKey;
+      }
+      if (agencyId == null || agencyId.isEmpty) {
+        throw Exception('Enter the agency join key your manager shared with you.');
       }
 
       final photo = photoUrl ?? current.photoUrl;

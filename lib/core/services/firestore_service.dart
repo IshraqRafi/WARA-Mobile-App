@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
@@ -16,12 +17,15 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> get _agenciesRef =>
       _db.collection('agencies');
 
-  /// Generate a memorable, human-friendly agency join key (e.g. WARA-4829, APEX-9281)
+  /// Generate a memorable, human-friendly agency join key (e.g. STUD-7K4M2Q)
   static String generateJoinKey(String agencyName) {
     final clean = agencyName.trim().replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
     final prefix = clean.length >= 4 ? clean.substring(0, 4) : clean.padRight(4, 'X');
-    final randSuffix = (1000 + (DateTime.now().microsecondsSinceEpoch % 9000)).toString();
-    return '$prefix-$randSuffix';
+    // Unambiguous alphabet (no 0/O, 1/I) and a secure RNG so keys can't be guessed.
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final rng = Random.secure();
+    final suffix = List.generate(6, (_) => alphabet[rng.nextInt(alphabet.length)]).join();
+    return '$prefix-$suffix';
   }
 
   /// Create a new Agency in Firestore
@@ -326,6 +330,7 @@ class FirestoreService {
     String? agencyId,
     String? agencyName,
     String? agencyJoinKey,
+    String? photoUrl,
   }) async {
     final data = <String, dynamic>{
       'email': email,
@@ -342,6 +347,7 @@ class FirestoreService {
     if (agencyId != null) data['agencyId'] = agencyId;
     if (agencyName != null) data['agencyName'] = agencyName;
     if (agencyJoinKey != null) data['agencyJoinKey'] = agencyJoinKey;
+    if (photoUrl != null && photoUrl.trim().isNotEmpty) data['photoUrl'] = photoUrl.trim();
 
     await _usersRef.doc(uid).set(data, SetOptions(merge: true));
   }

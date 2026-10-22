@@ -240,7 +240,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                                         style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                                         validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your agency join key' : null,
                                         decoration: InputDecoration(
-                                          hintText: 'e.g. WARA-7742',
+                                          hintText: 'e.g. STUD-7K4M2Q',
                                           hintStyle: TextStyle(color: colors.muted.withValues(alpha: 0.5), fontSize: 13, letterSpacing: 1.0),
                                           prefixIcon: Icon(Icons.meeting_room_outlined, color: colors.primary, size: 20),
                                           fillColor: colors.surface,
@@ -263,7 +263,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                                   style: TextStyle(color: colors.text, fontSize: 14),
                                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your full name' : null,
                                   decoration: InputDecoration(
-                                    hintText: 'e.g. Alex Morgan',
+                                    hintText: 'Your full name',
                                     hintStyle: TextStyle(color: colors.muted, fontSize: 13),
                                     prefixIcon: Icon(Icons.person_outline_rounded, color: colors.muted, size: 20),
                                     fillColor: colors.card,
