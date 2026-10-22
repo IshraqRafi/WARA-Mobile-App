@@ -25,13 +25,16 @@ Widget _app(ValueNotifier<bool> dark, {bool reduce = false}) => ValueListenableB
     );
 
 void main() {
-  testWidgets('reveal overlays a snapshot with a growing hole, then clears', (tester) async {
+  testWidgets('crossfade overlays a fading snapshot, then clears', (tester) async {
     final dark = ValueNotifier(false);
     await tester.pumpWidget(_app(dark));
     await tester.tap(find.text('toggle'));
     await tester.pump();
     expect(dark.value, isTrue);
     expect(find.byType(RawImage), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 200));
+    final o = tester.widget<Opacity>(find.ancestor(of: find.byType(RawImage), matching: find.byType(Opacity)));
+    expect(o.opacity, inExclusiveRange(0.0, 1.0));
     await tester.pumpAndSettle();
     expect(find.byType(RawImage), findsNothing);
     expect(tester.binding.transientCallbackCount, 0);

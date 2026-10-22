@@ -1,279 +1,173 @@
 import 'dart:math' as math;
-import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/theme_provider.dart';
-import '../motion/theme_reveal.dart';
+import '../motion/motion.dart';
 
+/// Day/night switch. One thumb slides across a sky that shifts from day to
+/// night; the sun's disc is eaten by a sliding shadow into a crescent moon,
+/// its rays retract and stars fade in. 400ms easeOutCubic, haptic tick, and
+/// it snaps instantly under reduced motion.
 class WaraThemeToggle extends ConsumerStatefulWidget {
   final bool compact;
-
-  const WaraThemeToggle({
-    super.key,
-    this.compact = false,
-  });
+  const WaraThemeToggle({super.key, this.compact = false});
 
   @override
   ConsumerState<WaraThemeToggle> createState() => _WaraThemeToggleState();
 }
 
-class _WaraThemeToggleState extends ConsumerState<WaraThemeToggle>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _curvedAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    final isDark = ref.read(themeNotifierProvider) == ThemeMode.dark;
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 480),
-      value: isDark ? 1.0 : 0.0,
-    );
-
-    _curvedAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOutCubic,
-    );
-  }
+class _WaraThemeToggleState extends ConsumerState<WaraThemeToggle> with SingleTickerProviderStateMixin {
+  static const _duration = Duration(milliseconds: 400);
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: _duration,
+    value: ref.read(themeNotifierProvider) == ThemeMode.dark ? 1 : 0,
+  );
 
   @override
   void dispose() {
-    _controller.dispose();
+    _c.dispose();
     super.dispose();
   }
 
+  void _sync(bool dark) {
+    final target = dark ? 1.0 : 0.0;
+    if (_c.value == target && !_c.isAnimating) return;
+    if (Motion.reduced(context)) {
+      _c.value = target;
+    } else {
+      _c.animateTo(target, duration: _duration, curve: Curves.easeOutCubic);
+    }
+  }
+
   void _onToggle() {
-    HapticFeedback.lightImpact();
+    Haptics.light();
     final box = context.findRenderObject() as RenderBox?;
-    final origin = box != null && box.hasSize
-        ? box.localToGlobal(box.size.center(Offset.zero))
-        : Offset.zero;
+    final origin = box != null && box.hasSize ? box.localToGlobal(box.size.center(Offset.zero)) : Offset.zero;
     ThemeReveal.run(context, origin, () => ref.read(themeNotifierProvider.notifier).toggleTheme());
   }
 
   @override
   Widget build(BuildContext context) {
-    // Listen to theme changes to trigger smooth animation
-    ref.listen<ThemeMode>(themeNotifierProvider, (prev, next) {
-      final isDark = next == ThemeMode.dark;
-      if (isDark && _controller.value < 0.5) {
-        _controller.animateTo(1.0, curve: Curves.easeInOutCubic);
-      } else if (!isDark && _controller.value > 0.5) {
-        _controller.animateTo(0.0, curve: Curves.easeInOutCubic);
-      }
-    });
-
-    final compact = widget.compact;
-    final trackWidth = compact ? 70.0 : 78.0;
-    final trackHeight = compact ? 34.0 : 38.0;
-    final thumbSize = compact ? 26.0 : 30.0;
-    final padding = compact ? 3.0 : 4.0;
-    final maxTravel = trackWidth - thumbSize - (padding * 2);
-
+    ref.listen<ThemeMode>(themeNotifierProvider, (_, next) => _sync(next == ThemeMode.dark));
+    final dark = ref.watch(themeNotifierProvider) == ThemeMode.dark;
+    final w = widget.compact ? 56.0 : 64.0;
+    final h = widget.compact ? 30.0 : 34.0;
     return Semantics(
-      label: _controller.value > 0.5 ? 'Switch to Light Mode' : 'Switch to Dark Mode',
       button: true,
+      toggled: dark,
+      label: 'Dark mode',
       child: GestureDetector(
+        key: const ValueKey('theme_toggle'),
         onTap: _onToggle,
         behavior: HitTestBehavior.opaque,
-        child: AnimatedBuilder(
-          animation: _curvedAnimation,
-          builder: (context, _) {
-            final t = _curvedAnimation.value; // 0.0 = Sun (Light), 1.0 = Moon (Dark)
-
-            // Dynamic background and border colors
-            final trackBg = Color.lerp(
-              const Color(0xFFE2E8F0),
-              const Color(0xFF131722),
-              t,
-            )!;
-            final trackBorder = Color.lerp(
-              const Color(0xFFCBD5E1),
-              const Color(0xFF2E384D),
-              t,
-            )!;
-
-            // Fluid stretch during transition (expands in middle of flight)
-            final stretch = math.sin(t * math.pi) * (compact ? 6.0 : 8.0);
-            final currentThumbWidth = thumbSize + stretch;
-            final thumbLeft = padding + (t * (maxTravel - stretch));
-
-            // Thumb colors & glow
-            final thumbColor1 = Color.lerp(
-              const Color(0xFFFFB300),
-              const Color(0xFFE0E7FF),
-              t,
-            )!;
-            final thumbColor2 = Color.lerp(
-              const Color(0xFFF57C00),
-              const Color(0xFF94A3B8),
-              t,
-            )!;
-            final sunGlowAlpha = ((1.0 - t) * 0.45).clamp(0.0, 1.0);
-            final moonGlowAlpha = (t * 0.4).clamp(0.0, 1.0);
-
-            return Container(
-              width: trackWidth,
-              height: trackHeight,
-              decoration: BoxDecoration(
-                color: trackBg,
-                borderRadius: BorderRadius.circular(trackHeight / 2),
-                border: Border.all(color: trackBorder, width: 1.2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: lerpDouble(0.06, 0.35, t)!),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                clipBehavior: Clip.none,
-                children: [
-                  // ── Little Night Stars (Right Side) ──────────────────────
-                  Positioned(
-                    right: compact ? 10 : 12,
-                    top: compact ? 7 : 8,
-                    child: Container(
-                        width: 3,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: Color(0xFFE0E7FF).withValues(alpha: (t * 0.9).clamp(0.0, 1.0)),
-                          shape: BoxShape.circle,
-                        ),
-                    ),
-                  ),
-                  Positioned(
-                    right: compact ? 18 : 22,
-                    bottom: compact ? 7 : 9,
-                    child: Container(
-                        width: 2,
-                        height: 2,
-                        decoration: BoxDecoration(
-                          color: Color(0xFFC7D2FE).withValues(alpha: (t * 0.65).clamp(0.0, 1.0)),
-                          shape: BoxShape.circle,
-                        ),
-                    ),
-                  ),
-                  Positioned(
-                    right: compact ? 7 : 8,
-                    bottom: compact ? 9 : 11,
-                    child: Container(
-                        width: 2.5,
-                        height: 2.5,
-                        decoration: BoxDecoration(
-                          color: Color(0xFFE0E7FF).withValues(alpha: (t * 0.75).clamp(0.0, 1.0)),
-                          shape: BoxShape.circle,
-                        ),
-                    ),
-                  ),
-
-                  // ── Soft Daytime Hint (Left Side) ────────────────────────
-                  Positioned(
-                    left: compact ? 10 : 12,
-                    bottom: compact ? 6 : 7,
-                    child: Container(
-                        width: compact ? 10 : 14,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: ((1.0 - t) * 0.45).clamp(0.0, 1.0)),
-                          borderRadius: BorderRadius.circular(2),
-                    ),
-                    ),
-                  ),
-
-                  // ── Animated Moving Thumb ────────────────────────────────
-                  Positioned(
-                    left: thumbLeft,
-                    top: padding,
-                    bottom: padding,
-                    child: Container(
-                      width: currentThumbWidth,
-                      height: thumbSize,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [thumbColor1, thumbColor2],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(thumbSize / 2),
-                        boxShadow: [
-                          if (sunGlowAlpha > 0.01)
-                            BoxShadow(
-                              color: const Color(0xFFF59E0B).withValues(alpha: sunGlowAlpha),
-                              blurRadius: 10,
-                              spreadRadius: 1,
-                              offset: const Offset(0, 2),
-                            ),
-                          if (moonGlowAlpha > 0.01)
-                            BoxShadow(
-                              color: const Color(0xFF818CF8).withValues(alpha: moonGlowAlpha),
-                              blurRadius: 10,
-                              spreadRadius: 1,
-                              offset: const Offset(0, 2),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // ── Sun Icon (Left Slot) ──────────────────────────────────
-                  Positioned(
-                    left: padding,
-                    width: thumbSize,
-                    height: thumbSize,
-                    child: Center(
-                      child: Transform.rotate(
-                        angle: t * math.pi, // Smooth 180° rotation
-                        child: Transform.scale(
-                          scale: lerpDouble(1.08, 0.75, t)!,
-                          child: Icon(
-                            Icons.wb_sunny_rounded,
-                            size: compact ? 15 : 17,
-                            color: Color.lerp(
-                              Colors.white,
-                              const Color(0xFF64748B).withValues(alpha: 0.55),
-                              t,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // ── Moon Icon (Right Slot) ─────────────────────────────────
-                  Positioned(
-                    right: padding,
-                    width: thumbSize,
-                    height: thumbSize,
-                    child: Center(
-                      child: Transform.rotate(
-                        angle: (1.0 - t) * (-0.25 * math.pi), // Tilts gracefully into view
-                        child: Transform.scale(
-                          scale: lerpDouble(0.75, 1.08, t)!,
-                          child: Icon(
-                            Icons.nightlight_round,
-                            size: compact ? 15 : 17,
-                            color: Color.lerp(
-                              const Color(0xFF94A3B8).withValues(alpha: 0.55),
-                              const Color(0xFF0F172A),
-                              t,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+        child: RepaintBoundary(
+          child: CustomPaint(size: Size(w, h), painter: _DayNightPainter(_c)),
         ),
       ),
     );
   }
+}
+
+class _DayNightPainter extends CustomPainter {
+  final Animation<double> t;
+  _DayNightPainter(this.t) : super(repaint: t);
+
+  static const _stars = [Offset(0.20, 0.30), Offset(0.34, 0.66), Offset(0.12, 0.62), Offset(0.42, 0.28)];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final v = t.value.clamp(0.0, 1.0);
+    final r = size.height / 2;
+    final track = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r));
+
+    // Sky.
+    final sky = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color.lerp(const Color(0xFF7DD3FC), const Color(0xFF0B1026), v)!,
+        Color.lerp(const Color(0xFF38BDF8), const Color(0xFF26215C), v)!,
+      ],
+    );
+    canvas.drawRRect(track, Paint()..shader = sky.createShader(Offset.zero & size));
+    canvas.drawRRect(
+      track.deflate(0.5),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.white.withValues(alpha: 0.10 + 0.06 * v),
+    );
+
+    canvas.save();
+    canvas.clipRRect(track);
+
+    // Stars fade in on the left as the thumb leaves it (last 60% of travel).
+    final starA = ((v - 0.4) / 0.6).clamp(0.0, 1.0);
+    if (starA > 0) {
+      for (var i = 0; i < _stars.length; i++) {
+        final p = Offset(_stars[i].dx * size.width, _stars[i].dy * size.height);
+        canvas.drawCircle(p, i.isEven ? 1.1 : 0.8, Paint()..color = Colors.white.withValues(alpha: starA * (i.isEven ? 0.95 : 0.6)));
+      }
+    }
+
+    // Soft cloud on the right in daytime.
+    final cloudA = (1 - v * 1.6).clamp(0.0, 1.0);
+    if (cloudA > 0) {
+      final cp = Paint()..color = Colors.white.withValues(alpha: 0.55 * cloudA);
+      final cy = size.height * 0.68 + v * 6;
+      canvas.drawCircle(Offset(size.width * 0.66, cy), r * 0.26, cp);
+      canvas.drawCircle(Offset(size.width * 0.76, cy - 2), r * 0.32, cp);
+      canvas.drawCircle(Offset(size.width * 0.86, cy), r * 0.24, cp);
+    }
+
+    // Thumb.
+    const pad = 3.0;
+    final tr = r - pad;
+    final cx = pad + tr + (size.width - 2 * (pad + tr)) * v;
+    final c = Offset(cx, r);
+
+    canvas.drawCircle(c + const Offset(0, 1), tr, Paint()
+      ..color = Colors.black.withValues(alpha: 0.22)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+
+    // Sun rays retract as it turns.
+    final rayA = (1 - v * 2).clamp(0.0, 1.0);
+    if (rayA > 0) {
+      final rp = Paint()
+        ..color = const Color(0xFFFFE08A).withValues(alpha: 0.5 * rayA)
+        ..strokeWidth = 1.2
+        ..strokeCap = StrokeCap.round;
+      for (var i = 0; i < 8; i++) {
+        final a = i * math.pi / 4 + v * math.pi / 2;
+        final d = Offset(math.cos(a), math.sin(a));
+        canvas.drawLine(c + d * (tr * 0.62), c + d * (tr * (0.80 - 0.15 * v)), rp);
+      }
+    }
+
+    // Disc: sun -> moon colour, with a shadow disc sliding in to carve a
+    // crescent (drawn via saveLayer + clear blend so the sky shows through).
+    final disc = Color.lerp(const Color(0xFFFFC53D), const Color(0xFFE8ECF7), v)!;
+    final discR = tr * (0.62 + 0.38 * v);
+    canvas.saveLayer(Rect.fromCircle(center: c, radius: tr + 1), Paint());
+    canvas.drawCircle(c, discR, Paint()..color = disc);
+    if (v > 0) {
+      final bite = Offset(cx + discR * (1.25 - 0.70 * v), r - discR * 0.35 * v);
+      canvas.drawCircle(bite, discR * 0.82, Paint()..blendMode = BlendMode.clear);
+    }
+    canvas.restore();
+
+    // Moon craters fade in.
+    if (v > 0.6) {
+      final ca = ((v - 0.6) / 0.4);
+      final cp = Paint()..color = const Color(0xFFB8C0D6).withValues(alpha: 0.7 * ca);
+      canvas.drawCircle(c + Offset(-discR * 0.35, discR * 0.15), discR * 0.14, cp);
+      canvas.drawCircle(c + Offset(-discR * 0.05, discR * 0.48), discR * 0.09, cp);
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_DayNightPainter old) => old.t != t;
 }
