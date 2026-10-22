@@ -1,142 +1,82 @@
-import '../../../../shared/motion/motion.dart';
 import 'package:flutter/material.dart';
-import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
+import '../../../../shared/widgets/wara_error_state.dart';
 import '../../../../shared/widgets/wara_page_header.dart';
-import '../../../../shared/widgets/wara_project_card.dart';
-import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../../../auth/domain/auth_provider.dart';
+import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../../../projects/domain/project_provider.dart';
-import '../widgets/rate_editor_dialog.dart';
+import '../widgets/editor_ledger.dart';
 
-class ManagerPendingScreen extends ConsumerStatefulWidget {
+/// Editor ledger: what is owed, how urgent, and to whom. Marking paid uses
+/// the existing approve flow (approved = paid).
+class ManagerPendingScreen extends ConsumerWidget {
   const ManagerPendingScreen({super.key});
 
   @override
-  ConsumerState<ManagerPendingScreen> createState() => _ManagerPendingScreenState();
-}
-
-class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
-  String _sortBy = 'time'; // 'time' or 'money'
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final text = Theme.of(context).textTheme;
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
     if (projectsError != null && projects.isEmpty) {
       return ProjectsLoadError(error: projectsError);
     }
+    final ledger = EditorLedger.of(projects);
+    final m = AppSpacing.screenMargin(context);
 
-    // Filter pending works (claimed or submitted)
-    final pendingProjects = projects.where((p) => p.status != ProjectStatus.approved).toList();
-
-    final finance = ref.watch(projectFinanceProvider).valueOrNull ?? const <String, ProjectFinance>{};
-    double priceOf(ProjectItem p) => clientPriceOf(p, finance) ?? -1;
-
-    // Sort based on selection
-    if (_sortBy == 'time') {
-      pendingProjects.sort((a, b) => a.deadlineHoursLeft.compareTo(b.deadlineHoursLeft));
-    } else {
-      pendingProjects.sort((a, b) => priceOf(b).compareTo(priceOf(a)));
+    void pay(List<ProjectItem> ps) {
+      final notifier = ref.read(projectsProvider.notifier);
+      for (final p in ps) {
+        notifier.approveProject(p.id);
+      }
+      Celebration.sparkle(context);
     }
-
-    final margin = AppSpacing.screenMargin(context);
-    final text = Theme.of(context).textTheme;
-    final pipelineValue = pendingProjects.fold<double>(0, (sum, p) => sum + (clientPriceOf(p, finance) ?? 0));
-    final toReview = pendingProjects.where((p) => p.status == ProjectStatus.submitted).length;
 
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(margin, AppSpacing.lg, margin, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  WaraPageHeader(
-                    title: 'Pending',
-                    subtitle: ref.watch(authProvider.select((s) => s.user?.agencyName)),
-                    trailing: const NotificationBellButton(),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Text('PIPELINE VALUE', style: text.labelMedium?.copyWith(letterSpacing: 0.8)),
-                  const SizedBox(height: AppSpacing.xs),
-                  RollingCounter(prefix: '৳', value: pipelineValue.toInt(), style: text.displaySmall?.copyWith(fontWeight: FontWeight.w700, color: colors.text)),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text('${pendingProjects.length} open deliverables · $toReview to review', style: text.bodyMedium?.copyWith(color: colors.muted)),
-                  const SizedBox(height: AppSpacing.lg),
-                  SegmentedButton<String>(
-                    showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment(value: 'time', icon: Icon(Icons.timer_outlined, size: 18), label: Text('Deadline')),
-                      ButtonSegment(value: 'money', icon: Icon(Icons.account_balance_wallet_outlined, size: 18), label: Text('Value')),
-                    ],
-                    selected: {_sortBy},
-                    onSelectionChanged: (v) => setState(() => _sortBy = v.first),
-                  ),
-                ],
+        child: WaraRefresh(
+          onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(m, AppSpacing.lg, m, AppSpacing.bottomInset(context)),
+            children: [
+              WaraPageHeader(
+                title: 'Pending',
+                subtitle: ref.watch(authProvider.select((s) => s.user?.agencyName)),
+                trailing: const NotificationBellButton(),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Expanded(
-              child: pendingProjects.isEmpty
-                  ? const WaraEmptyState(
-                      icon: Icons.verified_outlined,
-                      title: 'Nothing pending',
-                    )
-                  : WaraRefresh(
-                        onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
-                        child: ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(margin, 0, margin, AppSpacing.bottomInset(context)),
-                      itemCount: pendingProjects.length,
-                      itemBuilder: (context, index) {
-                        final item = pendingProjects[index];
-                        return WaraProjectCard(
-                          project: item,
-                          listId: 'pending',
-                          showAssignee: true,
-                          amount: clientPriceOf(item, finance),
-                          amountMissing: clientPriceOf(item, finance) == null,
-                          payoutLabel: 'Client value',
-                          actions: [
-                            if (item.status == ProjectStatus.submitted)
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  if (item.claimedByEditorId != null) {
-                                    showRateEditorSheet(
-                                      context: context,
-                                      ref: ref,
-                                      editorId: item.claimedByEditorId!,
-                                      editorName: item.claimedByEditorName ?? 'Editor',
-                                      projectId: item.id,
-                                      projectTitle: item.title,
-                                      isProjectApproval: true,
-                                    );
-                                  } else {
-                                    ref.read(projectsProvider.notifier).approveProject(item.id);
-                                    Celebration.sparkle(context);
-                                  }
-                                },
-                                style: waraCompactButton(),
-                                icon: const Icon(Icons.star_rounded, size: 18),
-                                label: const Text('Approve & rate'),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                      ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.xl),
+              Text('Owed', style: text.labelMedium?.copyWith(color: colors.muted)),
+              const SizedBox(height: AppSpacing.xs),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: RollingCounter(
+                  key: const ValueKey('owed_total'),
+                  prefix: '৳',
+                  grouped: true,
+                  value: ledger.total.round(),
+                  style: text.displaySmall?.copyWith(color: colors.text, fontWeight: FontWeight.w700, letterSpacing: -0.8),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              UrgencyBar(byUrgency: ledger.byUrgency),
+              const SizedBox(height: AppSpacing.xl),
+              if (ledger.editors.isEmpty)
+                const WaraEmptyState(compact: true, icon: Icons.check_circle_outline_rounded, title: 'All paid up')
+              else ...[
+                Text('Editors', style: text.labelMedium?.copyWith(color: colors.muted)),
+                const SizedBox(height: AppSpacing.sm),
+                for (final e in ledger.editors) EditorOwedCard(key: ValueKey('card_${e.id}'), editor: e, onPay: pay),
+              ],
+            ],
+          ),
         ),
       ),
     );
