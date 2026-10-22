@@ -234,7 +234,7 @@ Future<void> showRateEditorSheet({
                     maxLines: 2,
                     style: TextStyle(color: colors.text, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'e.g. Stellar turnaround, flawless transitions and audio grading...',
+                      hintText: 'Feedback (optional)',
                       hintStyle: TextStyle(color: colors.muted, fontSize: 12),
                       fillColor: colors.surface,
                       filled: true,
@@ -260,7 +260,7 @@ Future<void> showRateEditorSheet({
                               onApproved?.call();
                               WaraToast.show(
                                 context,
-                                message: '✅ Deliverable validated & payout approved!',
+                                message: 'Approved',
                                 icon: Icons.check_circle_rounded,
                               );
                             },

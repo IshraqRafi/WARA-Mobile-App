@@ -240,8 +240,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
                 const WaraEmptyState(
                   compact: true,
                   icon: Icons.receipt_long_outlined,
-                  title: 'No projects in the ledger',
-                  message: 'Post project offers from the Workflow tab to track client budgets and editor payouts.',
+                  title: 'No projects',
                 )
               else
                 Column(
@@ -272,8 +271,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
                 const WaraEmptyState(
                   compact: true,
                   icon: Icons.groups_outlined,
-                  title: 'No editor payouts yet',
-                  message: 'As editors claim and complete projects, their earnings and escrow balances appear here.',
+                  title: 'No payouts',
                 )
               else
                 Column(

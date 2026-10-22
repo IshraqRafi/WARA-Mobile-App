@@ -72,7 +72,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
       debugPrint('Could not open direct message: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open this conversation. Please try again.')),
+          const SnackBar(content: Text('Could not open conversation')),
         );
       }
     }
@@ -132,7 +132,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                 onChanged: (v) => ref.read(chatProvider.notifier).setSearchQuery(v),
                 style: TextStyle(color: colors.text, fontSize: 13),
                 decoration: InputDecoration(
-                  hintText: 'Search messages, channels, or team members...',
+                  hintText: 'Search',
                   hintStyle: TextStyle(color: colors.muted, fontSize: 12),
                   prefixIcon: Icon(Icons.search_rounded, color: colors.primary, size: 20),
                   filled: true,
@@ -414,8 +414,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                                 const WaraEmptyState(
                                   compact: true,
                                   icon: Icons.people_outline_rounded,
-                                  title: 'No team members yet',
-                                  message: 'Editors and managers in your agency appear here automatically.',
+                                  title: 'No team members',
                                 )
                               else
                                 ListView.separated(

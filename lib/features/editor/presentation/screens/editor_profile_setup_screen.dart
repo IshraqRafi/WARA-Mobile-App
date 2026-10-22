@@ -109,7 +109,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSkills.isEmpty) {
-      WaraToast.show(context, message: 'Please select at least one skill.', icon: Icons.warning_amber_rounded);
+      WaraToast.show(context, message: 'Select at least one skill', icon: Icons.warning_amber_rounded);
       return;
     }
 
@@ -130,7 +130,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
           );
 
       if (mounted) {
-        WaraToast.show(context, message: 'Profile complete! Welcome to wara.io', icon: Icons.check_circle_rounded);
+        WaraToast.show(context, message: 'Profile saved', icon: Icons.check_circle_rounded);
       }
     } catch (e) {
       if (mounted) {
@@ -201,7 +201,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                               ),
                             ),
                             const SizedBox(height: AppSpacing.lg),
-                            Text('Complete your editor profile', textAlign: TextAlign.center, style: text.headlineSmall),
+                            Text('Editor profile', textAlign: TextAlign.center, style: text.headlineSmall),
                             const SizedBox(height: AppSpacing.xs),
                             Text(
                               'Set up your creative identity so managers can discover and assign projects to you.',
@@ -212,7 +212,6 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                             // ── Agency ─────────────────────────────────────
                             WaraSectionCard(
                               title: 'Agency',
-                              subtitle: 'Ask your agency manager for their room join key.',
                               divided: false,
                               contentPadding: const EdgeInsets.all(AppSpacing.lg),
                               children: [
@@ -268,7 +267,6 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                                   decoration: const InputDecoration(
                                     hintText: 'https://… image link',
                                     prefixIcon: Icon(Icons.image_outlined),
-                                    helperText: 'Leave blank to show your initials.',
                                   ),
                                 ),
                               ],
@@ -423,7 +421,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                           onPressed: _isLoading ? null : _handleSave,
                           child: _isLoading
                               ? SizedBox.square(dimension: 22, child: CircularProgressIndicator(color: onPrimary, strokeWidth: 2.5))
-                              : const Text('Save profile & enter workspace'),
+                              : const Text('Save profile'),
                         ),
                       ),
                     ),

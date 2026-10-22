@@ -78,7 +78,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     setState(() => _isSending = false);
     if (!sent) {
       _msgCtrl.text = text; // give the user their text back to retry
-      WaraToast.show(context, message: 'Message not sent. Check your connection and try again.', icon: Icons.error_outline_rounded);
+      WaraToast.show(context, message: 'Message not sent', icon: Icons.error_outline_rounded);
     }
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
   }
@@ -104,7 +104,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Paste a Google Drive, Dropbox, Frame.io, or Vimeo URL:', style: TextStyle(color: colors.muted, fontSize: 12)),
+            Text('Asset URL', style: TextStyle(color: colors.muted, fontSize: 12)),
             const SizedBox(height: 12),
             TextField(
               controller: linkCtrl,
@@ -123,7 +123,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               controller: noteCtrl,
               style: TextStyle(color: colors.text, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'Add a brief note (optional)...',
+                hintText: 'Note (optional)',
                 hintStyle: TextStyle(color: colors.muted, fontSize: 12),
                 fillColor: colors.card,
                 filled: true,
@@ -231,20 +231,6 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.info_outline_rounded, color: colors.muted, size: 20),
-            onPressed: () {
-              WaraToast.show(
-                context,
-                message: isChannel
-                    ? 'Agency General Channel: visible to all verified team members.'
-                    : 'End-to-end encrypted direct message with ${widget.title}.',
-                icon: Icons.shield_outlined,
-              );
-            },
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(

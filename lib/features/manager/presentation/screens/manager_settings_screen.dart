@@ -77,7 +77,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                         final key = user?.agencyJoinKey ?? '';
                         if (key.isEmpty) return;
                         Clipboard.setData(ClipboardData(text: key));
-                        WaraToast.show(context, message: 'Copied Join Key "$key" to clipboard!', icon: Icons.copy_rounded);
+                        WaraToast.show(context, message: 'Join key copied', icon: Icons.copy_rounded);
                       },
                       child: Text('COPY', style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
@@ -99,8 +99,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                           const WaraEmptyState(
                             compact: true,
                             icon: Icons.people_outline_rounded,
-                            title: 'No editors yet',
-                            message: 'Share your agency join key with editors. Their profiles appear here once they join.',
+                            title: 'No editors',
                           ),
                         ],
                       );
@@ -316,7 +315,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                               final key = user?.agencyJoinKey ?? '';
                               if (key.isEmpty) return;
                               Clipboard.setData(ClipboardData(text: key));
-                              WaraToast.show(context, message: 'Copied Join Key "$key" to clipboard!', icon: Icons.copy_rounded);
+                              WaraToast.show(context, message: 'Join key copied', icon: Icons.copy_rounded);
                             },
                             borderRadius: BorderRadius.circular(10),
                             child: Container(
@@ -389,7 +388,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                             if (confirm == true) {
                               final newKey = await ref.read(authProvider.notifier).regenerateAgencyKey();
                               if (context.mounted && newKey != null) {
-                                WaraToast.show(context, message: 'New Agency Key generated: $newKey', icon: Icons.refresh_rounded);
+                                WaraToast.show(context, message: 'New join key: $newKey', icon: Icons.refresh_rounded);
                               }
                             }
                           },

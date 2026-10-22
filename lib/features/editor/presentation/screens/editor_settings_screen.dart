@@ -167,7 +167,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                           final newName = nameCtrl.text.trim();
                           final newPhoto = photoCtrl.text.trim();
                           if (newName.isEmpty) {
-                            WaraToast.show(context, message: 'Please enter a valid name.', icon: Icons.warning_amber_rounded);
+                            WaraToast.show(context, message: 'Enter a valid name', icon: Icons.warning_amber_rounded);
                             return;
                           }
 
@@ -180,7 +180,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                             Navigator.pop(ctx);
                           }
                           if (context.mounted) {
-                            WaraToast.show(context, message: '✅ Profile updated successfully!', icon: Icons.check_circle_rounded);
+                            WaraToast.show(context, message: 'Profile updated', icon: Icons.check_circle_rounded);
                           }
                         },
                         icon: Icon(Icons.save_rounded, size: 18, color: colors.onPrimary),
@@ -366,8 +366,6 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
 
               // Skills Customizer
               Text('CREATIVE SKILLS TAXONOMY', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
-              const SizedBox(height: 6),
-              Text('Managers match project assignments based on your active skill set.', style: TextStyle(color: colors.muted, fontSize: 12)),
               const SizedBox(height: 14),
 
               Wrap(

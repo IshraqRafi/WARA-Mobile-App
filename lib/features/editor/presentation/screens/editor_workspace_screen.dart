@@ -6,8 +6,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_project_card.dart';
 import '../../../../shared/widgets/wara_logo.dart';
-import '../../../../shared/widgets/wara_banner.dart';
-import '../../../../shared/widgets/wara_status_chip.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../projects/domain/project_provider.dart';
 
@@ -25,12 +23,7 @@ class EditorWorkspaceScreen extends ConsumerWidget {
       backgroundColor: colors.card,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
+        padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,7 +55,10 @@ class EditorWorkspaceScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
 
-            Text('Asset Link (Required)', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(
+              'Asset Link (Required)',
+              style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: linkCtrl,
@@ -70,14 +66,17 @@ class EditorWorkspaceScreen extends ConsumerWidget {
               decoration: InputDecoration(
                 fillColor: colors.surface,
                 filled: true,
-                hintText: 'https://drive.google.com/... or Vimeo/Frame link',
+                hintText: 'https://',
                 hintStyle: TextStyle(color: colors.muted, fontSize: 13),
                 prefixIcon: Icon(Icons.link_rounded, color: colors.muted, size: 20),
               ),
             ),
             const SizedBox(height: 16),
 
-            Text('Production Notes (Optional)', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(
+              'Production Notes (Optional)',
+              style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: noteCtrl,
@@ -86,7 +85,7 @@ class EditorWorkspaceScreen extends ConsumerWidget {
               decoration: InputDecoration(
                 fillColor: colors.surface,
                 filled: true,
-                hintText: 'Any comments, revision changes, or render notes for the manager...',
+                hintText: 'Notes (optional)',
                 hintStyle: TextStyle(color: colors.muted, fontSize: 13),
               ),
             ),
@@ -112,22 +111,14 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                     onPressed: () {
                       final link = linkCtrl.text.trim();
                       if (link.isEmpty) {
-                        WaraToast.show(context, message: 'Please provide a valid deliverable asset link.', icon: Icons.warning_amber_rounded);
+                        WaraToast.show(context, message: 'Enter a valid link', icon: Icons.warning_amber_rounded);
                         return;
                       }
 
-                      ref.read(projectsProvider.notifier).submitWork(
-                            project.id,
-                            link,
-                            noteCtrl.text.trim(),
-                          );
+                      ref.read(projectsProvider.notifier).submitWork(project.id, link, noteCtrl.text.trim());
 
                       Navigator.pop(ctx);
-                      WaraToast.show(
-                        context,
-                        message: '🚀 Work submitted! Manager has been notified for final validation.',
-                        icon: Icons.check_circle_rounded,
-                      );
+                      WaraToast.show(context, message: 'Submitted for review', icon: Icons.check_circle_rounded);
                     },
                     icon: Icon(Icons.send_rounded, size: 18, color: colors.onPrimary),
                     label: Text(
@@ -188,7 +179,10 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('wara.io', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                        Text(
+                          'wara.io',
+                          style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                        ),
                         Text(
                           'My pending workspace & submissions',
                           style: TextStyle(color: colors.muted, fontSize: 12),
@@ -231,11 +225,7 @@ class EditorWorkspaceScreen extends ConsumerWidget {
 
               Expanded(
                 child: myProjects.isEmpty
-                    ? const WaraEmptyState(
-                        icon: Icons.folder_open_outlined,
-                        title: 'Your workspace is empty',
-                        message: 'Claim a project from the Available tab and it will show up here.',
-                      )
+                    ? const WaraEmptyState(icon: Icons.folder_open_outlined, title: 'No projects')
                     : ListView.builder(
                         padding: EdgeInsets.only(bottom: AppSpacing.bottomInset(context)),
                         itemCount: myProjects.length,
@@ -245,33 +235,23 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                             project: project,
                             payoutLabel: 'Payout',
                             descriptionMaxLines: 3,
-                            notice: project.status == ProjectStatus.claimed
-                                ? WaraBanner(
-                                    tone: project.canReturn ? WaraTone.info : WaraTone.neutral,
-                                    icon: project.canReturn ? Icons.published_with_changes_rounded : Icons.lock_clock_outlined,
-                                    message: project.canReturn
-                                        ? 'You can return this to the pool (the deadline drops by 1 day).'
-                                        : 'Returns are locked with 3 days or less remaining.',
-                                  )
-                                : null,
                             actions: [
                               if (project.status == ProjectStatus.claimed)
-                                OutlinedButton.icon(
-                                  onPressed: project.canReturn
-                                      ? () {
-                                          final ok = ref.read(projectsProvider.notifier).returnProject(project.id);
-                                          if (ok) {
-                                            WaraToast.show(
-                                              context,
-                                              message: '↩️ Project returned to pool! Deadline reduced by 1 day.',
-                                              icon: Icons.replay_rounded,
-                                            );
+                                Tooltip(
+                                  message: project.canReturn ? 'Return to pool (deadline −1 day)' : 'Locked: 3 days or less left',
+                                  child: OutlinedButton.icon(
+                                    onPressed: project.canReturn
+                                        ? () {
+                                            final ok = ref.read(projectsProvider.notifier).returnProject(project.id);
+                                            if (ok) {
+                                              WaraToast.show(context, message: 'Returned to pool', icon: Icons.replay_rounded);
+                                            }
                                           }
-                                        }
-                                      : null,
-                                  style: waraCompactButton(),
-                                  icon: const Icon(Icons.undo_rounded, size: 18),
-                                  label: Text(project.canReturn ? 'Return' : 'Locked'),
+                                        : null,
+                                    style: waraCompactButton(),
+                                    icon: const Icon(Icons.undo_rounded, size: 18),
+                                    label: Text(project.canReturn ? 'Return' : 'Locked'),
+                                  ),
                                 ),
                               if (project.status != ProjectStatus.approved)
                                 ElevatedButton.icon(

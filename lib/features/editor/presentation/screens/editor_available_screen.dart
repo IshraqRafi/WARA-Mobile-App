@@ -122,7 +122,7 @@ class EditorAvailableScreen extends ConsumerWidget {
                     Navigator.pop(ctx);
                     WaraToast.show(
                       context,
-                      message: '🎉 Offer accepted! Project claimed & transferred to "My Workspace".',
+                      message: 'Project claimed',
                       icon: Icons.check_circle_rounded,
                     );
                   },
@@ -218,8 +218,6 @@ class EditorAvailableScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Welcome back, ${user?.name ?? ''}', style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 2),
-                          Text('Claim available offers below. Tap any card for details.', style: TextStyle(color: colors.muted, fontSize: 12)),
                         ],
                       ),
                     ),
@@ -230,15 +228,13 @@ class EditorAvailableScreen extends ConsumerWidget {
 
               WaraSectionHeader(
                 title: 'Open offers',
-                subtitle: '${availableProjects.length} available',
                 padding: const EdgeInsets.only(bottom: AppSpacing.md),
               ),
               Expanded(
                 child: availableProjects.isEmpty
                     ? const WaraEmptyState(
                         icon: Icons.check_circle_outline_rounded,
-                        title: 'All offers are claimed',
-                        message: 'Check back later for new projects from your agency.',
+                        title: 'No open offers',
                       )
                     : ListView.builder(
                         padding: EdgeInsets.only(bottom: AppSpacing.bottomInset(context)),
@@ -261,7 +257,7 @@ class EditorAvailableScreen extends ConsumerWidget {
                                       );
                                   WaraToast.show(
                                     context,
-                                    message: '🎉 Offer accepted! Project claimed & transferred to "My Workspace".',
+                                    message: 'Project claimed',
                                     icon: Icons.check_circle_rounded,
                                   );
                                 },

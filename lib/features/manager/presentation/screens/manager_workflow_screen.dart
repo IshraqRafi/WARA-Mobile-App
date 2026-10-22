@@ -62,7 +62,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Currently assigned to ${project.claimedByEditorName}. Deleting will remove it from their workspace.',
+                        'Assigned to ${project.claimedByEditorName}. Deleting removes it from their workspace.',
                         style: TextStyle(color: colors.error, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -88,7 +88,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
               Navigator.pop(ctx);
               WaraToast.show(
                 context,
-                message: '🗑️ Offer "${project.title}" permanently deleted.',
+                message: 'Project deleted',
                 icon: Icons.delete_forever_rounded,
               );
             },
@@ -159,7 +159,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'This offer has been claimed by ${project.claimedByEditorName ?? 'an Editor'}. Variables (payout & deadline) cannot be modified after acceptance.',
+                          'Claimed by ${project.claimedByEditorName ?? 'an editor'}. Payout and deadline are locked.',
                           style: TextStyle(color: colors.muted, fontSize: 12, height: 1.4),
                         ),
                       ),
@@ -275,11 +275,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.edit_note_rounded, color: colors.primary, size: 24),
                   const SizedBox(width: 10),
-                  Text('Edit Open Project Variables', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('Edit project', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 4),
-              Text('Client: ${project.clientName} • Unclaimed Open Offer', style: TextStyle(color: colors.muted, fontSize: 12)),
+              Text(project.clientName, style: TextStyle(color: colors.muted, fontSize: 12)),
               const SizedBox(height: 20),
 
               Text('Project Title', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -345,7 +345,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     if (ok) {
                       WaraToast.show(
                         context,
-                        message: '✏️ Project offer variables updated successfully!',
+                        message: 'Project updated',
                         icon: Icons.check_circle_rounded,
                       );
                     }
@@ -412,11 +412,9 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.add_circle_outline_rounded, color: colors.primary, size: 22),
                   const SizedBox(width: 10),
-                  Text('Post New Project Offer to Editors', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('New project', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text('Publish an offer to the Editor Marketplace Pool', style: TextStyle(color: colors.muted, fontSize: 12)),
               const SizedBox(height: 20),
 
               Text('Project Title', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -425,7 +423,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 controller: titleCtrl,
                 style: TextStyle(color: colors.text, fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'Enter project title...',
+                  hintText: 'Title',
                   hintStyle: TextStyle(color: colors.muted, fontSize: 13),
                   fillColor: colors.surface,
                   filled: true,
@@ -467,7 +465,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 maxLines: 3,
                 style: TextStyle(color: colors.text, fontSize: 13),
                 decoration: InputDecoration(
-                  hintText: 'Enter project brief and instructions...',
+                  hintText: 'Brief',
                   hintStyle: TextStyle(color: colors.muted, fontSize: 13),
                   fillColor: colors.surface,
                   filled: true,
@@ -493,7 +491,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     Navigator.pop(ctx);
                     WaraToast.show(
                       context,
-                      message: '🚀 New offer published! Now live in Editor Marketplace.',
+                      message: 'Project published',
                       icon: Icons.rocket_launch_rounded,
                     );
                   },
@@ -689,7 +687,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                   Navigator.pop(ctx);
                   WaraToast.show(
                     context,
-                    message: '🔥 Project re-listed to pool with increased payout (৳$newPayout)!',
+                    message: 'Re-listed at ৳$newPayout',
                     icon: Icons.bolt_rounded,
                   );
                 },
@@ -727,7 +725,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
               ref.read(projectsProvider.notifier).requestRevision(project.id, 'Please adjust sound levels and speed ramp transition.');
               WaraToast.show(
                 context,
-                message: '📝 Revision request sent back to Editor.',
+                message: 'Revision requested',
                 icon: Icons.edit_note_rounded,
               );
             },
@@ -750,7 +748,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 ref.read(projectsProvider.notifier).approveProject(project.id);
                 WaraToast.show(
                   context,
-                  message: '✅ Deliverable validated & payout approved!',
+                  message: 'Approved',
                   icon: Icons.check_circle_rounded,
                 );
               }
@@ -832,7 +830,6 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('wara.io', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
-                            Text('Manager workflow', style: text.bodySmall),
                           ],
                         ),
                       ),

@@ -72,13 +72,7 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                       const WaraLogo(),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Pending', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                            Text('Deliverables in progress and awaiting review', style: text.bodySmall, overflow: TextOverflow.ellipsis),
-                          ],
-                        ),
+                        child: Text('Pending', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       const NotificationBellButton(),
@@ -109,7 +103,6 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                   ? const WaraEmptyState(
                       icon: Icons.verified_outlined,
                       title: 'Nothing pending',
-                      message: 'All agency deliverables are approved and up to date.',
                     )
                   : ListView.builder(
                       padding: EdgeInsets.fromLTRB(margin, 0, margin, AppSpacing.bottomInset(context)),

@@ -138,7 +138,7 @@ class ChatBubble extends StatelessWidget {
                               Clipboard.setData(ClipboardData(text: url));
                               WaraToast.show(
                                 context,
-                                message: 'Asset link copied to clipboard!',
+                                message: 'Link copied',
                                 icon: Icons.link_rounded,
                               );
                             }
