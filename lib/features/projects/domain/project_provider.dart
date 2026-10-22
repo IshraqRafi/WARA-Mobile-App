@@ -324,7 +324,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     state = [
       for (final item in state)
         if (item.id == projectId)
-          item.copyWith(status: ProjectStatus.approved)
+          item.copyWith(status: ProjectStatus.approved, approvedAt: DateTime.now())
         else
           item
     ];

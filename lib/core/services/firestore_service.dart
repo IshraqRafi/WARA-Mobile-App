@@ -292,6 +292,7 @@ class FirestoreService {
   Future<void> approveProject(String projectId) async {
     await _projectsRef.doc(projectId).update({
       'status': ProjectStatus.approved.name,
+      'approvedAt': DateTime.now().toIso8601String(),
     });
   }
 

@@ -5,11 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/motion/motion.dart';
-import '../../../../shared/widgets/wara_avatar.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_project_card.dart';
 import '../../../../shared/widgets/wara_section_header.dart';
-import '../../../../shared/widgets/wara_logo.dart';
+import '../../../../shared/widgets/wara_page_header.dart';
+import '../../domain/editor_earnings.dart';
+import '../widgets/earnings_header.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
@@ -103,58 +104,14 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              Row(
-                children: [
-                  const WaraLogo(),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('wara.io', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                        Text(
-                          'Available project offers marketplace',
-                          style: TextStyle(color: colors.muted, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const NotificationBellButton(),
-                ],
+              WaraPageHeader(
+                title: 'Offers',
+                subtitle: (user?.agencyName ?? '').isNotEmpty ? user!.agencyName : null,
+                trailing: const NotificationBellButton(),
               ),
-              const SizedBox(height: 20),
-
-              // Welcome banner card
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: colors.border),
-                ),
-                child: Row(
-                  children: [
-                    WaraAvatar(
-                      name: user?.name,
-                      photoUrl: user?.photoUrl,
-                      radius: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Welcome back, ${user?.name ?? ''}', style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
+              EarningsHeader(earnings: ref.watch(editorEarningsProvider)),
+              const SizedBox(height: AppSpacing.xl),
 
               WaraSectionHeader(
                 title: 'Open offers',

@@ -73,6 +73,8 @@ class ProjectItem {
   final String? submissionNote;
   final String? submittedAt;
   final bool isOverdue;
+  /// When the manager approved (= paid) the work; null on legacy docs.
+  final DateTime? approvedAt;
 
   const ProjectItem({
     required this.id,
@@ -93,6 +95,7 @@ class ProjectItem {
     this.submissionNote,
     this.submittedAt,
     this.isOverdue = false,
+    this.approvedAt,
   });
 
   bool get canReturn => status == ProjectStatus.claimed && deadlineHoursLeft > 72;
@@ -110,6 +113,7 @@ class ProjectItem {
     String? submissionNote,
     String? submittedAt,
     bool? isOverdue,
+    DateTime? approvedAt,
   }) {
     return ProjectItem(
       id: id,
@@ -130,6 +134,7 @@ class ProjectItem {
       submissionNote: submissionNote ?? this.submissionNote,
       submittedAt: submittedAt ?? this.submittedAt,
       isOverdue: isOverdue ?? this.isOverdue,
+      approvedAt: approvedAt ?? this.approvedAt,
     );
   }
 
@@ -151,6 +156,7 @@ class ProjectItem {
       'submissionNote': submissionNote,
       'submittedAt': submittedAt,
       'isOverdue': isOverdue,
+      if (approvedAt != null) 'approvedAt': approvedAt!.toIso8601String(),
     };
   }
 
@@ -177,7 +183,19 @@ class ProjectItem {
       submissionNote: map['submissionNote'] as String?,
       submittedAt: map['submittedAt'] as String?,
       isOverdue: map['isOverdue'] as bool? ?? false,
+      approvedAt: _date(map['approvedAt']),
     );
+  }
+}
+
+/// ISO string (or anything with toDate(), e.g. a Timestamp) to DateTime.
+DateTime? _date(Object? v) {
+  if (v == null) return null;
+  if (v is String) return DateTime.tryParse(v);
+  try {
+    return (v as dynamic).toDate() as DateTime;
+  } catch (_) {
+    return null;
   }
 }
 
