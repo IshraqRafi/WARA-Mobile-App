@@ -80,16 +80,6 @@ class FirestoreService {
     return null;
   }
 
-  /// Live stream of an agency document
-  Stream<AgencyModel?> streamAgency(String agencyId) {
-    return _agenciesRef.doc(agencyId).snapshots().map((doc) {
-      if (doc.exists && doc.data() != null) {
-        return AgencyModel.fromMap(doc.id, doc.data()!);
-      }
-      return null;
-    });
-  }
-
   /// Regenerate a join key for an existing agency
   Future<String> regenerateAgencyKey(String agencyId, String agencyName) async {
     final newKey = generateJoinKey(agencyName);
