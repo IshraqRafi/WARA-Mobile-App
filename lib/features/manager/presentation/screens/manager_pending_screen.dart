@@ -26,16 +26,7 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
     if (projectsError != null && projects.isEmpty) {
-      return Scaffold(
-        backgroundColor: colors.bg,
-        body: SafeArea(
-          child: WaraErrorState(
-            title: 'Couldn\'t load projects',
-            message: friendlyErrorMessage(projectsError),
-            onRetry: () => ref.read(projectsProvider.notifier).retry(),
-          ),
-        ),
-      );
+      return ProjectsLoadError(error: projectsError);
     }
 
     // Filter pending works (claimed or submitted)

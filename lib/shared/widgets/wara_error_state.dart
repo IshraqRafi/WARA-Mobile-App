@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/projects/domain/project_provider.dart';
 
 /// Turns a raw error into a short, user-facing message.
 String friendlyErrorMessage(Object? error) {
@@ -69,4 +71,23 @@ class WaraErrorState extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Full-screen "Couldn't load projects" state with Retry, shared by every
+/// projects tab.
+class ProjectsLoadError extends ConsumerWidget {
+  final Object error;
+  const ProjectsLoadError({super.key, required this.error});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
+        backgroundColor: context.colors.bg,
+        body: SafeArea(
+          child: WaraErrorState(
+            title: 'Couldn\'t load projects',
+            message: friendlyErrorMessage(error),
+            onRetry: () => ref.read(projectsProvider.notifier).retry(),
+          ),
+        ),
+      );
 }
