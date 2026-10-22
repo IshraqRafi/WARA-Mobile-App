@@ -68,14 +68,44 @@ void main() {
     late BuildContext ctx;
     await t.pumpWidget(MaterialApp(theme: AppTheme.dark, home: Scaffold(body: Builder(builder: (c) {
       ctx = c;
-      return ListView(children: [OfferCard(project: offer(), now: now, onLongPress: () => claimed++, onTap: () => showOfferDetail(ctx, offer()))]);
+      return ListView(children: [OfferCard(project: offer(), now: now, onLongPress: () => claimed++, onTap: () => showOfferDetail(ctx, offer(), onClaim: () => claimed += 10, now: now))]);
     }))));
     await t.longPress(find.byKey(const ValueKey('offer_p')));
     expect(claimed, 1);
     await t.tap(find.byKey(const ValueKey('offer_p')));
     await t.pumpAndSettle();
     expect(find.text('Cut a 30s reel'), findsOneWidget);
-    expect(find.textContaining('99'), findsNothing);
+    expect(find.byKey(const ValueKey('offer_detail')), findsOneWidget);
+    expect(find.textContaining('99', findRichText: true), findsNothing);
+    await t.tap(find.byKey(const ValueKey('offer_detail_claim')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('offer_detail')), findsNothing);
+    expect(claimed, 11);
+  });
+
+  testWidgets('detail shows deadline, posted, agency, skills, revision notes; close X and outside tap dismiss', (t) async {
+    final p = offer(hours: 99, deadlineAt: now.add(const Duration(hours: 5)), posted: now.subtract(const Duration(hours: 3)))
+        .copyWith(revisionNotes: 'Tighten intro');
+    var claims = 0;
+    await t.pumpWidget(MaterialApp(theme: AppTheme.dark, home: Scaffold(body: Builder(builder: (c) =>
+        TextButton(onPressed: () => showOfferDetail(c, p, agencyName: 'Studio Alpha', now: now, onClaim: () => claims++), child: const Text('open'))))));
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    expect(find.text('5h left'), findsOneWidget);
+    expect(find.text('Due Oct 23, 5:00 PM'), findsOneWidget);
+    expect(find.text('Posted 3h ago  ·  Studio Alpha'), findsOneWidget);
+    expect(find.text('Reels'), findsOneWidget);
+    expect(find.text('Tighten intro'), findsOneWidget);
+    expect(find.textContaining('99', findRichText: true), findsNothing);
+    await t.tap(find.byKey(const ValueKey('offer_detail_close')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('offer_detail')), findsNothing);
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    await t.tapAt(const Offset(5, 5));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('offer_detail')), findsNothing);
+    expect(claims, 0);
   });
 
   testWidgets('skeleton matches compact height', (t) async {

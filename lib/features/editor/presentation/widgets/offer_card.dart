@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -108,37 +109,162 @@ class OfferCard extends StatelessWidget {
   }
 }
 
-/// Read-only offer detail (tap). Shows the brief; payout only.
-Future<void> showOfferDetail(BuildContext context, ProjectItem p) {
-  final c = context.colors;
-  final t = Theme.of(context).textTheme;
-  return showModalBottomSheet<void>(
+const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/// 'Oct 25, 6:30 PM'.
+String offerDate(DateTime d) {
+  final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final m = d.minute.toString().padLeft(2, '0');
+  return '${_months[d.month - 1]} ${d.day}, $h:$m ${d.hour < 12 ? 'AM' : 'PM'}';
+}
+
+/// 'just now', '5m ago', '3h ago', '2d ago'.
+String offerAgo(DateTime d, DateTime now) {
+  final x = now.difference(d);
+  if (x.inMinutes < 1) return 'just now';
+  if (x.inHours < 1) return '${x.inMinutes}m ago';
+  if (x.inDays < 1) return '${x.inHours}h ago';
+  return '${x.inDays}d ago';
+}
+
+/// Centered offer detail over a blurred, dimmed backdrop. Payout only,
+/// never client price. [onClaim] runs after the dialog closes so the
+/// screen's claim-with-undo flow owns the snackbar.
+Future<void> showOfferDetail(BuildContext context, ProjectItem p,
+    {required VoidCallback onClaim, String? agencyName, DateTime? now}) async {
+  final reduced = Motion.reduced(context);
+  final claimed = await showGeneralDialog<bool>(
     context: context,
-    backgroundColor: c.surface,
-    showDragHandle: true,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
-    builder: (_) => SafeArea(
-      child: Padding(
-        key: const ValueKey('offer_detail'),
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(p.title, style: t.titleMedium?.copyWith(color: c.text, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text(groupedTaka(p.editorPayout), style: t.titleSmall?.copyWith(color: c.text, fontFeatures: const [FontFeature.tabularFigures()])),
-          if (p.requiredSkills.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(p.requiredSkills.join(' · '), style: t.bodySmall?.copyWith(color: c.muted)),
-          ],
-          if (p.description.trim().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(p.description.trim(), style: t.bodyMedium?.copyWith(color: c.text)),
-          ],
-          const SizedBox(height: 12),
-          Text('Swipe right or long-press the card to claim.', style: t.bodySmall?.copyWith(color: c.muted)),
+    barrierDismissible: true,
+    barrierLabel: 'Close',
+    barrierColor: Colors.transparent,
+    transitionDuration: const Duration(milliseconds: 220),
+    pageBuilder: (ctx, _, _) => OfferDetailDialog(project: p, agencyName: agencyName, now: now ?? DateTime.now()),
+    transitionBuilder: (ctx, anim, _, child) {
+      final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+      return AnimatedBuilder(
+        animation: curved,
+        builder: (_, _) => Stack(children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 7 * curved.value, sigmaY: 7 * curved.value),
+                child: ColoredBox(color: Colors.black.withValues(alpha: 0.28 * curved.value)),
+              ),
+            ),
+          ),
+          Opacity(
+            opacity: curved.value,
+            child: reduced ? child : Transform.scale(scale: 0.96 + 0.04 * curved.value, child: child),
+          ),
         ]),
-      ),
-    ),
+      );
+    },
   );
+  if (claimed == true) onClaim();
+}
+
+class OfferDetailDialog extends StatelessWidget {
+  final ProjectItem project;
+  final String? agencyName;
+  final DateTime now;
+  const OfferDetailDialog({super.key, required this.project, required this.now, this.agencyName});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final t = Theme.of(context).textTheme;
+    final p = project;
+    final h = offerHoursLeft(p, now);
+    final dueColor = h < 0 ? c.error : (h < 24 ? c.warning : c.muted);
+    const tab = [FontFeature.tabularFigures()];
+    final label = t.labelSmall?.copyWith(color: c.muted, fontWeight: FontWeight.w600, letterSpacing: 0.4);
+    final skills = p.requiredSkills.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final brief = p.description.trim();
+    final notes = (p.revisionNotes ?? '').trim();
+    final agency = (agencyName ?? '').trim();
+    final deadline = p.deadlineAt != null ? offerDate(p.deadlineAt!.toLocal()) : (p.deadlineStr.trim().isEmpty ? null : p.deadlineStr.trim());
+
+    Widget section(String title, Widget body) => Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title.toUpperCase(), style: label), const SizedBox(height: 6), body]),
+        );
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 420, maxHeight: MediaQuery.sizeOf(context).height * 0.8),
+          child: Material(
+            key: const ValueKey('offer_detail'),
+            color: c.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: c.border, width: 0.5)),
+            clipBehavior: Clip.antiAlias,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(p.title, style: t.titleMedium?.copyWith(color: c.text, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  IconButton(
+                    key: const ValueKey('offer_detail_close'),
+                    tooltip: 'Close',
+                    icon: Icon(Icons.close_rounded, size: 20, color: c.muted),
+                    onPressed: () => Navigator.of(context).pop(false),
+                  ),
+                ]),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text.rich(TextSpan(children: [
+                      TextSpan(text: '৳ ', style: t.titleSmall?.copyWith(color: c.muted)),
+                      TextSpan(text: groupedDigits(p.editorPayout),
+                          style: t.headlineMedium?.copyWith(color: c.text, fontWeight: FontWeight.w700, fontFeatures: tab)),
+                    ])),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      Text(offerDueLabel(h), key: const ValueKey('offer_detail_due'),
+                          style: t.bodySmall?.copyWith(color: dueColor, fontWeight: FontWeight.w600, fontFeatures: tab)),
+                      if (deadline != null) Text('Due $deadline', style: t.bodySmall?.copyWith(color: c.muted, fontFeatures: tab)),
+                    ]),
+                    if (p.postedAt != null || agency.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        [if (p.postedAt != null) 'Posted ${offerAgo(p.postedAt!, now)}', if (agency.isNotEmpty) agency].join('  ·  '),
+                        style: t.bodySmall?.copyWith(color: c.muted),
+                      ),
+                    ],
+                    if (skills.isNotEmpty)
+                      section('Skills', Text(skills.join('  ·  '), style: t.bodyMedium?.copyWith(color: c.text))),
+                    if (brief.isNotEmpty) section('Brief', SelectableText(brief, style: t.bodyMedium?.copyWith(color: c.text, height: 1.45))),
+                    if (notes.isNotEmpty)
+                      section('Revision notes', Text(notes, style: t.bodyMedium?.copyWith(color: c.text, height: 1.45))),
+                    const SizedBox(height: 20),
+                  ]),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                decoration: BoxDecoration(border: Border(top: BorderSide(color: c.border, width: 0.5))),
+                child: FilledButton(
+                  key: const ValueKey('offer_detail_claim'),
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Claim'),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Shimmer placeholder matching [OfferCard]'s compact height.
