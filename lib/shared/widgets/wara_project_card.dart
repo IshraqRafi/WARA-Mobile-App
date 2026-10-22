@@ -6,7 +6,7 @@ import '../../features/projects/domain/project_provider.dart';
 import '../motion/motion.dart';
 import 'wara_status_chip.dart';
 
-/// Urgency of a project's deadline, shown as the card's 3px left accent.
+/// Urgency of a project's deadline, shown by tinting the deadline meta.
 enum ProjectUrgency { none, soon, overdue }
 
 ProjectUrgency projectUrgency(ProjectItem p) {
@@ -75,25 +75,32 @@ class _WaraProjectCardState extends ConsumerState<WaraProjectCard> {
     final p = widget.project;
     final expanded = _expanded;
     final (tone, statusLabel) = projectStatusTone(p);
-    final accent = switch (projectUrgency(p)) {
+    final urgent = switch (projectUrgency(p)) {
       ProjectUrgency.overdue => c.error,
       ProjectUrgency.soon => c.warning,
-      ProjectUrgency.none => c.border,
+      ProjectUrgency.none => null,
     };
 
-    Widget meta(IconData icon, String text) => Row(
+    Widget meta(IconData icon, String text, {Color? color}) => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: c.muted),
+            Icon(icon, size: 14, color: color ?? c.muted),
             const SizedBox(width: AppSpacing.xs),
-            Flexible(child: Text(text, style: t.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Flexible(
+              child: Text(
+                text,
+                style: color == null ? t.bodySmall : t.bodySmall?.copyWith(color: color, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         );
 
     final amount = (widget.amount ?? p.editorPayout).toInt();
 
     final header = Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg - 3, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -111,7 +118,7 @@ class _WaraProjectCardState extends ConsumerState<WaraProjectCard> {
           const SizedBox(height: AppSpacing.xs + 2),
           Row(
             children: [
-              if (p.deadlineStr.isNotEmpty) Flexible(child: meta(Icons.schedule_rounded, p.deadlineStr)),
+              if (p.deadlineStr.isNotEmpty) Flexible(child: meta(Icons.schedule_rounded, p.deadlineStr, color: urgent)),
               if (widget.showAssignee) ...[
                 const SizedBox(width: AppSpacing.md),
                 Flexible(
@@ -150,7 +157,7 @@ class _WaraProjectCardState extends ConsumerState<WaraProjectCard> {
     final body = !expanded
         ? const SizedBox(width: double.infinity)
         : Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg - 3, 0, AppSpacing.lg, AppSpacing.lg),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -232,9 +239,7 @@ class _WaraProjectCardState extends ConsumerState<WaraProjectCard> {
           color: c.card,
           shape: RoundedRectangleBorder(borderRadius: AppRadius.brLg, side: BorderSide(color: c.border)),
           clipBehavior: Clip.antiAlias,
-          child: DecoratedBox(
-            decoration: BoxDecoration(border: Border(left: BorderSide(color: accent, width: 3))),
-            child: Column(
+          child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Semantics(
@@ -254,7 +259,6 @@ class _WaraProjectCardState extends ConsumerState<WaraProjectCard> {
                 ),
               ],
             ),
-          ),
         ),
       ),
     );
