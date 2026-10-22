@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
 import '../../features/chat/domain/chat_models.dart';
 import '../../features/notifications/domain/notification_models.dart';
@@ -113,113 +113,47 @@ class FirestoreService {
     });
   }
 
-  /// Real-time stream of registered editors, optionally scoped by agencyId, sorted by rating/rank
+  /// Normalises a user document for display. Missing names fall back to the
+  /// email prefix; stats start at zero until real ratings exist.
+  Map<String, dynamic> _memberFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = Map<String, dynamic>.from(doc.data());
+    data['uid'] = doc.id;
+    data['id'] = data['id'] ?? doc.id;
+    final email = (data['email'] as String? ?? '').trim();
+    final name = (data['name'] as String? ?? '').trim();
+    if (name.isEmpty) data['name'] = email.isNotEmpty ? email.split('@').first : 'Unnamed member';
+    data['rating'] = (data['rating'] as num?)?.toDouble() ?? 0.0;
+    data['ratingCount'] = (data['ratingCount'] as num?)?.toInt() ?? 0;
+    data['completedProjects'] = (data['completedProjects'] as num?)?.toInt() ?? 0;
+    return data;
+  }
+
+  /// Real-time stream of the editors in [agencyId], ranked by rating then
+  /// completed projects. Without an agency there is nobody to show.
   Stream<List<Map<String, dynamic>>> streamEditors({String? agencyId}) {
-    return _usersRef.where('role', isEqualTo: 'editor').snapshots().map((snapshot) {
-      final list = <Map<String, dynamic>>[];
-      for (final doc in snapshot.docs) {
-        final data = Map<String, dynamic>.from(doc.data());
-        data['uid'] = doc.id;
-        data['id'] = data['id'] ?? doc.id;
-
-        // Fallback name if missing or blank (e.g. use email prefix from real Google sign-in)
-        final email = data['email'] as String? ?? '';
-        final name = (data['name'] as String? ?? '').trim();
-        if (name.isEmpty && email.isNotEmpty) {
-          data['name'] = email.split('@').first;
-        } else if (name.isEmpty) {
-          data['name'] = 'Creative Editor';
-        }
-
-        // Default stats if not yet recorded
-        if (data['rating'] == null) {
-          data['rating'] = 5.0;
-        }
-        if (data['ratingCount'] == null) {
-          data['ratingCount'] = 1;
-        }
-        if (data['completedProjects'] == null) {
-          data['completedProjects'] = 0;
-        }
-
-        list.add(data);
-      }
-
-      // Sort in descending order of rating and completed projects
+    if (agencyId == null || agencyId.isEmpty) return Stream.value(const []);
+    return _usersRef
+        .where('agencyId', isEqualTo: agencyId)
+        .where('role', isEqualTo: 'editor')
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs.map(_memberFromDoc).toList();
       list.sort((a, b) {
-        final rA = (a['rating'] as num?)?.toDouble() ?? 0.0;
-        final rB = (b['rating'] as num?)?.toDouble() ?? 0.0;
-        final cmp = rB.compareTo(rA);
+        final cmp = (b['rating'] as double).compareTo(a['rating'] as double);
         if (cmp != 0) return cmp;
-        final pA = (a['completedProjects'] as num?)?.toInt() ?? 0;
-        final pB = (b['completedProjects'] as num?)?.toInt() ?? 0;
-        return pB.compareTo(pA);
+        return (b['completedProjects'] as int).compareTo(a['completedProjects'] as int);
       });
-
       return list;
     });
   }
 
-  /// Real-time stream of all agency team members (both managers and editors) from Firestore
+  /// Real-time stream of everyone (managers and editors) in [agencyId].
   Stream<List<Map<String, dynamic>>> streamAgencyTeamMembers({String? agencyId}) {
-    return _usersRef.snapshots().map((snapshot) {
-      final list = <Map<String, dynamic>>[];
-      for (final doc in snapshot.docs) {
-        final data = Map<String, dynamic>.from(doc.data());
-        data['uid'] = doc.id;
-        data['id'] = data['id'] ?? doc.id;
-
-        // Fallback name if missing or blank (e.g. use email prefix from Google sign-in)
-        final email = (data['email'] as String? ?? '').trim();
-        final name = (data['name'] as String? ?? '').trim();
-        if (name.isEmpty && email.isNotEmpty) {
-          data['name'] = email.split('@').first;
-        } else if (name.isEmpty) {
-          data['name'] = data['role'] == 'manager' ? 'Agency Lead' : 'Creative Editor';
-        }
-
-        // Fallback specialization display
-        final spec = (data['specialization'] as String? ?? '').trim();
-        if (spec.isEmpty) {
-          data['specialization'] = data['role'] == 'manager'
-              ? 'Agency Lead • Management'
-              : 'Creative Video Editor';
-        }
-
-        // Default stats if not yet recorded
-        if (data['rating'] == null) {
-          data['rating'] = 5.0;
-        }
-        if (data['ratingCount'] == null) {
-          data['ratingCount'] = 1;
-        }
-        if (data['completedProjects'] == null) {
-          data['completedProjects'] = 0;
-        }
-
-        list.add(data);
-      }
-
-      return list;
-    });
-  }
-
-  /// Seeds the demo projects only when [agencyId] has no projects yet.
-  /// Never deletes anything, so work done during a demo survives re-login.
-  Future<void> seedInitialProjectsIfEmpty({String agencyId = 'agency_demo_wara'}) async {
-    try {
-      final snapshot =
-          await _projectsRef.where('agencyId', isEqualTo: agencyId).limit(1).get();
-      if (snapshot.docs.isNotEmpty) return;
-      final batch = _db.batch();
-      for (final project in kInitialProjectsData) {
-        if (project.agencyId != agencyId) continue;
-        batch.set(_projectsRef.doc(project.id), project.toMap());
-      }
-      await batch.commit();
-    } catch (e) {
-      debugPrint('seedInitialProjectsIfEmpty failed: $e');
-    }
+    if (agencyId == null || agencyId.isEmpty) return Stream.value(const []);
+    return _usersRef
+        .where('agencyId', isEqualTo: agencyId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map(_memberFromDoc).toList());
   }
 
   /// Create a new project in Firestore
@@ -413,32 +347,53 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> _messagesRef(String agencyId, String conversationId) =>
       _agenciesRef.doc(agencyId).collection('conversations').doc(conversationId).collection('messages');
 
-  /// Real-time stream of conversations in an agency ordered by most recent message
-  Stream<List<ChatConversation>> streamAgencyConversations(String agencyId) {
-    return _conversationsRef(agencyId)
-        .orderBy('lastMessageTime', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => ChatConversation.fromMap(doc.id, doc.data())).toList();
-    });
+  /// Real-time stream of the conversations [userId] can see in [agencyId]:
+  /// the agency channels plus the direct messages they take part in.
+  /// Sorted on the client so no composite index is needed.
+  Stream<List<ChatConversation>> streamAgencyConversations(String agencyId, String userId) {
+    final channels = _conversationsRef(agencyId).where('type', isEqualTo: 'channel');
+    final directs = _conversationsRef(agencyId).where('participantIds', arrayContains: userId);
+
+    late final StreamController<List<ChatConversation>> controller;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? subA;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? subB;
+    List<ChatConversation>? latestA;
+    List<ChatConversation>? latestB;
+
+    List<ChatConversation> toList(QuerySnapshot<Map<String, dynamic>> s) =>
+        s.docs.map((doc) => ChatConversation.fromMap(doc.id, doc.data())).toList();
+
+    void emit() {
+      final a = latestA;
+      final b = latestB;
+      if (a == null || b == null) return;
+      final byId = <String, ChatConversation>{for (final c in [...a, ...b]) c.id: c};
+      final merged = byId.values.toList()
+        ..sort((x, y) => y.lastMessageTime.compareTo(x.lastMessageTime));
+      controller.add(merged);
+    }
+
+    controller = StreamController<List<ChatConversation>>(
+      onListen: () {
+        subA = channels.snapshots().listen((s) {
+          latestA = toList(s);
+          emit();
+        }, onError: controller.addError);
+        subB = directs.snapshots().listen((s) {
+          latestB = toList(s);
+          emit();
+        }, onError: controller.addError);
+      },
+      onCancel: () async {
+        await subA?.cancel();
+        await subB?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   /// Real-time stream of messages in a conversation ordered chronologically
   Stream<List<ChatMessage>> streamConversationMessages(String agencyId, String conversationId) {
-    if (conversationId.startsWith('dm_') && agencyId != 'agency_demo_wara') {
-      return _messagesRef(agencyId, conversationId)
-          .orderBy('createdAt', descending: false)
-          .snapshots()
-          .asyncMap((snapshot) async {
-        if (snapshot.docs.isNotEmpty) {
-          return snapshot.docs.map((doc) => ChatMessage.fromMap(doc.id, doc.data())).toList();
-        }
-        final demoSnap = await _messagesRef('agency_demo_wara', conversationId)
-            .orderBy('createdAt', descending: false)
-            .get();
-        return demoSnap.docs.map((doc) => ChatMessage.fromMap(doc.id, doc.data())).toList();
-      });
-    }
     return _messagesRef(agencyId, conversationId)
         .orderBy('createdAt', descending: false)
         .snapshots()
@@ -454,13 +409,6 @@ class FirestoreService {
     if (!doc.exists) {
       await docRef.set(conversation.toMap());
     }
-    if (conversation.id.startsWith('dm_') && agencyId != 'agency_demo_wara') {
-      final demoDocRef = _conversationsRef('agency_demo_wara').doc(conversation.id);
-      final demoDoc = await demoDocRef.get();
-      if (!demoDoc.exists) {
-        await demoDocRef.set(conversation.toMap());
-      }
-    }
   }
 
   /// Send a message, update conversation metadata, and dispatch in-app notification to the recipient
@@ -475,28 +423,17 @@ class FirestoreService {
     batch.set(msgDocRef, message.toMap());
 
     final convoDocRef = _conversationsRef(agencyId).doc(conversationId);
+    final isDirect = conversationId.startsWith('dm_');
     batch.set(convoDocRef, {
+      'agencyId': agencyId,
+      'type': isDirect ? 'direct' : 'channel',
+      if (!isDirect) 'title': '# agency-room',
       'lastMessage': message.text,
       'lastSenderName': message.senderName,
       'lastMessageTime': Timestamp.fromDate(message.createdAt),
       'lastSenderId': message.senderId,
       'readBy': [message.senderId],
     }, SetOptions(merge: true));
-
-    // Mirror direct messages to agency_demo_wara for cross-agency visibility
-    if (conversationId.startsWith('dm_') && agencyId != 'agency_demo_wara') {
-      final demoMsgDocRef = _messagesRef('agency_demo_wara', conversationId).doc(message.id);
-      batch.set(demoMsgDocRef, message.toMap());
-
-      final demoConvoDocRef = _conversationsRef('agency_demo_wara').doc(conversationId);
-      batch.set(demoConvoDocRef, {
-        'lastMessage': message.text,
-        'lastSenderName': message.senderName,
-        'lastMessageTime': Timestamp.fromDate(message.createdAt),
-        'lastSenderId': message.senderId,
-        'readBy': [message.senderId],
-      }, SetOptions(merge: true));
-    }
 
     await batch.commit();
 
@@ -535,49 +472,6 @@ class FirestoreService {
       await _conversationsRef(agencyId).doc(conversationId).set({
         'readBy': FieldValue.arrayUnion([userId]),
       }, SetOptions(merge: true));
-    } catch (_) {}
-  }
-
-  /// Auto-seed the agency general room with initial welcome messages if empty
-  Future<void> seedInitialAgencyChatIfEmpty({
-    required String agencyId,
-    required String agencyName,
-    required String managerName,
-  }) async {
-    try {
-      final convoDocRef = _conversationsRef(agencyId).doc('agency_general');
-      // Seed only when the room has no messages; never clear existing history.
-      final existing = await _messagesRef(agencyId, 'agency_general').limit(1).get();
-      if (existing.docs.isEmpty) {
-        final now = DateTime.now();
-        final generalConvo = ChatConversation(
-          id: 'agency_general',
-          agencyId: agencyId,
-          type: ConversationType.channel,
-          title: '# agency-room',
-          description: 'Official Agency Workspace & Production Channel for $agencyName',
-          participantIds: [],
-          participantNames: {},
-          participantPhotos: {},
-          lastMessage: 'Welcome to $agencyName team channel! Post updates, drop assets, or ask questions here.',
-          lastSenderName: managerName.isNotEmpty ? managerName : 'Director',
-          lastMessageTime: now,
-        );
-        await convoDocRef.set(generalConvo.toMap(), SetOptions(merge: true));
-
-        // First message in # general
-        final welcomeMsg = ChatMessage(
-          id: 'msg_welcome_1',
-          conversationId: 'agency_general',
-          agencyId: agencyId,
-          senderId: 'manager_director',
-          senderName: managerName.isNotEmpty ? managerName : 'Director',
-          senderRole: 'manager',
-          text: '👋 Welcome to $agencyName! All project notifications, urgent cuts, and asset drive links will be shared here. Feel free to discuss ideas or ask any questions.',
-          createdAt: now,
-        );
-        await _messagesRef(agencyId, 'agency_general').doc(welcomeMsg.id).set(welcomeMsg.toMap());
-      }
     } catch (_) {}
   }
 

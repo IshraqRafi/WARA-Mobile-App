@@ -20,8 +20,8 @@ class WaraAvatar extends StatefulWidget {
   });
 
   /// Extracts two initials: First letter of surname (last name) + First letter of first name.
-  /// E.g. "Walid Islam" -> "IW" (Surname 'I' + First name 'W')
-  /// E.g. "Ishraq Rafi" -> "RI" (Surname 'R' + First name 'I')
+  /// E.g. "Jane Doe" -> "DJ" (Surname 'D' + First name 'J')
+  /// E.g. "John Smith" -> "SJ" (Surname 'S' + First name 'J')
   /// If only one word, returns first letter.
   static String computeInitials(String? name) {
     if (name == null || name.trim().isEmpty) return '?';

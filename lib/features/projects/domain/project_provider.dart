@@ -19,18 +19,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   StreamSubscription<List<ProjectItem>>? _subscription;
 
   ProjectsNotifier(this._firestoreService, [this._agencyId, this._onError])
-      : super(_agencyId == 'agency_demo_wara' || _agencyId == null
-            ? kInitialProjectsData
-            : []) {
-    _init();
-  }
-
-  void _init() {
-    // Seed the demo agency's sample projects once (only if it has none).
-    if (_agencyId == 'agency_demo_wara' || _agencyId == null) {
-      _firestoreService.seedInitialProjectsIfEmpty(agencyId: 'agency_demo_wara');
-    }
-
+      : super(const []) {
     _subscribe();
   }
 
@@ -42,15 +31,17 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
 
   void _subscribe() {
     _subscription?.cancel();
+    final agencyId = _agencyId;
+    // No agency yet (editor still onboarding): nothing to load.
+    if (agencyId == null || agencyId.isEmpty) {
+      state = const [];
+      return;
+    }
     // Listen to real-time updates from Cloud Firestore scoped by agencyId
-    _subscription = _firestoreService.streamProjects(agencyId: _agencyId).listen(
+    _subscription = _firestoreService.streamProjects(agencyId: agencyId).listen(
       (projects) {
         _onError?.call(null);
-        if (projects.isNotEmpty) {
-          state = projects;
-        } else if (_agencyId != 'agency_demo_wara' && _agencyId != null) {
-          state = [];
-        }
+        state = projects;
       },
       onError: (Object err) {
         // Keep the local state, but surface the failure to the UI.

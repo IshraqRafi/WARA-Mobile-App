@@ -95,7 +95,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
                       children: [
                         Text('Agency Project Finances', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
                         Text(
-                          '${user?.agencyName ?? "Wara Media Group"} • Live Production Ledger',
+                          '${(user?.agencyName ?? '').isNotEmpty ? user!.agencyName : "Your agency"} • Live Production Ledger',
                           style: TextStyle(color: colors.muted, fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                         ),

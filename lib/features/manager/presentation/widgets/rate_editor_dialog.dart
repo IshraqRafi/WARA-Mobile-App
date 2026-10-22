@@ -20,8 +20,8 @@ Future<void> showRateEditorSheet({
 }) {
   final colors = context.colors;
   final currentUser = ref.read(authProvider).user;
-  final agencyId = currentUser?.agencyId ?? 'agency_demo_wara';
-  final managerName = currentUser?.name ?? 'Agency Director';
+  final agencyId = currentUser?.agencyId ?? '';
+  final managerName = currentUser?.name ?? '';
 
   return showModalBottomSheet(
     context: context,

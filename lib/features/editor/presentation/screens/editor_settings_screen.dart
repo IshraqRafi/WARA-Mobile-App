@@ -106,7 +106,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                   decoration: InputDecoration(
                     fillColor: colors.surface,
                     filled: true,
-                    hintText: 'e.g. Walid Islam',
+                    hintText: 'Your full name',
                     hintStyle: TextStyle(color: colors.muted, fontSize: 13),
                     prefixIcon: Icon(Icons.person_outline_rounded, color: colors.muted, size: 20),
                   ),
@@ -270,7 +270,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    user?.name ?? 'Walid Islam',
+                                    user?.name ?? '',
                                     style: TextStyle(color: colors.text, fontSize: 17, fontWeight: FontWeight.bold),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -330,12 +330,12 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user?.agencyName.isNotEmpty == true ? user!.agencyName : 'Wara Media Group',
+                            user?.agencyName.isNotEmpty == true ? user!.agencyName : 'No agency connected',
                             style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Connected Agency Room • Key: ${user?.agencyJoinKey ?? "WARA-7742"}',
+                            'Connected Agency Room • Key: ${user?.agencyJoinKey ?? "—"}',
                             style: TextStyle(color: colors.muted, fontSize: 11),
                           ),
                         ],

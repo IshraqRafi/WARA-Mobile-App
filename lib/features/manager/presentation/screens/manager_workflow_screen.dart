@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_toast.dart';
+import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../widgets/rate_editor_dialog.dart';
@@ -527,61 +528,45 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             const SizedBox(height: 20),
 
             StreamBuilder<List<Map<String, dynamic>>>(
-              stream: ref.read(firestoreServiceProvider).streamEditors(),
+              stream: ref.read(firestoreServiceProvider).streamEditors(agencyId: ref.read(authProvider).user?.agencyId),
               builder: (context, snapshot) {
                 final cloudEditors = snapshot.data ?? [];
 
                 // Filter complete profiles or combine with fallback
                 final activeEditors = cloudEditors.where((e) => e['name'] != null && (e['name'] as String).isNotEmpty).toList();
 
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
                 if (activeEditors.isEmpty) {
-                  return Column(
-                    children: [
-                      ListTile(
-                        onTap: () {
-                          ref.read(projectsProvider.notifier).assignProject(project.id, 'editor_1', 'Walid Islam');
-                          Navigator.pop(ctx);
-                          WaraToast.show(ctx, message: 'Assigned project to Walid Islam.', icon: Icons.person_add_rounded);
-                        },
-                        leading: const WaraAvatar(name: 'Walid Islam', radius: 18),
-                        title: Text('Walid Islam', style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
-                        subtitle: Text('Skills: Video Editing, Color Grading, Sound Design', style: TextStyle(color: colors.muted, fontSize: 11)),
-                        trailing: Icon(Icons.arrow_forward_ios_rounded, color: colors.muted, size: 14),
-                      ),
-                      Divider(color: colors.border),
-                      ListTile(
-                        onTap: () {
-                          ref.read(projectsProvider.notifier).assignProject(project.id, 'editor_2', 'Ishraq Rafi');
-                          Navigator.pop(ctx);
-                          WaraToast.show(ctx, message: 'Assigned project to Ishraq Rafi.', icon: Icons.person_add_rounded);
-                        },
-                        leading: const WaraAvatar(name: 'Ishraq Rafi', radius: 18),
-                        title: Text('Ishraq Rafi', style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
-                        subtitle: Text('Skills: 3D Motion, VFX, Animation', style: TextStyle(color: colors.muted, fontSize: 11)),
-                        trailing: Icon(Icons.arrow_forward_ios_rounded, color: colors.muted, size: 14),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: colors.border),
+                  final joinKey = ref.read(authProvider).user?.agencyJoinKey ?? '';
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colors.border),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(Icons.group_add_rounded, color: colors.muted, size: 28),
+                        const SizedBox(height: 10),
+                        Text('No editors yet', style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        Text(
+                          joinKey.isEmpty
+                              ? 'Invite editors with your agency join key from Settings.'
+                              : 'Share your join key $joinKey with editors. They appear here once they finish profile setup.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: colors.muted, fontSize: 12),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline_rounded, color: colors.muted, size: 16),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'When new editors sign up and complete profile setup, they will appear here live.',
-                                style: TextStyle(color: colors.muted, fontSize: 11),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   );
                 }
 
@@ -591,7 +576,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                       if (i > 0) Divider(color: colors.border),
                       ListTile(
                         onTap: () {
-                          final eId = activeEditors[i]['uid'] as String? ?? 'editor_${i + 1}';
+                          final eId = activeEditors[i]['uid'] as String;
                           final eName = activeEditors[i]['name'] as String? ?? 'Editor';
                           ref.read(projectsProvider.notifier).assignProject(project.id, eId, eName);
                           Navigator.pop(ctx);

@@ -59,14 +59,20 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
   }
 
   void _startDirectMessage(String otherUid, String otherName, String? otherPhoto) async {
-    final convo = await ref.read(chatProvider.notifier).getOrCreateDirectConversation(
-          otherUserId: otherUid,
-          otherUserName: otherName,
-          otherUserPhoto: otherPhoto,
+    try {
+      final convo = await ref.read(chatProvider.notifier).getOrCreateDirectConversation(
+            otherUserId: otherUid,
+            otherUserName: otherName,
+            otherUserPhoto: otherPhoto,
+          );
+      if (mounted) _openConversation(convo);
+    } catch (e) {
+      debugPrint('Could not open direct message: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open this conversation. Please try again.')),
         );
-
-    if (mounted) {
-      _openConversation(convo);
+      }
     }
   }
 
@@ -103,7 +109,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                           style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          '${user?.agencyName ?? "Wara Media Group"} • Team Chat',
+                          '${(user?.agencyName ?? '').isNotEmpty ? user!.agencyName : 'Your agency'} • Team Chat',
                           style: TextStyle(color: colors.muted, fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -159,7 +165,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
             // ── Live Stream of Real Team Members for Direct Messages ────────
             Expanded(
               child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: ref.watch(firestoreServiceProvider).streamAgencyTeamMembers(),
+                stream: ref.watch(firestoreServiceProvider).streamAgencyTeamMembers(agencyId: user?.agencyId),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                     return const Center(
@@ -352,14 +358,14 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                                       final target = general ??
                                           ChatConversation(
                                             id: 'agency_general',
-                                            agencyId: user?.agencyId ?? 'agency_demo_wara',
+                                            agencyId: user?.agencyId ?? '',
                                             type: ConversationType.channel,
                                             title: '# agency-room',
                                             participantIds: [],
                                             participantNames: {},
                                             participantPhotos: {},
-                                            lastMessage: 'Welcome to ${user?.agencyName ?? "Agency"} room!',
-                                            lastSenderName: user?.name ?? 'Director',
+                                            lastMessage: '',
+                                            lastSenderName: '',
                                             lastMessageTime: DateTime.now(),
                                           );
                                       _openConversation(target);

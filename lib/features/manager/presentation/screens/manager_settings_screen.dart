@@ -64,7 +64,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Join Key: ${user?.agencyJoinKey ?? "WARA-7742"}',
+                        'Join Key: ${user?.agencyJoinKey ?? "—"}',
                         style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -72,7 +72,8 @@ class ManagerSettingsScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () {
-                        final key = user?.agencyJoinKey ?? 'WARA-7742';
+                        final key = user?.agencyJoinKey ?? '';
+                        if (key.isEmpty) return;
                         Clipboard.setData(ClipboardData(text: key));
                         WaraToast.show(context, message: 'Copied Join Key "$key" to clipboard!', icon: Icons.copy_rounded);
                       },
@@ -130,7 +131,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                         final editorId = e['id'] as String? ?? e['uid'] as String? ?? '';
                         final editorName = e['name'] as String? ?? 'Editor';
                         final photoUrl = e['photoUrl'] as String?;
-                        final rating = (e['rating'] as num?)?.toDouble() ?? 5.0;
+                        final rating = (e['rating'] as num?)?.toDouble() ?? 0.0;
                         final ratingCount = (e['ratingCount'] as num?)?.toInt() ?? 0;
                         final completedProjects = (e['completedProjects'] as num?)?.toInt() ?? 0;
 
@@ -144,7 +145,6 @@ class ManagerSettingsScreen extends ConsumerWidget {
                           activeDays: List<String>.from(e['activeDays'] ?? ['Mon', 'Tue', 'Wed']),
                           portfolioLink: e['portfolioLink'] as String?,
                           email: e['email'] as String?,
-                          isDemo: false,
                           rating: rating,
                           ratingCount: ratingCount,
                           completedProjects: completedProjects,
@@ -194,7 +194,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                       children: [
                         Text('Agency OS Settings', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
                         Text(
-                          '${user?.agencyName ?? "Wara Media Group"} • Manager Controls',
+                          '${(user?.agencyName ?? '').isNotEmpty ? user!.agencyName : "Your agency"} • Manager Controls',
                           style: TextStyle(color: colors.muted, fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -228,7 +228,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(user?.name ?? 'Ishraq Rafi', style: TextStyle(color: colors.text, fontSize: 17, fontWeight: FontWeight.bold)),
+                          Text(user?.name ?? '', style: TextStyle(color: colors.text, fontSize: 17, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 2),
                           Text(user?.email ?? '', style: TextStyle(color: colors.muted, fontSize: 12)),
                           const SizedBox(height: 4),
@@ -320,7 +320,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                                 Text('AGENCY JOIN KEY', style: TextStyle(color: colors.muted, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.1)),
                                 const SizedBox(height: 2),
                                 Text(
-                                  user?.agencyJoinKey ?? 'WARA-7742',
+                                  user?.agencyJoinKey ?? '—',
                                   style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5),
                                 ),
                               ],
@@ -329,7 +329,8 @@ class ManagerSettingsScreen extends ConsumerWidget {
                           // Copy Button
                           InkWell(
                             onTap: () {
-                              final key = user?.agencyJoinKey ?? 'WARA-7742';
+                              final key = user?.agencyJoinKey ?? '';
+                              if (key.isEmpty) return;
                               Clipboard.setData(ClipboardData(text: key));
                               WaraToast.show(context, message: 'Copied Join Key "$key" to clipboard!', icon: Icons.copy_rounded);
                             },
@@ -503,7 +504,6 @@ class _EditorCard extends StatelessWidget {
   final List<String> activeDays;
   final String? portfolioLink;
   final String? email;
-  final bool isDemo;
   final double rating;
   final int ratingCount;
   final int completedProjects;
@@ -519,7 +519,6 @@ class _EditorCard extends StatelessWidget {
     required this.activeDays,
     this.portfolioLink,
     this.email,
-    required this.isDemo,
     required this.rating,
     required this.ratingCount,
     required this.completedProjects,

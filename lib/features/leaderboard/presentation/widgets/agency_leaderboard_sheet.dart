@@ -177,7 +177,7 @@ Future<void> showAgencyLeaderboardModal(BuildContext context, WidgetRef ref) {
                       final rank = editorIndex + 1;
                       final name = e['name'] as String? ?? 'Editor';
                       final photoUrl = e['photoUrl'] as String?;
-                      final rating = (e['rating'] as num?)?.toDouble() ?? 5.0;
+                      final rating = (e['rating'] as num?)?.toDouble() ?? 0.0;
                       final completedProjects = (e['completedProjects'] as num?)?.toInt() ?? 0;
                       final specialization = e['specialization'] as String? ?? 'Creative Editor';
                       final editorId = e['id'] as String? ?? e['uid'] as String? ?? '';
@@ -439,7 +439,7 @@ class AgencyLeaderboardCard extends ConsumerWidget {
           final e = editors[i];
           if (e['id'] == currentUser?.id || (currentUser?.email != null && e['email'] == currentUser!.email)) {
             myRank = i + 1;
-            myRating = (e['rating'] as num?)?.toDouble() ?? 5.0;
+            myRating = (e['rating'] as num?)?.toDouble() ?? 0.0;
             myCompleted = (e['completedProjects'] as num?)?.toInt() ?? 0;
             break;
           }
@@ -575,7 +575,7 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                     final ed = entry.value;
                     final r = idx + 1;
                     final n = ed['name'] as String? ?? 'Editor';
-                    final rat = (ed['rating'] as num?)?.toDouble() ?? 5.0;
+                    final rat = (ed['rating'] as num?)?.toDouble() ?? 0.0;
                     final cp = (ed['completedProjects'] as num?)?.toInt() ?? 0;
                     final isMe = ed['id'] == currentUser?.id;
 
