@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/motion/motion.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
@@ -258,6 +259,7 @@ Future<void> showRateEditorSheet({
                               }
                               Navigator.pop(sheetContext);
                               onApproved?.call();
+                              Celebration.sparkle(context);
                               WaraToast.show(
                                 context,
                                 message: 'Approved',
@@ -308,6 +310,7 @@ Future<void> showRateEditorSheet({
                             if (isProjectApproval && projectId != null) {
                               ref.read(projectsProvider.notifier).approveProject(projectId);
                               onApproved?.call();
+                              if (context.mounted) Celebration.sparkle(context);
                             }
 
                             if (context.mounted) {

@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+export 'celebration.dart';
 export 'claim_button.dart';
 export 'collapse_out.dart';
 export 'container_transform.dart';

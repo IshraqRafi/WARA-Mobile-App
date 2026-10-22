@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
@@ -672,6 +673,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 );
               } else {
                 ref.read(projectsProvider.notifier).approveProject(project.id);
+                Celebration.sparkle(context);
                 WaraToast.show(context, message: 'Approved', icon: Icons.check_circle_rounded);
               }
             },
@@ -941,6 +943,16 @@ class _CreateProjectScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
+  /// Confetti once per agency, ever (flag stored on device).
+  static Future<void> _celebrateFirst(BuildContext host, String? agencyId) async {
+    if (agencyId == null || agencyId.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final key = FirstProjectFlag.key(agencyId);
+    if (prefs.getBool(key) ?? false) return;
+    await prefs.setBool(key, true);
+    if (host.mounted) Celebration.confetti(host);
+  }
+
   final titleCtrl = TextEditingController();
   final clientCtrl = TextEditingController();
   final payoutCtrl = TextEditingController();
@@ -1056,6 +1068,7 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     if (titleCtrl.text.trim().isEmpty) return;
+                    final firstEver = ref.read(projectsLoadedProvider) && ref.read(projectsProvider).isEmpty;
                     final payout = double.tryParse(payoutCtrl.text) ?? 1400;
                     ref
                         .read(projectsProvider.notifier)
@@ -1069,7 +1082,9 @@ class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
                           skills: ['Video Editing', 'Color Grading', 'Sound Design'],
                         );
                     Navigator.pop(context);
-                    WaraToast.show(widget.toastContext ?? context, message: 'Project published', icon: Icons.rocket_launch_rounded);
+                    final host = widget.toastContext ?? context;
+                    WaraToast.show(host, message: 'Project published', icon: Icons.rocket_launch_rounded);
+                    if (firstEver) _celebrateFirst(host, ref.read(authProvider).user?.agencyId);
                   },
                   icon: Icon(Icons.send_rounded, size: 16, color: colors.onPrimary),
                   label: Text(

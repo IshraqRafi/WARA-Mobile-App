@@ -124,6 +124,7 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                                     );
                                   } else {
                                     ref.read(projectsProvider.notifier).approveProject(item.id);
+                                    Celebration.sparkle(context);
                                   }
                                 },
                                 style: waraCompactButton(),
