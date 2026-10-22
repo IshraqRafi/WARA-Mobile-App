@@ -78,11 +78,16 @@ class WaraSectionCard extends StatelessWidget {
             subtitle: subtitle,
             padding: const EdgeInsets.only(top: AppSpacing.xl, bottom: AppSpacing.sm, left: AppSpacing.xs),
           ),
-        Container(
-          padding: contentPadding,
-          decoration: BoxDecoration(color: c.card, borderRadius: AppRadius.brLg, border: Border.all(color: c.border)),
+        // Material (not a decorated Container) so ListTile ink paints on
+        // the card itself and is clipped to its rounded shape.
+        Material(
+          color: c.card,
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.brLg, side: BorderSide(color: c.border)),
           clipBehavior: Clip.antiAlias,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: items),
+          child: Padding(
+            padding: contentPadding,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: items),
+          ),
         ),
       ],
     );

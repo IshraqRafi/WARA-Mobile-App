@@ -513,6 +513,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     for (int i = 0; i < activeEditors.length; i++) ...[
                       if (i > 0) Divider(color: colors.border),
                       ListTile(
+                        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
                         onTap: () {
                           final eId = activeEditors[i]['uid'] as String;
                           final eName = activeEditors[i]['name'] as String? ?? 'Editor';
