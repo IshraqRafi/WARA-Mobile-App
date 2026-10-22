@@ -373,12 +373,33 @@ final projectCountsProvider = Provider<ProjectCounts>((ref) {
   return (open: open, claimed: claimed, submitted: submitted, overdue: overdue);
 });
 
-/// Projects with an editor attached, plus the approved payout total.
-final workspaceProjectsProvider = Provider<({List<ProjectItem> items, int earned})>((ref) {
-  final items = ref.watch(projectsProvider).where((p) => p.claimedByEditorId != null).toList(growable: false);
+/// The signed-in user's id (null when signed out).
+final currentUserIdProvider = Provider<String?>((ref) => ref.watch(authProvider.select((s) => s.user?.id)));
+
+/// True when [p] is claimed by [uid]. A null/empty uid owns nothing.
+bool isClaimedBy(ProjectItem p, String? uid) =>
+    uid != null && uid.isNotEmpty && p.claimedByEditorId == uid;
+
+/// The editor's own projects plus their approved payout total.
+({List<ProjectItem> items, int earned}) workspaceFor(Iterable<ProjectItem> projects, String? uid) {
+  final items = projects.where((p) => isClaimedBy(p, uid)).toList(growable: false);
   final earned = items
       .where((p) => p.status == ProjectStatus.approved)
       .fold<double>(0, (sum, p) => sum + p.editorPayout)
       .toInt();
   return (items: items, earned: earned);
+}
+
+/// Number of in-progress (claimed) projects owned by [uid]: the Workspace badge.
+int activeClaimCount(Iterable<ProjectItem> projects, String? uid) =>
+    projects.where((p) => isClaimedBy(p, uid) && p.status == ProjectStatus.claimed).length;
+
+/// Projects claimed by the signed-in editor, plus the approved payout total.
+final workspaceProjectsProvider = Provider<({List<ProjectItem> items, int earned})>((ref) {
+  return workspaceFor(ref.watch(projectsProvider), ref.watch(currentUserIdProvider));
+});
+
+/// Workspace tab badge: the signed-in editor's active claims.
+final workspaceBadgeProvider = Provider<int>((ref) {
+  return activeClaimCount(ref.watch(projectsProvider), ref.watch(currentUserIdProvider));
 });

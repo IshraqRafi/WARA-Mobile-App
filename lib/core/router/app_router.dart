@@ -139,8 +139,7 @@ class _EditorShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
-    final active = ref.watch(projectsProvider.select(
-        (list) => list.where((p) => p.claimedByEditorId != null && p.status == ProjectStatus.claimed).length));
+    final active = ref.watch(workspaceBadgeProvider);
     return Scaffold(
       backgroundColor: colors.bg,
       body: shell,
