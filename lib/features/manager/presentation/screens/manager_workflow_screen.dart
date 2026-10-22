@@ -17,6 +17,7 @@ import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../widgets/rate_editor_dialog.dart';
+import '../widgets/revision_request_sheet.dart';
 
 /// Index of the active stat filter on the workflow screen (null = all).
 final _workflowFilterProvider = StateProvider.autoDispose<int?>((ref) => null);
@@ -645,12 +646,14 @@ class ManagerWorkflowScreen extends ConsumerWidget {
       case ProjectStatus.submitted:
         return [
           OutlinedButton(
-            onPressed: () {
-              ref
-                  .read(projectsProvider.notifier)
-                  .requestRevision(project.id, 'Please adjust sound levels and speed ramp transition.');
-              WaraToast.show(context, message: 'Revision requested', icon: Icons.edit_note_rounded);
-            },
+            onPressed: () => showRevisionRequestSheet(
+              context,
+              projectTitle: project.title,
+              onSend: (notes) {
+                ref.read(projectsProvider.notifier).requestRevision(project.id, notes);
+                WaraToast.show(context, message: 'Revision requested', icon: Icons.edit_note_rounded);
+              },
+            ),
             style: waraCompactButton(),
             child: const Text('Revision'),
           ),
