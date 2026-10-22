@@ -49,7 +49,7 @@ class _PressableState extends State<Pressable> {
         _set(false);
       },
       child: AnimatedScale(
-        scale: _down ? widget.scale : 1,
+        scale: _down && !Motion.reduced(context) ? widget.scale : 1,
         duration: Motion.of(context, Motion.fast),
         curve: Motion.curve,
         child: widget.child,

@@ -26,6 +26,7 @@ class StaggerIn extends StatefulWidget {
 
 class _StaggerInState extends State<StaggerIn> with SingleTickerProviderStateMixin {
   AnimationController? _c;
+  double _delayFrac = 0;
 
   @override
   void initState() {
@@ -34,11 +35,19 @@ class _StaggerInState extends State<StaggerIn> with SingleTickerProviderStateMix
     final first = StaggerIn._firstSeen.putIfAbsent(widget.screen, () => now);
     final play = now.difference(first) < StaggerIn._window && widget.index < StaggerIn._maxStaggered;
     if (play) {
-      _c = AnimationController(vsync: this, duration: Motion.medium);
-      Future<void>.delayed(StaggerIn._step * widget.index, () {
-        if (mounted) _c?.forward();
-      });
+      // Delay is folded into the controller (no timers): the first
+      // [_delayFrac] of the run is idle, then the item fades and rises.
+      final delay = StaggerIn._step * widget.index;
+      final total = Motion.medium + delay;
+      _delayFrac = delay.inMicroseconds / total.inMicroseconds;
+      _c = AnimationController(vsync: this, duration: total)..forward();
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (Motion.reduced(context)) _c?.value = 1; // jump to end, stops ticking
   }
 
   @override
@@ -51,7 +60,7 @@ class _StaggerInState extends State<StaggerIn> with SingleTickerProviderStateMix
   Widget build(BuildContext context) {
     final c = _c;
     if (c == null || Motion.reduced(context)) return widget.child;
-    final a = CurvedAnimation(parent: c, curve: Motion.curve);
+    final a = CurvedAnimation(parent: c, curve: Interval(_delayFrac, 1, curve: Motion.curve));
     return FadeTransition(
       opacity: a,
       child: SlideTransition(
