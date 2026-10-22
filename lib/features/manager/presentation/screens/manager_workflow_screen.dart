@@ -4,7 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
+import '../../../../shared/widgets/wara_banner.dart';
+import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_logo.dart';
+import '../../../../shared/widgets/wara_project_card.dart';
+import '../../../../shared/widgets/wara_section_header.dart';
+import '../../../../shared/widgets/wara_stat_card.dart';
+import '../../../../shared/widgets/wara_status_chip.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
@@ -44,7 +50,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: colors.isDark ? Colors.black : const Color(0xFFFEE2E2),
+                  color: colors.errorTint,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: colors.error.withValues(alpha: 0.6)),
                 ),
@@ -597,13 +603,13 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: colors.isDark ? Colors.green.withValues(alpha: 0.15) : const Color(0xFFDCFCE7),
+                                color: colors.successTint,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 'Online',
                                 style: TextStyle(
-                                  color: colors.isDark ? Colors.greenAccent : const Color(0xFF15803D),
+                                  color: colors.success,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -700,9 +706,81 @@ class ManagerWorkflowScreen extends ConsumerWidget {
     );
   }
 
+  List<Widget> _cardActions(BuildContext context, WidgetRef ref, ProjectItem project) {
+    if (project.isOverdue) {
+      return [
+        ElevatedButton.icon(
+          onPressed: () => _showIncreasePayoutModal(context, ref, project),
+          style: waraCompactButton(),
+          icon: const Icon(Icons.bolt_rounded, size: 18),
+          label: const Text('Re-list & increase payout'),
+        ),
+      ];
+    }
+    switch (project.status) {
+      case ProjectStatus.submitted:
+        return [
+          OutlinedButton(
+            onPressed: () {
+              ref.read(projectsProvider.notifier).requestRevision(project.id, 'Please adjust sound levels and speed ramp transition.');
+              WaraToast.show(
+                context,
+                message: '📝 Revision request sent back to Editor.',
+                icon: Icons.edit_note_rounded,
+              );
+            },
+            style: waraCompactButton(),
+            child: const Text('Revision'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (project.claimedByEditorId != null) {
+                showRateEditorSheet(
+                  context: context,
+                  ref: ref,
+                  editorId: project.claimedByEditorId!,
+                  editorName: project.claimedByEditorName ?? 'Editor',
+                  projectId: project.id,
+                  projectTitle: project.title,
+                  isProjectApproval: true,
+                );
+              } else {
+                ref.read(projectsProvider.notifier).approveProject(project.id);
+                WaraToast.show(
+                  context,
+                  message: '✅ Deliverable validated & payout approved!',
+                  icon: Icons.check_circle_rounded,
+                );
+              }
+            },
+            style: waraCompactButton(),
+            child: const Text('Approve & pay'),
+          ),
+        ];
+      case ProjectStatus.open:
+        return [
+          OutlinedButton.icon(
+            onPressed: () => _showEditOfferModal(context, ref, project),
+            style: waraCompactButton(),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Edit'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => _showAssignModal(context, ref, project),
+            style: waraCompactButton(),
+            icon: const Icon(Icons.person_add_rounded, size: 18),
+            label: const Text('Assign'),
+          ),
+        ];
+      default:
+        return const [];
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final text = Theme.of(context).textTheme;
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
     if (projectsError != null && projects.isEmpty) {
@@ -718,336 +796,107 @@ class ManagerWorkflowScreen extends ConsumerWidget {
       );
     }
 
+    final margin = AppSpacing.screenMargin(context);
+    final openCount = projects.where((p) => p.status == ProjectStatus.open).length;
+    final claimedCount = projects.where((p) => p.status == ProjectStatus.claimed).length;
+    final submittedCount = projects.where((p) => p.status == ProjectStatus.submitted).length;
+    final overdueCount = projects.where((p) => p.isOverdue).length;
+
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(margin, AppSpacing.lg, margin, 0),
+              sliver: SliverList.list(
                 children: [
                   // Header with logo
                   Row(
                     children: [
                       const WaraLogo(),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('wara.io', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: colors.surface,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: colors.border),
-                              ),
-                              child: Text('Manager Control', style: TextStyle(color: colors.primary, fontSize: 10, fontWeight: FontWeight.w600)),
-                            ),
+                            Text('wara.io', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+                            Text('Manager workflow', style: text.bodySmall),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       const NotificationBellButton(),
                     ],
                   ),
-                  const SizedBox(height: 20),
-
-                  // Summary Stats
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Open & Pool', style: TextStyle(color: colors.muted, fontSize: 11)),
-                              const SizedBox(height: 4),
-                              Text('${projects.where((p) => p.status == ProjectStatus.open).length}', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
+                  const SizedBox(height: AppSpacing.xl),
+                  // Summary stats
+                  LayoutBuilder(builder: (context, box) {
+                    final cards = [
+                      WaraStatCard(icon: Icons.inbox_rounded, value: '$openCount', label: 'Open', tone: WaraTone.info),
+                      WaraStatCard(icon: Icons.movie_edit, value: '$claimedCount', label: 'In production', tone: WaraTone.warning),
+                      WaraStatCard(icon: Icons.fact_check_rounded, value: '$submittedCount', label: 'To review', tone: WaraTone.success),
+                      WaraStatCard(
+                        icon: Icons.warning_amber_rounded,
+                        value: '$overdueCount',
+                        label: 'Overdue',
+                        tone: overdueCount > 0 ? WaraTone.error : WaraTone.neutral,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('In Production', style: TextStyle(color: colors.muted, fontSize: 11)),
-                              const SizedBox(height: 4),
-                              Text('${projects.where((p) => p.status == ProjectStatus.claimed).length}', style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Submitted', style: TextStyle(color: colors.muted, fontSize: 11)),
-                              const SizedBox(height: 4),
-                              Text('${projects.where((p) => p.status == ProjectStatus.submitted).length}', style: TextStyle(color: colors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  Text(
-                    'All agency projects',
-                    style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
+                    ];
+                    final perRow = box.maxWidth >= 560 ? 4 : 2;
+                    final w = (box.maxWidth - AppSpacing.md * (perRow - 1)) / perRow;
+                    return Wrap(
+                      spacing: AppSpacing.md,
+                      runSpacing: AppSpacing.md,
+                      children: [for (final c in cards) SizedBox(width: w, child: c)],
+                    );
+                  }),
+                  WaraSectionHeader(title: 'All projects', subtitle: '${projects.length} total'),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-
-            // All Projects Feed
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 88),
-                itemCount: projects.length,
+            if (projects.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: WaraEmptyState(
+                  icon: Icons.post_add_rounded,
+                  title: 'No projects yet',
+                  message: 'Post your first project offer and your editors will see it in their marketplace.',
+                  actionLabel: 'New project',
+                  onAction: () => _showCreateOfferModal(context, ref),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(margin, 0, margin, AppSpacing.bottomInset(context, extra: 88)),
+                sliver: SliverList.builder(
+                  itemCount: projects.length,
                   itemBuilder: (context, index) {
                     final project = projects[index];
-                    return GestureDetector(
+                    return WaraProjectCard(
+                      project: project,
+                      showAssignee: true,
                       onTap: () => _showEditOfferModal(context, ref, project),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: colors.card,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: project.isOverdue ? colors.error.withValues(alpha: 0.6) : colors.border,
-                            width: project.isOverdue ? 1.5 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Overdue Red Warning Banner
-                            if (project.isOverdue) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: colors.isDark ? Colors.black : const Color(0xFFFEE2E2),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: colors.error, width: 1.5),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.warning_amber_rounded, color: colors.error, size: 16),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        '⚠️ OVERDUE - Editor Failed to Deliver Before Deadline',
-                                        style: TextStyle(color: colors.error, fontSize: 11, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                                  child: Text(project.clientName, style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600)),
-                                ),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                                    child: Text(
-                                      project.claimedByEditorName != null ? 'Assigned: ${project.claimedByEditorName}' : 'Unassigned Pool',
-                                      style: TextStyle(color: project.claimedByEditorName != null ? colors.text : colors.muted, fontSize: 11, fontWeight: FontWeight.bold),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-
-                            Text(project.title, style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text(project.description, style: TextStyle(color: colors.muted, fontSize: 12, height: 1.4)),
-                            const SizedBox(height: 12),
-
-                            if (project.submissionLink != null) ...[
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: colors.border)),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(Icons.video_library_rounded, color: colors.primary, size: 16),
-                                        const SizedBox(width: 6),
-                                        Text('Editor Submission Link:', style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(project.submissionLink!, style: TextStyle(color: colors.muted, fontSize: 11), overflow: TextOverflow.ellipsis),
-                                    if (project.submissionNote != null) ...[
-                                      const SizedBox(height: 4),
-                                      Text('Note: ${project.submissionNote!}', style: TextStyle(color: colors.text, fontSize: 11)),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-
-                            Wrap(
-                              alignment: WrapAlignment.spaceBetween,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              spacing: 12,
-                              runSpacing: 10,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Deadline: ${project.deadlineStr}', style: TextStyle(color: colors.muted, fontSize: 11)),
-                                    Text('Editor Payout: ৳${project.editorPayout.toInt()}', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-
-                                if (project.isOverdue)
-                                  ElevatedButton.icon(
-                                    onPressed: () => _showIncreasePayoutModal(context, ref, project),
-                                    icon: Icon(Icons.bolt_rounded, size: 14, color: colors.isDark ? Colors.black : Colors.white),
-                                    label: Text('Re-list & Increase Payout', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white)),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: colors.primary,
-                                      foregroundColor: colors.isDark ? Colors.black : Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    ),
-                                  )
-                                else if (project.status == ProjectStatus.submitted)
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      OutlinedButton(
-                                        onPressed: () {
-                                          ref.read(projectsProvider.notifier).requestRevision(project.id, 'Please adjust sound levels and speed ramp transition.');
-                                          WaraToast.show(
-                                            context,
-                                            message: '📝 Revision request sent back to Editor.',
-                                            icon: Icons.edit_note_rounded,
-                                          );
-                                        },
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          side: BorderSide(color: colors.border),
-                                          backgroundColor: colors.surface,
-                                        ),
-                                        child: Text('Revision', style: TextStyle(color: colors.text, fontSize: 11)),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          if (project.claimedByEditorId != null) {
-                                            showRateEditorSheet(
-                                              context: context,
-                                              ref: ref,
-                                              editorId: project.claimedByEditorId!,
-                                              editorName: project.claimedByEditorName ?? 'Editor',
-                                              projectId: project.id,
-                                              projectTitle: project.title,
-                                              isProjectApproval: true,
-                                            );
-                                          } else {
-                                            ref.read(projectsProvider.notifier).approveProject(project.id);
-                                            WaraToast.show(
-                                              context,
-                                              message: '✅ Deliverable validated & payout approved!',
-                                              icon: Icons.check_circle_rounded,
-                                            );
-                                          }
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: colors.primary,
-                                          foregroundColor: colors.isDark ? Colors.black : Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        ),
-                                        child: Text('Approve & Pay', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ],
-                                  )
-                                else if (project.status == ProjectStatus.open)
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ElevatedButton.icon(
-                                        onPressed: () => _showEditOfferModal(context, ref, project),
-                                        icon: Icon(Icons.edit_outlined, size: 14, color: colors.primary),
-                                        label: Text('Edit Offer', style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.bold)),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: colors.isDark ? Colors.black : colors.surface,
-                                          foregroundColor: colors.primary,
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          side: BorderSide(color: colors.border.withValues(alpha: 0.8), width: 1.2),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          elevation: 0,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      ElevatedButton.icon(
-                                        onPressed: () => _showAssignModal(context, ref, project),
-                                        icon: Icon(Icons.person_add_rounded, size: 14, color: colors.isDark ? Colors.black : Colors.white),
-                                        label: Text('Assign', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: colors.primary,
-                                          foregroundColor: colors.isDark ? Colors.black : Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          elevation: 0,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                      notice: project.isOverdue
+                          ? const WaraBanner(message: 'Overdue: the editor didn\'t deliver before the deadline.')
+                          : null,
+                      actions: _cardActions(context, ref, project),
                     );
                   },
                 ),
               ),
-            ],
-          ),
+          ],
         ),
-      floatingActionButton: FloatingActionButton(
+      ),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateOfferModal(context, ref),
         backgroundColor: colors.primary,
-        foregroundColor: colors.isDark ? Colors.black : Colors.white,
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.add_rounded, size: 28),
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        elevation: 2,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brLg),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('New project'),
       ),
     );
   }
