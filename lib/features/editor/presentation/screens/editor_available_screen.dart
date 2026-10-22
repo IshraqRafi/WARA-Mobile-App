@@ -3,6 +3,7 @@ import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_project_card.dart';
@@ -13,138 +14,65 @@ import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 
-class EditorAvailableScreen extends ConsumerWidget {
+class EditorAvailableScreen extends ConsumerStatefulWidget {
   const EditorAvailableScreen({super.key});
 
-  void _showProjectDetailsModal(BuildContext context, WidgetRef ref, ProjectItem project, UserSession? user) {
-    final colors = context.colors;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: colors.card,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.muted.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(2))),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                    child: Text(project.clientName, style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.timer_outlined, color: colors.muted, size: 12),
-                        const SizedBox(width: 4),
-                        Text(project.deadlineStr, style: TextStyle(color: colors.muted, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(project.title, style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
+  @override
+  ConsumerState<EditorAvailableScreen> createState() => _EditorAvailableScreenState();
+}
 
-              // Payout Banner
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colors.border),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Guaranteed Payout upon Approval',
-                        style: TextStyle(color: colors.muted, fontSize: 12),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('৳${project.editorPayout.toInt()}', style: TextStyle(color: colors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
+  /// Claimed offers kept on screen until their exit animation finishes.
+  final Set<String> _settling = {};
+  final Set<String> _leaving = {};
 
-              Text('PROJECT BRIEF & DELIVERABLE SPECIFICATIONS', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
-              const SizedBox(height: 8),
-              Text(project.description, style: TextStyle(color: colors.text, fontSize: 13, height: 1.5)),
-              const SizedBox(height: 20),
-
-              Text('REQUIRED CREATIVE SKILLS', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: project.requiredSkills.map((skill) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: colors.border)),
-                    child: Text(skill, style: TextStyle(color: colors.text, fontSize: 12)),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 28),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    ref.read(projectsProvider.notifier).claimProject(
-                          project.id,
-                          user?.id ?? 'editor_1',
-                          '${user?.name ?? ''} (You)',
-                        );
-                    Navigator.pop(ctx);
-                    WaraToast.show(
-                      context,
-                      message: 'Project claimed',
-                      icon: Icons.check_circle_rounded,
-                    );
-                  },
-                  icon: Icon(Icons.touch_app_rounded, size: 18, color: colors.onPrimary),
-                  label: Text('Accept Offer & Claim Project', style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.primary,
-                    foregroundColor: colors.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _claim(ProjectItem project, UserSession? user) {
+    setState(() => _settling.add(project.id));
+    return ref
+        .read(projectsProvider.notifier)
+        .claimProject(project.id, user?.id ?? 'editor_1', '${user?.name ?? ''} (You)')
+        .catchError((Object e) {
+      if (mounted) setState(() => _settling.remove(project.id));
+      throw e;
+    });
   }
 
+  void _showClaimError(Object e) {
+    WaraToast.show(context, message: friendlyErrorMessage(e), icon: Icons.error_outline_rounded);
+  }
+
+  void _hide(ProjectItem project) {
+    final hidden = ref.read(hiddenOffersProvider.notifier);
+    hidden.state = {...hidden.state, project.id};
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(
+      content: const Text('Offer hidden'),
+      duration: const Duration(seconds: 4),
+      action: SnackBarAction(
+        label: 'Undo',
+        onPressed: () => hidden.state = {...hidden.state}..remove(project.id),
+      ),
+    ));
+  }
+
+  Widget _swipeBg(AppColors c, {required bool claim}) => Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        alignment: claim ? Alignment.centerLeft : Alignment.centerRight,
+        decoration: BoxDecoration(color: claim ? c.successTint : c.surface, borderRadius: AppRadius.brLg),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(claim ? Icons.touch_app_rounded : Icons.visibility_off_outlined, size: 20, color: claim ? c.success : c.muted),
+            const SizedBox(width: AppSpacing.sm),
+            Text(claim ? 'Claim' : 'Hide', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: claim ? c.success : c.muted)),
+          ],
+        ),
+      );
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final colors = context.colors;
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
@@ -163,7 +91,11 @@ class EditorAvailableScreen extends ConsumerWidget {
     final user = ref.watch(authProvider).user;
 
     // Filter only open offers in the marketplace
-    final availableProjects = projects.where((p) => p.status == ProjectStatus.open).toList();
+    final hidden = ref.watch(hiddenOffersProvider);
+    final loaded = ref.watch(projectsLoadedProvider);
+    final availableProjects = projects
+        .where((p) => (p.status == ProjectStatus.open || _settling.contains(p.id)) && !hidden.contains(p.id))
+        .toList();
 
     return Scaffold(
       backgroundColor: colors.bg,
@@ -231,7 +163,9 @@ class EditorAvailableScreen extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: AppSpacing.md),
               ),
               Expanded(
-                child: availableProjects.isEmpty
+                child: !loaded && availableProjects.isEmpty
+                    ? const SkeletonList(item: ProjectCardSkeleton())
+                    : availableProjects.isEmpty
                     ? const WaraEmptyState(
                         icon: Icons.check_circle_outline_rounded,
                         title: 'No open offers',
@@ -241,31 +175,60 @@ class EditorAvailableScreen extends ConsumerWidget {
                         itemCount: availableProjects.length,
                         itemBuilder: (context, index) {
                           final project = availableProjects[index];
-                          return WaraProjectCard(
+                          final card = WaraProjectCard(
                             project: project,
+                            listId: 'marketplace',
                             showStatus: false,
                             showSkills: true,
                             payoutLabel: 'Offer payout',
-                            onTap: () => _showProjectDetailsModal(context, ref, project, user),
                             actions: [
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  ref.read(projectsProvider.notifier).claimProject(
-                                        project.id,
-                                        user?.id ?? 'editor_1',
-                                        '${user?.name ?? ''} (You)',
-                                      );
-                                  WaraToast.show(
-                                    context,
-                                    message: 'Project claimed',
-                                    icon: Icons.check_circle_rounded,
-                                  );
-                                },
-                                style: waraCompactButton(),
-                                icon: const Icon(Icons.touch_app_rounded, size: 18),
-                                label: const Text('Accept offer'),
+                              ClaimButton(
+                                key: ValueKey('claim_${project.id}'),
+                                label: 'Claim',
+                                icon: Icons.touch_app_rounded,
+                                onPressed: () => _claim(project, user),
+                                onError: _showClaimError,
+                                onCompleted: () => setState(() => _leaving.add(project.id)),
                               ),
                             ],
+                          );
+                          return StaggerIn(
+                            key: ValueKey(project.id),
+                            screen: 'marketplace',
+                            index: index,
+                            child: CollapseOut(
+                              out: _leaving.contains(project.id),
+                              onEnd: () => setState(() {
+                                _leaving.remove(project.id);
+                                _settling.remove(project.id);
+                              }),
+                              child: _settling.contains(project.id)
+                                  ? card
+                                  : Dismissible(
+                                      key: ValueKey('swipe_${project.id}'),
+                                      background: _swipeBg(colors, claim: true),
+                                      secondaryBackground: _swipeBg(colors, claim: false),
+                                      confirmDismiss: (dir) async {
+                                        if (dir == DismissDirection.endToStart) return true;
+                                        try {
+                                          await _claim(project, user);
+                                          return true;
+                                        } catch (e) {
+                                          _showClaimError(e);
+                                          return false;
+                                        }
+                                      },
+                                      onDismissed: (dir) {
+                                        if (dir == DismissDirection.endToStart) {
+                                          _hide(project);
+                                        } else {
+                                          setState(() => _settling.remove(project.id));
+                                          WaraToast.show(context, message: 'Claimed', icon: Icons.check_circle_rounded);
+                                        }
+                                      },
+                                      child: card,
+                                    ),
+                            ),
                           );
                         },
                       ),

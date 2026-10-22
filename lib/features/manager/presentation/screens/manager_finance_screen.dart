@@ -248,13 +248,11 @@ class ManagerFinanceScreen extends ConsumerWidget {
                     for (final p in projects)
                       WaraProjectCard(
                         project: p,
+                        listId: 'finance',
                         showAssignee: true,
-                        descriptionMaxLines: 1,
                         amount: p.clientBudget,
                         payoutLabel: 'Client value',
-                        actions: [
-                          Text('Editor ৳${p.editorPayout.toInt()}', style: Theme.of(context).textTheme.bodySmall),
-                        ],
+                        notice: Text('Editor ৳${p.editorPayout.toInt()}', style: Theme.of(context).textTheme.bodySmall),
                       ),
                   ],
                 ),

@@ -879,8 +879,8 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     final project = visible[index];
                     return WaraProjectCard(
                       project: project,
+                      listId: 'workflow',
                       showAssignee: true,
-                      onTap: () => _showEditOfferModal(context, ref, project),
                       actions: _cardActions(context, ref, project),
                     );
                   },

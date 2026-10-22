@@ -233,8 +233,8 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                           final project = myProjects[index];
                           return WaraProjectCard(
                             project: project,
+                            listId: 'workspace',
                             payoutLabel: 'Payout',
-                            descriptionMaxLines: 3,
                             actions: [
                               if (project.status == ProjectStatus.claimed)
                                 Tooltip(

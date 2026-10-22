@@ -12,13 +12,24 @@ final firestoreServiceProvider = Provider<FirestoreService>((ref) {
 /// Last load error from the projects stream (null when healthy).
 final projectsErrorProvider = StateProvider<Object?>((ref) => null);
 
+/// True once the projects stream has delivered its first snapshot
+/// (drives the skeleton loaders).
+final projectsLoadedProvider = StateProvider<bool>((ref) => false);
+
+/// Marketplace offers the editor swiped away this session (local only).
+final hiddenOffersProvider = StateProvider<Set<String>>((ref) => const {});
+
+/// Id of the expanded card per list (one open card per list).
+final expandedCardProvider = StateProvider.family<String?, String>((ref, listId) => null);
+
 class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   final FirestoreService _firestoreService;
   final String? _agencyId;
   final void Function(Object? error)? _onError;
+  final VoidCallback? _onLoaded;
   StreamSubscription<List<ProjectItem>>? _subscription;
 
-  ProjectsNotifier(this._firestoreService, [this._agencyId, this._onError])
+  ProjectsNotifier(this._firestoreService, [this._agencyId, this._onError, this._onLoaded])
       : super(const []) {
     _subscribe();
   }
@@ -41,6 +52,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     _subscription = _firestoreService.streamProjects(agencyId: agencyId).listen(
       (projects) {
         _onError?.call(null);
+        _onLoaded?.call();
         state = projects;
       },
       onError: (Object err) {
@@ -136,8 +148,12 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     return true;
   }
 
-  void claimProject(String projectId, String editorId, String editorName) {
+  /// Claims an open project. The local state updates optimistically; the
+  /// returned future completes when Firestore accepts the write, and on
+  /// failure the local change is rolled back and the error rethrown.
+  Future<void> claimProject(String projectId, String editorId, String editorName) async {
     final now = DateTime.now();
+    final previous = state.where((p) => p.id == projectId).firstOrNull;
 
     // Optimistic update
     state = [
@@ -154,7 +170,14 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     ];
 
     // Cloud Firestore write
-    _firestoreService.claimProject(projectId, editorId, editorName);
+    try {
+      await _firestoreService.claimProject(projectId, editorId, editorName);
+    } catch (_) {
+      if (previous != null) {
+        state = [for (final item in state) if (item.id == projectId) previous else item];
+      }
+      rethrow;
+    }
   }
 
   bool returnProject(String projectId) {
@@ -306,6 +329,11 @@ final projectsProvider = StateNotifierProvider<ProjectsNotifier, List<ProjectIte
     (err) {
       if (ref.read(projectsErrorProvider) != err) {
         ref.read(projectsErrorProvider.notifier).state = err;
+      }
+    },
+    () {
+      if (!ref.read(projectsLoadedProvider)) {
+        ref.read(projectsLoadedProvider.notifier).state = true;
       }
     },
   );

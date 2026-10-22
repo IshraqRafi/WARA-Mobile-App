@@ -3,11 +3,9 @@ import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/widgets/wara_banner.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_project_card.dart';
-import '../../../../shared/widgets/wara_status_chip.dart';
 import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../widgets/rate_editor_dialog.dart';
@@ -111,12 +109,10 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                         final item = pendingProjects[index];
                         return WaraProjectCard(
                           project: item,
+                          listId: 'pending',
                           showAssignee: true,
                           amount: item.clientBudget,
                           payoutLabel: 'Client value',
-                          notice: item.deadlineHoursLeft <= 12 && item.status != ProjectStatus.submitted
-                              ? WaraBanner(tone: WaraTone.warning, icon: Icons.timer_outlined, message: 'Due soon: ${item.deadlineStr}')
-                              : null,
                           actions: [
                             if (item.status == ProjectStatus.submitted)
                               ElevatedButton.icon(
