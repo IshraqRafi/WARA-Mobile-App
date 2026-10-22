@@ -10,6 +10,7 @@ import '../../../auth/domain/auth_provider.dart';
 import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../widgets/editor_ledger.dart';
+import 'review_queue_screen.dart';
 import '../../../payments/presentation/bkash_pay_screen.dart';
 import '../../../payments/presentation/pay_flow.dart';
 
@@ -74,6 +75,7 @@ class ManagerPendingScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.md),
               UrgencyBar(byUrgency: ledger.byUrgency),
+              const ReviewQueueButton(),
               const SizedBox(height: AppSpacing.xl),
               if (ledger.editors.isEmpty)
                 const WaraEmptyState(compact: true, icon: Icons.check_circle_outline_rounded, title: 'All paid up')

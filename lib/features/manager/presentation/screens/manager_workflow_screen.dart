@@ -5,6 +5,7 @@ import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../payments/presentation/bkash_pay_screen.dart';
 import '../../../payments/presentation/pay_flow.dart';
+import 'review_queue_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -754,6 +755,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     selected: filter,
                     onSelect: (i) => ref.read(_workflowFilterProvider.notifier).state = i,
                   ),
+                  const ReviewQueueButton(),
                   WaraSectionHeader(
                     title: 'Projects',
                     subtitle: filter == null ? null : '${visible.length} of ${projects.length}',
