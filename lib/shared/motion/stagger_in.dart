@@ -26,7 +26,8 @@ class StaggerIn extends StatefulWidget {
 
 class _StaggerInState extends State<StaggerIn> with SingleTickerProviderStateMixin {
   AnimationController? _c;
-  double _delayFrac = 0;
+  Animation<double>? _fade;
+  Animation<Offset>? _slide;
 
   @override
   void initState() {
@@ -39,8 +40,12 @@ class _StaggerInState extends State<StaggerIn> with SingleTickerProviderStateMix
       // [_delayFrac] of the run is idle, then the item fades and rises.
       final delay = StaggerIn._step * widget.index;
       final total = Motion.medium + delay;
-      _delayFrac = delay.inMicroseconds / total.inMicroseconds;
-      _c = AnimationController(vsync: this, duration: total)..forward();
+      final delayFrac = delay.inMicroseconds / total.inMicroseconds;
+      final c = _c = AnimationController(vsync: this, duration: total)..forward();
+      // Built once here, not per build (a CurvedAnimation made in build
+      // adds a listener to the controller on every rebuild).
+      _fade = CurvedAnimation(parent: c, curve: Interval(delayFrac, 1, curve: Motion.curve));
+      _slide = Tween(begin: const Offset(0, 0.08), end: Offset.zero).animate(_fade!);
     }
   }
 
@@ -58,13 +63,12 @@ class _StaggerInState extends State<StaggerIn> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final c = _c;
-    if (c == null || Motion.reduced(context)) return widget.child;
-    final a = CurvedAnimation(parent: c, curve: Interval(_delayFrac, 1, curve: Motion.curve));
+    final fade = _fade;
+    if (fade == null || Motion.reduced(context)) return widget.child;
     return FadeTransition(
-      opacity: a,
+      opacity: fade,
       child: SlideTransition(
-        position: Tween(begin: const Offset(0, 0.08), end: Offset.zero).animate(a),
+        position: _slide!,
         child: widget.child,
       ),
     );
