@@ -4,6 +4,7 @@ export 'claim_button.dart';
 export 'collapse_out.dart';
 export 'glow_pulse.dart';
 export 'haptics.dart';
+export 'launch_reveal.dart';
 export 'page_transitions.dart';
 export 'pop_badge.dart';
 export 'pressable.dart';

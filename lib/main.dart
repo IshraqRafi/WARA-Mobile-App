@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'shared/motion/launch_reveal.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,7 +44,7 @@ class WaraIoApp extends ConsumerWidget {
           data: isDark ? AppTheme.dark : AppTheme.light,
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOutCubic,
-          child: child ?? const SizedBox.shrink(),
+          child: LaunchReveal(child: child ?? const SizedBox.shrink()),
         );
       },
     );
