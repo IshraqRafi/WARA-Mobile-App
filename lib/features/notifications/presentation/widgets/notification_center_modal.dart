@@ -1,348 +1,216 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/motion/motion.dart';
+import '../../../auth/domain/auth_provider.dart';
+import '../../../projects/domain/project_provider.dart';
 import '../../domain/notification_models.dart';
 import '../../domain/notification_provider.dart';
-import '../../../chat/domain/chat_models.dart';
-import '../../../chat/domain/chat_provider.dart';
-import '../../../chat/presentation/screens/chat_room_screen.dart';
 
 void showNotificationCenter(BuildContext context) {
-  final colors = context.colors;
   showModalBottomSheet(
     context: context,
-    backgroundColor: colors.card,
+    backgroundColor: context.colors.card,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (ctx) => const _NotificationCenterSheet(),
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
+    builder: (_) => const NotificationSheet(),
   );
 }
 
-class NotificationBellButton extends ConsumerWidget {
+/// Bell with unread badge; pops and shakes when the count goes up.
+class NotificationBellButton extends ConsumerStatefulWidget {
   const NotificationBellButton({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colors = context.colors;
-    final unreadCount = ref.watch(notificationProvider.select((s) => s.unreadCount));
+  ConsumerState<NotificationBellButton> createState() => _BellState();
+}
 
-    return InkWell(
-      onTap: () => showNotificationCenter(context),
-      borderRadius: BorderRadius.circular(12),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.border),
-            ),
-            child: Icon(
-              unreadCount > 0 ? Icons.notifications_rounded : Icons.notifications_none_rounded,
-              color: unreadCount > 0 ? colors.primary : colors.muted,
-              size: 20,
-            ),
-          ),
-          if (unreadCount > 0)
-            Positioned(
-              top: -4,
-              right: -4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+class _BellState extends ConsumerState<NotificationBellButton> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    ref.listen<int>(unreadNotificationsProvider, (prev, next) {
+      if (prev != null && next > prev && !Motion.reduced(context)) {
+        Haptics.light();
+        _c.forward(from: 0);
+      }
+    });
+    final unread = ref.watch(unreadNotificationsProvider);
+    final label = unreadLabel(unread);
+    return Semantics(
+      button: true,
+      label: unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
+      child: InkWell(
+        key: const ValueKey('notification_bell'),
+        onTap: () => showNotificationCenter(context),
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (_, child) {
+            final t = _c.value;
+            // Small damped shake + pop.
+            final angle = math.sin(t * math.pi * 6) * (1 - t) * 0.18;
+            final scale = 1 + math.sin(t * math.pi) * 0.12;
+            return Transform.rotate(angle: angle, child: Transform.scale(scale: scale, child: child));
+          },
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: colors.error,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: colors.bg, width: 1.5),
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colors.border),
                 ),
-                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                child: Center(
-                  child: Text(
-                    unreadCount > 9 ? '9+' : '$unreadCount',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      height: 1,
-                    ),
-                  ),
+                child: Icon(
+                  unread > 0 ? Icons.notifications_rounded : Icons.notifications_none_rounded,
+                  color: unread > 0 ? colors.text : colors.muted,
+                  size: 20,
                 ),
               ),
-            ),
-        ],
+              if (label.isNotEmpty)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    key: const ValueKey('notification_badge'),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    decoration: BoxDecoration(
+                      color: colors.error,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: colors.bg, width: 1.5),
+                    ),
+                    child: Text(label,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700, height: 1.1)),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _NotificationCenterSheet extends ConsumerWidget {
-  const _NotificationCenterSheet();
+String relativeTime(DateTime t, [DateTime? now]) {
+  final d = (now ?? DateTime.now()).difference(t);
+  if (d.inMinutes < 1) return 'now';
+  if (d.inMinutes < 60) return '${d.inMinutes}m';
+  if (d.inHours < 24) return '${d.inHours}h';
+  if (d.inDays < 7) return '${d.inDays}d';
+  return '${t.day}/${t.month}';
+}
 
-  String _formatTimeAgo(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${dt.day}/${dt.month}';
-  }
+IconData notificationIcon(NotificationType t) => switch (t) {
+      NotificationType.revision => Icons.edit_note_rounded,
+      NotificationType.approved => Icons.check_circle_outline_rounded,
+      NotificationType.message => Icons.chat_bubble_outline_rounded,
+      NotificationType.assigned => Icons.person_add_alt_rounded,
+      NotificationType.submitted => Icons.upload_rounded,
+    };
 
-  IconData _iconForType(NotificationType type) {
-    switch (type) {
-      case NotificationType.projectNew:
-        return Icons.rocket_launch_rounded;
-      case NotificationType.projectClaimed:
-        return Icons.work_rounded;
-      case NotificationType.submissionReceived:
-        return Icons.file_upload_rounded;
-      case NotificationType.projectApproved:
-        return Icons.check_circle_rounded;
-      case NotificationType.revisionRequested:
-        return Icons.rate_review_rounded;
-      case NotificationType.ratingReceived:
-        return Icons.star_rounded;
-      case NotificationType.chatMessage:
-        return Icons.chat_bubble_rounded;
-    }
-  }
+class NotificationSheet extends ConsumerWidget {
+  const NotificationSheet({super.key});
 
-  Color _colorForType(NotificationType type, AppColors c) {
-    switch (type) {
-      case NotificationType.projectNew:
-        return c.warning;
-      case NotificationType.projectClaimed:
-        return c.info;
-      case NotificationType.submissionReceived:
-        return c.primary;
-      case NotificationType.projectApproved:
-        return c.success;
-      case NotificationType.revisionRequested:
-        return c.warning;
-      case NotificationType.ratingReceived:
-        return AppColors.star;
-      case NotificationType.chatMessage:
-        return c.info;
+  void _open(BuildContext context, WidgetRef ref, AppNotification n) {
+    if (!n.read) ref.read(notificationActionsProvider).markRead(n.id);
+    Navigator.of(context).pop();
+    final router = GoRouter.maybeOf(context);
+    if (router == null) return;
+    final isManager = ref.read(authProvider).user?.role == UserRole.manager;
+    if (n.chatId != null) {
+      router.push('/chat/${n.chatId}');
+    } else if (n.projectId != null) {
+      if (isManager) {
+        router.go(n.type == NotificationType.submitted ? '/manager/pending' : '/manager/workflow');
+      } else {
+        ref.read(expandedCardProvider('workspace').notifier).state = n.projectId;
+        router.go('/editor/workspace');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = context.colors;
-    final state = ref.watch(notificationProvider);
-    final notifications = state.notifications;
-    final unreadCount = state.unreadCount;
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.65,
-      maxChildSize: 0.9,
-      minChildSize: 0.4,
-      expand: false,
-      builder: (_, scrollController) => Column(
-        children: [
-          // Drag Handle
-          const SizedBox(height: 12),
-          Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: colors.muted.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              children: [
-                Icon(Icons.notifications_active_rounded, color: colors.primary, size: 22),
-                const SizedBox(width: 10),
-                Text(
-                  'Notifications',
-                  style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                if (unreadCount > 0) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: colors.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
+    final c = context.colors;
+    final items = ref.watch(notificationsProvider).valueOrNull ?? const <AppNotification>[];
+    final unread = items.where((n) => !n.read).length;
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.7),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+              child: Row(
+                children: [
+                  Text('Notifications', style: TextStyle(color: c.text, fontSize: 17, fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  if (unread > 0)
+                    TextButton(
+                      key: const ValueKey('mark_all_read'),
+                      onPressed: () => ref.read(notificationActionsProvider).markAllRead(),
+                      child: const Text('Mark all read'),
                     ),
-                    child: Text(
-                      '$unreadCount New',
-                      style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                  ),
                 ],
-                const Spacer(),
-                if (unreadCount > 0)
-                  TextButton(
-                    onPressed: () => ref.read(notificationProvider.notifier).markAllAsRead(),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      'Mark all as read',
-                      style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Divider(color: colors.border, height: 1),
-
-          // Content List
-          Expanded(
-            child: notifications.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.notifications_off_outlined, color: colors.muted, size: 40),
-                        const SizedBox(height: 12),
-                        Text(
-                          'All caught up!',
-                          style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'No new notifications for your agency right now.',
-                          style: TextStyle(color: colors.muted, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    controller: scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    itemCount: notifications.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final notif = notifications[index];
-                      final iconColor = _colorForType(notif.type, colors);
-
-                      return InkWell(
-                        onTap: () {
-                          if (!notif.isRead) {
-                            ref.read(notificationProvider.notifier).markAsRead(notif.id);
-                          }
-                          if (notif.type == NotificationType.chatMessage && notif.relatedId != null) {
-                            Navigator.pop(context);
-                            final convos = ref.read(chatProvider).conversations;
-                            final targetConvo = convos.firstWhere(
-                              (c) => c.id == notif.relatedId,
-                              orElse: () => ChatConversation(
-                                id: notif.relatedId!,
-                                agencyId: notif.agencyId,
-                                type: notif.relatedId == 'agency_general' ? ConversationType.channel : ConversationType.direct,
-                                title: notif.title.replaceFirst('💬 Message from ', ''),
-                                participantIds: [],
-                                participantNames: {},
-                                participantPhotos: {},
-                                lastMessage: notif.body,
-                                lastSenderName: '',
-                                lastMessageTime: notif.createdAt,
-                              ),
-                            );
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ChatRoomScreen(
-                                  conversationId: targetConvo.id,
-                                  title: targetConvo.title,
-                                  type: targetConvo.type,
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: notif.isRead ? colors.surface : colors.surface.withValues(alpha: 0.95),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: notif.isRead
-                                  ? colors.border
-                                  : colors.primary.withValues(alpha: 0.35),
-                              width: notif.isRead ? 1 : 1.2,
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: iconColor.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(_iconForType(notif.type), color: iconColor, size: 18),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            notif.title,
-                                            style: TextStyle(
-                                              color: colors.text,
-                                              fontSize: 13,
-                                              fontWeight: notif.isRead ? FontWeight.w600 : FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        Text(
-                                          _formatTimeAgo(notif.createdAt),
-                                          style: TextStyle(color: colors.muted, fontSize: 12),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      notif.body,
-                                      style: TextStyle(
-                                        color: notif.isRead ? colors.muted : colors.text.withValues(alpha: 0.85),
-                                        fontSize: 12,
-                                        height: 1.3,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (!notif.isRead) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: colors.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
+            Divider(height: 1, color: c.border),
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Text("You're all caught up", style: TextStyle(color: c.muted, fontSize: 13)),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) => Divider(height: 1, indent: 56, color: c.border),
+                  itemBuilder: (context, i) {
+                    final n = items[i];
+                    return ListTile(
+                      key: ValueKey('notif_${n.id}'),
+                      onTap: () => _open(context, ref, n),
+                      leading: Icon(notificationIcon(n.type), color: n.read ? c.muted : c.text, size: 22),
+                      title: Text(n.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: c.text, fontSize: 14, fontWeight: n.read ? FontWeight.w500 : FontWeight.w700)),
+                      subtitle: n.body.isEmpty
+                          ? null
+                          : Text(n.body, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: 12)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(relativeTime(n.createdAt), style: TextStyle(color: c.muted, fontSize: 12)),
+                          if (!n.read) ...[
+                            const SizedBox(width: 8),
+                            Container(width: 7, height: 7, decoration: BoxDecoration(color: c.primary, shape: BoxShape.circle)),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

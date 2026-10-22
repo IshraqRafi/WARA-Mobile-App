@@ -83,3 +83,16 @@ in release builds (`kReleaseMode`); debug/profile send nothing.
   with a join key (Settings shows and copies it).
 - **Editor:** Continue with Google -> "Join as editor" -> enter the join key
   and full name -> lands on the editor home.
+
+## Notifications
+
+In-app only (Spark plan, no Cloud Functions). The sender's client writes to
+`users/{recipientUid}/notifications/{id}` with
+`{type: revision|approved|message|assigned|submitted, projectId?, chatId?, title, body, fromUid, createdAt (server time), read: false}`.
+Managers notify their editors (revision, approved, assigned, message); editors
+notify their own manager (submitted, message). Only the recipient can read,
+mark read, or delete. The old agency-wide `agencies/{id}/notifications`
+collection is locked by the rules; existing docs were not deleted.
+
+Future work: push notifications via FCM (needs device tokens and a trusted
+sender, i.e. Cloud Functions on the Blaze plan).

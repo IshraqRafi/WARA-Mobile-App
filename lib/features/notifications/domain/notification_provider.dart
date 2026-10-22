@@ -1,101 +1,37 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/services/firestore_service.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../projects/domain/project_provider.dart';
 import 'notification_models.dart';
 
-class NotificationState {
-  final List<AppNotification> notifications;
-  final bool isLoading;
-
-  const NotificationState({
-    this.notifications = const [],
-    this.isLoading = false,
-  });
-
-  int get unreadCount => notifications.where((n) => !n.isRead).length;
-
-  NotificationState copyWith({
-    List<AppNotification>? notifications,
-    bool? isLoading,
-  }) {
-    return NotificationState(
-      notifications: notifications ?? this.notifications,
-      isLoading: isLoading ?? this.isLoading,
-    );
-  }
-}
-
-class NotificationNotifier extends StateNotifier<NotificationState> {
-  final FirestoreService _firestoreService;
-  final UserSession? _user;
-  StreamSubscription<List<AppNotification>>? _subscription;
-
-  NotificationNotifier(this._firestoreService, this._user) : super(const NotificationState()) {
-    _init();
-  }
-
-  void _init() {
-    final agencyId = _user?.agencyId;
-    if (agencyId == null || agencyId.isEmpty) return;
-
-    _subscription = _firestoreService
-        .streamNotifications(agencyId: agencyId, userId: _user?.id)
-        .listen(
-      (notifs) {
-        state = state.copyWith(notifications: notifs);
-      },
-      onError: (_) {},
-    );
-  }
-
-  @override
-  void dispose() {
-    _subscription?.cancel();
-    super.dispose();
-  }
-
-  Future<void> markAsRead(String notificationId) async {
-    final agencyId = _user?.agencyId;
-    if (agencyId == null) return;
-    await _firestoreService.markNotificationAsRead(agencyId, notificationId);
-  }
-
-  Future<void> markAllAsRead() async {
-    final agencyId = _user?.agencyId;
-    if (agencyId == null) return;
-    await _firestoreService.markAllNotificationsAsRead(agencyId, _user?.id);
-  }
-
-  Future<void> sendNotification({
-    required String title,
-    required String body,
-    required NotificationType type,
-    String? targetUserId,
-    String? relatedId,
-  }) async {
-    final agencyId = _user?.agencyId;
-    if (agencyId == null) return;
-
-    final notif = AppNotification(
-      id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
-      agencyId: agencyId,
-      userId: targetUserId,
-      title: title,
-      body: body,
-      type: type,
-      relatedId: relatedId,
-      createdAt: DateTime.now(),
-    );
-
-    await _firestoreService.sendNotification(agencyId: agencyId, notification: notif);
-  }
-}
-
-final notificationProvider = StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  final firestore = ref.watch(firestoreServiceProvider);
-  // Re-subscribe only when the user or agency changes.
-  ref.watch(authProvider.select((s) => (s.user?.id, s.user?.agencyId)));
-  return NotificationNotifier(firestore, ref.read(authProvider).user);
+/// My inbox (newest first, max 50). Empty when signed out.
+final notificationsProvider = StreamProvider.autoDispose<List<AppNotification>>((ref) {
+  final uid = ref.watch(authProvider.select((s) => s.user?.id));
+  if (uid == null || uid.isEmpty) return Stream.value(const []);
+  return ref.watch(firestoreServiceProvider).streamMyNotifications(uid);
 });
+
+final unreadNotificationsProvider = Provider.autoDispose<int>(
+  (ref) => ref.watch(notificationsProvider).valueOrNull?.where((n) => !n.read).length ?? 0,
+);
+
+/// Badge text: '' at zero, '9+' above nine.
+String unreadLabel(int n) => n <= 0 ? '' : (n > 9 ? '9+' : '$n');
+
+class NotificationActions {
+  final Ref _ref;
+  NotificationActions(this._ref);
+  String? get _uid => _ref.read(authProvider).user?.id;
+
+  void markRead(String id) {
+    final uid = _uid;
+    if (uid != null) _ref.read(firestoreServiceProvider).markNotificationRead(uid, id);
+  }
+
+  void markAllRead() {
+    final uid = _uid;
+    final unread = _ref.read(notificationsProvider).valueOrNull?.where((n) => !n.read).map((n) => n.id) ?? const [];
+    if (uid != null) _ref.read(firestoreServiceProvider).markNotificationsRead(uid, unread.toList());
+  }
+}
+
+final notificationActionsProvider = Provider((ref) => NotificationActions(ref));

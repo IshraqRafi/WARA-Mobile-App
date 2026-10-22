@@ -1,7 +1,7 @@
 import { test, before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, getDocs, collection, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, getDocs, collection, writeBatch, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
 let env;
 before(async () => {
@@ -127,4 +127,54 @@ test('availability: editor sets own to available/busy; nobody else', async () =>
   await assertFails(updateDoc(doc(as('mA'), 'users/eA'), { availability: 'busy' }));
   await assertFails(updateDoc(doc(as('mA'), 'users/mA'), { availability: 'busy' }));
   await assertFails(updateDoc(doc(as('eA'), 'users/eA'), { availability: 'busy', rating: 5 }));
+});
+
+const notif = (fromUid, extra = {}) => ({
+  type: 'revision', projectId: 'p1', title: 'Revision requested', body: 'Fix audio',
+  fromUid, createdAt: serverTimestamp(), read: false, ...extra,
+});
+
+test('notifications: manager -> own editor; editor -> own manager (message/submitted)', async () => {
+  await assertSucceeds(setDoc(doc(as('mA'), 'users/eA/notifications/n1'), notif('mA')));
+  await assertSucceeds(setDoc(doc(as('mA'), 'users/eA/notifications/n2'), notif('mA', { type: 'assigned' })));
+  await assertSucceeds(setDoc(doc(as('eA'), 'users/mA/notifications/n3'), notif('eA', { type: 'submitted' })));
+  await assertSucceeds(setDoc(doc(as('eA'), 'users/mA/notifications/n4'), notif('eA', { type: 'message', chatId: 'dm_mA_eA' })));
+  // editors cannot send manager-only types, nor notify other editors
+  await assertFails(setDoc(doc(as('eA'), 'users/mA/notifications/n5'), notif('eA', { type: 'approved' })));
+  await assertFails(setDoc(doc(as('eA'), 'users/eA2/notifications/n6'), notif('eA', { type: 'message' })));
+});
+
+test('notifications: cross-agency write denied', async () => {
+  await assertFails(setDoc(doc(as('mB'), 'users/eA/notifications/x'), notif('mB')));
+  await assertFails(setDoc(doc(as('eB'), 'users/mA/notifications/x'), notif('eB', { type: 'message' })));
+});
+
+test('notifications: fromUid spoofing and bad fields denied', async () => {
+  await assertFails(setDoc(doc(as('mA'), 'users/eA/notifications/s1'), notif('mB')));
+  await assertFails(setDoc(doc(as('eA2'), 'users/mA/notifications/s2'), notif('eA', { type: 'message' })));
+  await assertFails(setDoc(doc(as('mA'), 'users/eA/notifications/s3'), notif('mA', { type: 'spam' })));
+  await assertFails(setDoc(doc(as('mA'), 'users/eA/notifications/s4'), notif('mA', { read: true })));
+  await assertFails(setDoc(doc(as('mA'), 'users/eA/notifications/s5'), notif('mA', { extra: 1 })));
+  await assertFails(setDoc(doc(as('mA'), 'users/eA/notifications/s6'), notif('mA', { title: '' })));
+  await assertFails(setDoc(doc(as('mA'), 'users/eA/notifications/s7'), notif('mA', { createdAt: new Date(0) })));
+});
+
+test('notifications: only the recipient reads, marks read, deletes', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users/eA/notifications/r1'), { ...notif('mA'), createdAt: new Date() });
+  });
+  await assertSucceeds(getDoc(doc(as('eA'), 'users/eA/notifications/r1')));
+  await assertFails(getDoc(doc(as('mA'), 'users/eA/notifications/r1')));
+  await assertFails(getDoc(doc(as('eA2'), 'users/eA/notifications/r1')));
+  await assertFails(getDocs(collection(as('eA2'), 'users/eA/notifications')));
+  await assertFails(updateDoc(doc(as('mA'), 'users/eA/notifications/r1'), { read: true }));
+  await assertFails(updateDoc(doc(as('eA'), 'users/eA/notifications/r1'), { title: 'x' }));
+  await assertSucceeds(updateDoc(doc(as('eA'), 'users/eA/notifications/r1'), { read: true }));
+  await assertFails(deleteDoc(doc(as('mA'), 'users/eA/notifications/r1')));
+  await assertSucceeds(deleteDoc(doc(as('eA'), 'users/eA/notifications/r1')));
+});
+
+test('legacy agency notifications are locked', async () => {
+  await assertFails(getDocs(collection(as('eA'), 'agencies/A/notifications')));
+  await assertFails(setDoc(doc(as('mA'), 'agencies/A/notifications/x'), { title: 't' }));
 });

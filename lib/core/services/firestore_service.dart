@@ -513,33 +513,31 @@ class FirestoreService {
 
     await batch.commit();
 
-    // ── Dispatch Real-Time In-App Notification ──
-    try {
-      String? targetRecipientId = recipientId;
-      if (targetRecipientId == null && conversationId.startsWith('dm_')) {
-        final parts = conversationId.replaceFirst('dm_', '').split('_');
-        for (final p in parts) {
-          if (p != message.senderId) {
-            targetRecipientId = p;
-            break;
-          }
-        }
+    // In-app notification for DMs: manager -> editor, editor -> manager.
+    String? to = recipientId;
+    if (to == null && isDirect) {
+      to = conversationId
+          .replaceFirst('dm_', '')
+          .split('_')
+          .where((p) => p.isNotEmpty && p != message.senderId)
+          .firstOrNull;
+    }
+    if (to != null) {
+      final managerUid = await managerUidOf(agencyId);
+      final fromManager = message.senderRole == 'manager';
+      if (fromManager || to == managerUid) {
+        await notifyUser(
+          to,
+          AppNotification.draft(
+            type: NotificationType.message,
+            title: 'Message from ${message.senderName}',
+            body: message.text.isNotEmpty ? message.text : 'Sent an attachment',
+            fromUid: message.senderId,
+            chatId: conversationId,
+          ),
+        );
       }
-
-      final notif = AppNotification(
-        id: 'notif_${message.id}',
-        agencyId: agencyId,
-        userId: targetRecipientId, // Specific recipient for direct message, or null for agency-wide broadcast
-        senderId: message.senderId, // Do not notify the person who sent the message
-        title: '💬 Message from ${message.senderName}',
-        body: message.text.isNotEmpty ? message.text : 'Sent an attachment',
-        type: NotificationType.chatMessage,
-        relatedId: conversationId,
-        createdAt: message.createdAt,
-      );
-
-      await sendNotification(agencyId: agencyId, notification: notif);
-    } catch (_) {}
+    }
   }
 
   /// Mark a conversation as read by a specific user
@@ -597,76 +595,59 @@ class FirestoreService {
         if (feedback != null && feedback.isNotEmpty) 'latestFeedback': feedback,
       }, SetOptions(merge: true));
 
-      // Dispatch real-time notification to the editor
-      await sendNotification(
-        agencyId: agencyId,
-        notification: AppNotification(
-          id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
-          agencyId: agencyId,
-          userId: editorId,
-          title: '⭐ New Rating Received (${rating.toStringAsFixed(1)} Stars)',
-          body: feedback != null && feedback.isNotEmpty
-              ? '$managerName rated your work: "$feedback"'
-              : '$managerName gave you a ${rating.toStringAsFixed(1)}-star rating! Keep up the great work.',
-          type: NotificationType.ratingReceived,
-          relatedId: projectId,
-          createdAt: DateTime.now(),
-        ),
-      );
     } catch (_) {}
   }
 
-  // ── In-App Real-Time Notification Center ───────────────────────────────
+  // ── In-app notifications: users/{uid}/notifications ─────────────────
+  // Written by the sender's client (Spark plan, no Cloud Functions).
 
-  CollectionReference<Map<String, dynamic>> _notificationsRef(String agencyId) =>
-      _agenciesRef.doc(agencyId).collection('notifications');
+  CollectionReference<Map<String, dynamic>> _inbox(String uid) =>
+      _usersRef.doc(uid).collection('notifications');
 
-  /// Real-time stream of notifications for an agency, filtered for broadcast or specific user (excluding self-actions)
-  Stream<List<AppNotification>> streamNotifications({required String agencyId, String? userId}) {
-    return _notificationsRef(agencyId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => AppNotification.fromMap(doc.id, doc.data()))
-          .where((n) {
-            final forMe = n.userId == null || n.userId == userId;
-            final notFromMe = userId == null || n.senderId == null || n.senderId != userId;
-            return forMe && notFromMe;
-          })
-          .toList();
-    });
+  final Map<String, String> _managerUids = {};
+
+  /// The agency's manager uid (cached), or null.
+  Future<String?> managerUidOf(String agencyId) async {
+    final hit = _managerUids[agencyId];
+    if (hit != null) return hit;
+    try {
+      final d = await _agenciesRef.doc(agencyId).get();
+      final uid = d.data()?['managerUid'] as String?;
+      if (uid != null && uid.isNotEmpty) _managerUids[agencyId] = uid;
+      return uid;
+    } catch (_) {
+      return null;
+    }
   }
 
-  /// Dispatch an in-app notification
-  Future<void> sendNotification({
-    required String agencyId,
-    required AppNotification notification,
-  }) async {
+  /// Best effort: a failed notification never fails the action behind it.
+  Future<void> notifyUser(String toUid, Map<String, dynamic> draft) async {
+    if (toUid.isEmpty || toUid == draft['fromUid']) return;
     try {
-      await _notificationsRef(agencyId).doc(notification.id).set(notification.toMap());
+      await _inbox(toUid).add(draft);
     } catch (_) {}
   }
 
-  /// Mark a single notification as read
-  Future<void> markNotificationAsRead(String agencyId, String notificationId) async {
+  Stream<List<AppNotification>> streamMyNotifications(String uid) => _inbox(uid)
+      .orderBy('createdAt', descending: true)
+      .limit(50)
+      .snapshots()
+      .map((s) => [for (final d in s.docs) AppNotification.fromMap(d.id, d.data())]);
+
+  Future<void> markNotificationRead(String uid, String id) async {
     try {
-      await _notificationsRef(agencyId).doc(notificationId).update({'isRead': true});
+      await _inbox(uid).doc(id).update({'read': true});
     } catch (_) {}
   }
 
-  /// Mark all notifications as read for a user
-  Future<void> markAllNotificationsAsRead(String agencyId, String? userId) async {
+  Future<void> markNotificationsRead(String uid, Iterable<String> ids) async {
+    if (ids.isEmpty) return;
     try {
-      final snap = await _notificationsRef(agencyId).where('isRead', isEqualTo: false).get();
-      final batch = _db.batch();
-      for (final doc in snap.docs) {
-        final dUserId = doc.data()['userId'] as String?;
-        if (dUserId == null || dUserId == userId) {
-          batch.update(doc.reference, {'isRead': true});
-        }
+      final b = _db.batch();
+      for (final id in ids) {
+        b.update(_inbox(uid).doc(id), {'read': true});
       }
-      await batch.commit();
+      await b.commit();
     } catch (_) {}
   }
 }

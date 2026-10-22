@@ -1,107 +1,76 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum NotificationType {
-  projectNew,
-  projectClaimed,
-  submissionReceived,
-  projectApproved,
-  revisionRequested,
-  ratingReceived,
-  chatMessage,
-}
+/// Per-user inbox item at users/{uid}/notifications/{id}.
+enum NotificationType { revision, approved, message, assigned, submitted }
 
 class AppNotification {
   final String id;
-  final String agencyId;
-  final String? userId; // Specific user or null for agency-wide broadcast
-  final String? senderId; // The user who triggered the event, so they don't notify themselves
+  final NotificationType type;
+  final String? projectId;
+  final String? chatId;
   final String title;
   final String body;
-  final NotificationType type;
-  final String? relatedId;
-  final bool isRead;
+  final String fromUid;
   final DateTime createdAt;
+  final bool read;
 
   const AppNotification({
     required this.id,
-    required this.agencyId,
-    this.userId,
-    this.senderId,
-    required this.title,
-    required this.body,
     required this.type,
-    this.relatedId,
-    this.isRead = false,
+    this.projectId,
+    this.chatId,
+    required this.title,
+    this.body = '',
+    required this.fromUid,
     required this.createdAt,
+    this.read = false,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'agencyId': agencyId,
-      if (userId != null) 'userId': userId,
-      if (senderId != null) 'senderId': senderId,
-      'title': title,
-      'body': body,
-      'type': type.name,
-      if (relatedId != null) 'relatedId': relatedId,
-      'isRead': isRead,
-      'createdAt': Timestamp.fromDate(createdAt),
-    };
-  }
+  /// Fields for a new doc; createdAt is the server time (required by rules).
+  static Map<String, dynamic> draft({
+    required NotificationType type,
+    required String title,
+    String body = '',
+    required String fromUid,
+    String? projectId,
+    String? chatId,
+  }) =>
+      {
+        'type': type.name,
+        if (projectId != null && projectId.isNotEmpty) 'projectId': projectId,
+        if (chatId != null && chatId.isNotEmpty) 'chatId': chatId,
+        'title': title.length > 120 ? title.substring(0, 120) : title,
+        'body': body.length > 500 ? body.substring(0, 500) : body,
+        'fromUid': fromUid,
+        'createdAt': FieldValue.serverTimestamp(),
+        'read': false,
+      };
 
-  factory AppNotification.fromMap(String id, Map<String, dynamic> map) {
-    DateTime parsedDate = DateTime.now();
-    final rawCreated = map['createdAt'];
-    if (rawCreated is Timestamp) {
-      parsedDate = rawCreated.toDate();
-    } else if (rawCreated is String) {
-      parsedDate = DateTime.tryParse(rawCreated) ?? DateTime.now();
-    }
-
-    final rawType = map['type'] as String? ?? 'projectNew';
-    final nType = NotificationType.values.firstWhere(
-      (e) => e.name == rawType,
-      orElse: () => NotificationType.projectNew,
-    );
-
+  factory AppNotification.fromMap(String id, Map<String, dynamic> m) {
+    final raw = m['createdAt'];
     return AppNotification(
       id: id,
-      agencyId: map['agencyId'] as String? ?? '',
-      userId: map['userId'] as String?,
-      senderId: map['senderId'] as String?,
-      title: map['title'] as String? ?? 'Notification',
-      body: map['body'] as String? ?? '',
-      type: nType,
-      relatedId: map['relatedId'] as String?,
-      isRead: map['isRead'] as bool? ?? false,
-      createdAt: parsedDate,
+      type: NotificationType.values.firstWhere((e) => e.name == m['type'], orElse: () => NotificationType.message),
+      projectId: m['projectId'] as String?,
+      chatId: m['chatId'] as String?,
+      title: m['title'] as String? ?? '',
+      body: m['body'] as String? ?? '',
+      fromUid: m['fromUid'] as String? ?? '',
+      // Pending server timestamps read as null locally.
+      createdAt: raw is Timestamp ? raw.toDate() : DateTime.now(),
+      read: m['read'] as bool? ?? false,
     );
   }
 
-  AppNotification copyWith({
-    String? id,
-    String? agencyId,
-    String? userId,
-    String? senderId,
-    String? title,
-    String? body,
-    NotificationType? type,
-    String? relatedId,
-    bool? isRead,
-    DateTime? createdAt,
-  }) {
-    return AppNotification(
-      id: id ?? this.id,
-      agencyId: agencyId ?? this.agencyId,
-      userId: userId ?? this.userId,
-      senderId: senderId ?? this.senderId,
-      title: title ?? this.title,
-      body: body ?? this.body,
-      type: type ?? this.type,
-      relatedId: relatedId ?? this.relatedId,
-      isRead: isRead ?? this.isRead,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
+  AppNotification copyWith({bool? read}) => AppNotification(
+        id: id,
+        type: type,
+        projectId: projectId,
+        chatId: chatId,
+        title: title,
+        body: body,
+        fromUid: fromUid,
+        createdAt: createdAt,
+        read: read ?? this.read,
+      );
 }

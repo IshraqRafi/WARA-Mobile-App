@@ -5,7 +5,8 @@ rules_version = '2';
 //   agencies/{agencyId}                 agency doc (managerUid, joinKey)
 //     conversations/{convoId}           chat channels + DMs
 //       messages/{msgId}
-//     notifications/{notifId}
+//     notifications/{notifId}       legacy, locked
+//   users/{uid}/notifications/{id}    per-user inbox
 //   projects/{projectId}                flat collection, each doc has agencyId
 //
 // Policy: every request must be signed in to Firebase Auth. Agency-owned data
@@ -75,6 +76,40 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // In-app notifications (no Cloud Functions): the sender's client writes
+    // into the recipient's inbox. Managers notify their editors; editors
+    // notify their own manager (messages, submissions). Only the recipient
+    // reads, marks read, or deletes.
+    match /users/{uid}/notifications/{notifId} {
+      function recipient() { return get(/databases/$(database)/documents/users/$(uid)).data; }
+      function optStr(d, k, n) { return !(k in d) || (d[k] is string && d[k].size() > 0 && d[k].size() <= n); }
+      function validNotif(d) {
+        return d.keys().hasOnly(['type', 'projectId', 'chatId', 'title', 'body', 'fromUid', 'createdAt', 'read'])
+          && d.keys().hasAll(['type', 'title', 'body', 'fromUid', 'createdAt', 'read'])
+          && d.type in ['revision', 'approved', 'message', 'assigned', 'submitted']
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+          && d.body is string && d.body.size() <= 500
+          && d.read == false
+          && d.createdAt == request.time
+          && optStr(d, 'projectId', 128) && optStr(d, 'chatId', 128);
+      }
+      function allowedPair(type) {
+        return (isManager() && recipient().get('role', '') == 'editor'
+                && type in ['revision', 'approved', 'message', 'assigned'])
+          || (me().get('role', '') == 'editor' && recipient().get('role', '') == 'manager'
+                && type in ['message', 'submitted']);
+      }
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read == true;
+      allow create: if signedIn() && request.auth.uid != uid
+        && request.resource.data.fromUid == request.auth.uid
+        && validNotif(request.resource.data)
+        && myAgency() != '' && recipient().get('agencyId', '') == myAgency()
+        && allowedPair(request.resource.data.type);
+    }
+
     match /agencies/{agencyId} {
       // Members and the owner only; join keys are resolved via joinKeys/.
       allow read: if signedIn() && (resource.data.managerUid == request.auth.uid || inAgency(agencyId));
@@ -116,9 +151,10 @@ service cloud.firestore {
         }
       }
 
+      // Legacy agency-wide feed, replaced by users/{uid}/notifications.
+      // Locked; existing docs are left in place (not deleted).
       match /notifications/{notifId} {
-        allow read, create, update: if inAgency(agencyId);
-        allow delete: if false;
+        allow read, write: if false;
       }
     }
 

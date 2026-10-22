@@ -1,3 +1,4 @@
+import '../../notifications/domain/notification_models.dart';
 import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,9 +57,23 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   final VoidCallback? _onLoaded;
   StreamSubscription<List<ProjectItem>>? _subscription;
 
-  ProjectsNotifier(this._firestoreService, [this._agencyId, this._onError, this._onLoaded])
+  /// Signed-in user, used as the sender of in-app notifications.
+  final ({String id, String name})? actor;
+
+  ProjectsNotifier(this._firestoreService, [this._agencyId, this._onError, this._onLoaded, this.actor])
       : super(const []) {
     _subscribe();
+  }
+
+  ProjectItem? _byId(String id) => state.where((p) => p.id == id).firstOrNull;
+
+  /// Notify the project's editor (manager actions).
+  void _notifyEditor(ProjectItem? p, NotificationType type, String title, [String body = '']) {
+    final a = actor;
+    final to = p?.claimedByEditorId;
+    if (a == null || p == null || to == null) return;
+    _firestoreService.notifyUser(
+        to, AppNotification.draft(type: type, title: title, body: body, fromUid: a.id, projectId: p.id));
   }
 
   /// Re-open the projects stream (used by the Retry button).
@@ -335,6 +350,22 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
 
     // Cloud Firestore write
     _firestoreService.submitWork(projectId, submissionLink, submissionNote, nowStr, version: version, late: late);
+    final a = actor, agency = _agencyId;
+    if (a != null && agency != null && current != null) {
+      _firestoreService.managerUidOf(agency).then((m) {
+        if (m == null) return;
+        _firestoreService.notifyUser(
+          m,
+          AppNotification.draft(
+            type: NotificationType.submitted,
+            title: '${a.name.isEmpty ? 'Editor' : a.name} submitted v$version',
+            body: current.title,
+            fromUid: a.id,
+            projectId: projectId,
+          ),
+        );
+      });
+    }
   }
 
   void approveProject(String projectId) {
@@ -350,10 +381,14 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
 
     // Cloud Firestore write
     _firestoreService.approveProject(projectId);
+    final p = _byId(projectId);
+    _notifyEditor(p, NotificationType.approved, 'Approved', p?.title ?? '');
   }
 
   void requestRevision(String projectId, String feedback) {
     Haptics.statusChange(ProjectStatus.claimed);
+    final p = _byId(projectId);
+    _notifyEditor(p, NotificationType.revision, 'Revision requested: ${p?.title ?? ''}', feedback);
     // Optimistic update
     state = [
       for (final item in state)
@@ -410,6 +445,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
 
     // Cloud Firestore write
     _firestoreService.assignProject(projectId, editorId, editorName);
+    _notifyEditor(_byId(projectId), NotificationType.assigned, 'New assignment', _byId(projectId)?.title ?? '');
   }
 }
 
@@ -428,6 +464,10 @@ final projectsProvider = StateNotifierProvider<ProjectsNotifier, List<ProjectIte
       if (!ref.read(projectsLoadedProvider)) {
         ref.read(projectsLoadedProvider.notifier).state = true;
       }
+    },
+    switch (ref.watch(authProvider.select((s) => s.user?.id))) {
+      final String id => (id: id, name: ref.read(authProvider).user?.name ?? ''),
+      _ => null,
     },
   );
 });
