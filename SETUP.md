@@ -63,6 +63,20 @@ the caller's `users/{uid}.agencyId`, and restrict DMs to their
 `participantIds`. Deploy them before releasing; the app's queries are written
 to match them.
 
+## 7. Crashlytics
+
+Already wired: `firebase_crashlytics` in pubspec, the
+`com.google.firebase.crashlytics` Gradle plugin in `android/settings.gradle.kts`
+and `android/app/build.gradle.kts`, and `_initCrashlytics()` in `lib/main.dart`
+(`FlutterError.onError` + `PlatformDispatcher.onError`). Collection is on only
+in release builds (`kReleaseMode`); debug/profile send nothing.
+
+1. Firebase console → Build → Crashlytics → Enable for the Android app.
+2. Build and run a release build (`flutter run --release`), open the app,
+   then restart it; the first report shows up within a few minutes.
+3. iOS: add the Crashlytics run script / dSYM upload in Xcode
+   (`flutterfire configure` can do this) before shipping on iOS.
+
 ## First run
 
 - **Manager:** Continue with Google -> "Name your agency" -> agency is created
