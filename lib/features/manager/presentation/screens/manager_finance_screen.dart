@@ -1,348 +1,196 @@
-import '../../../../shared/motion/rolling_counter.dart';
 import 'package:flutter/material.dart';
-import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/widgets/wara_avatar.dart';
+import '../../../../shared/motion/rolling_counter.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
-import '../../../../shared/widgets/wara_logo.dart';
-import '../../../../shared/widgets/wara_project_card.dart';
-import '../../../auth/domain/auth_provider.dart';
+import '../../../../shared/widgets/wara_error_state.dart';
+import '../../../../shared/widgets/wara_status_chip.dart';
 import '../../../projects/domain/project_provider.dart';
 
 class ManagerFinanceScreen extends ConsumerWidget {
   const ManagerFinanceScreen({super.key});
 
-  String _formatCurrency(double amount) {
-    return amount.toInt().toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
-    final user = ref.watch(authProvider.select((s) => s.user));
+    final text = Theme.of(context).textTheme;
     final projects = ref.watch(projectsProvider);
     final projectsError = ref.watch(projectsErrorProvider);
     if (projectsError != null && projects.isEmpty) {
       return ProjectsLoadError(error: projectsError);
     }
 
-    // ── Live Calculated Financial Metrics from Firestore ──────────────────
+    // ── Live metrics (unchanged calculations) ─────────────────────────────
     final totalPipelineVolume = projects.fold<double>(0.0, (sum, p) => sum + p.clientBudget);
     final approvedProjects = projects.where((p) => p.status == ProjectStatus.approved).toList();
     final approvedRevenue = approvedProjects.fold<double>(0.0, (sum, p) => sum + p.clientBudget);
-
     final claimedOrDoneProjects = projects.where((p) => p.status != ProjectStatus.open).toList();
     final totalEditorPayouts = claimedOrDoneProjects.fold<double>(0.0, (sum, p) => sum + p.editorPayout);
     final approvedEditorPayouts = approvedProjects.fold<double>(0.0, (sum, p) => sum + p.editorPayout);
-    final inProductionPayouts = projects
-        .where((p) => p.status == ProjectStatus.claimed || p.status == ProjectStatus.submitted)
-        .fold<double>(0.0, (sum, p) => sum + p.editorPayout);
-
     final netMargin = totalPipelineVolume - totalEditorPayouts;
     final marginPercent = totalPipelineVolume > 0 ? ((netMargin / totalPipelineVolume) * 100).toInt() : 0;
 
-    // Aggregate real editor payouts from claimed/approved projects
-    final editorEarningsMap = <String, ({double earned, double inProduction, int completed, int active})>{};
-    for (final p in projects) {
-      final edName = p.claimedByEditorName?.trim();
-      if (edName != null && edName.isNotEmpty) {
-        final current = editorEarningsMap[edName] ?? (earned: 0.0, inProduction: 0.0, completed: 0, active: 0);
-        if (p.status == ProjectStatus.approved) {
-          editorEarningsMap[edName] = (
-            earned: current.earned + p.editorPayout,
-            inProduction: current.inProduction,
-            completed: current.completed + 1,
-            active: current.active,
-          );
-        } else {
-          editorEarningsMap[edName] = (
-            earned: current.earned,
-            inProduction: current.inProduction + p.editorPayout,
-            completed: current.completed,
-            active: current.active + 1,
-          );
-        }
-      }
-    }
-
+    final m = AppSpacing.screenMargin(context);
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.lg, AppSpacing.screenMargin(context), AppSpacing.bottomInset(context)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header ───────────────────────────────────────────────
-              Row(
-                children: [
-                  const WaraLogo(),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Agency Project Finances', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(
-                          '${(user?.agencyName ?? '').isNotEmpty ? user!.agencyName : "Your agency"} • Live Production Ledger',
-                          style: TextStyle(color: colors.muted, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(m, AppSpacing.lg, m, AppSpacing.bottomInset(context)),
+          children: [
+            Text('Finance', style: text.titleLarge?.copyWith(color: colors.text, fontWeight: FontWeight.w700)),
+            const SizedBox(height: AppSpacing.lg),
 
-              // ── Primary Financial Pipeline Card ────────────────────────
-              Container(
-                padding: const EdgeInsets.all(24),
+            // ── Hero total ──────────────────────────────────────────────
+            Text('Pipeline', style: text.labelMedium?.copyWith(color: colors.muted)),
+            const SizedBox(height: AppSpacing.xs),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: RollingCounter(
+                prefix: '৳',
+                grouped: true,
+                value: totalPipelineVolume.toInt(),
+                style: text.displaySmall?.copyWith(color: colors.text, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // ── Secondary metrics strip ─────────────────────────────────
+            FinanceMetricStrip(metrics: [
+              FinanceMetric('Revenue', '৳${formatTaka(approvedRevenue)}'),
+              FinanceMetric('Paid', '৳${formatTaka(approvedEditorPayouts)}'),
+              FinanceMetric('Committed', '৳${formatTaka(totalEditorPayouts)}', color: colors.primary),
+              FinanceMetric('Margin', '$marginPercent%', color: colors.success),
+            ]),
+            const SizedBox(height: AppSpacing.xl),
+
+            // ── Ledger ──────────────────────────────────────────────────
+            Text('Ledger', style: text.labelMedium?.copyWith(color: colors.muted)),
+            const SizedBox(height: AppSpacing.sm),
+            if (claimedOrDoneProjects.isEmpty)
+              const WaraEmptyState(compact: true, icon: Icons.receipt_long_outlined, title: 'No payouts')
+            else
+              for (final p in claimedOrDoneProjects) _LedgerRow(project: p),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String formatTaka(double amount) => amount.toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+
+String _shortDate(DateTime? d) {
+  if (d == null) return '';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${d.day} ${months[d.month - 1]}';
+}
+
+class FinanceMetric {
+  final String label;
+  final String value;
+  final Color? color;
+  const FinanceMetric(this.label, this.value, {this.color});
+}
+
+/// Single row of equal-height metric tiles. Labels and values never wrap.
+class FinanceMetricStrip extends StatelessWidget {
+  final List<FinanceMetric> metrics;
+  const FinanceMetricStrip({super.key, required this.metrics});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = Theme.of(context).textTheme;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < metrics.length; i++) ...[
+            if (i > 0) const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Container(
+                key: ValueKey('metric-${metrics[i].label}'),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(24),
+                  color: colors.card,
+                  borderRadius: AppRadius.brMd,
                   border: Border.all(color: colors.border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors.text.withValues(alpha: 0.03),
-                      blurRadius: 20,
-                      spreadRadius: 1,
-                    ),
-                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'TOTAL PROJECT PIPELINE VALUE',
-                          style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
-                        ),
-                        Icon(Icons.account_balance_wallet_outlined, color: colors.primary, size: 20),
-                      ],
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(metrics[i].label,
+                          maxLines: 1, softWrap: false, style: text.labelSmall?.copyWith(color: colors.muted)),
                     ),
-                    const SizedBox(height: 8),
-                    RollingCounter(prefix: '৳', grouped: true, value: totalPipelineVolume.toInt(), style: Theme.of(context).textTheme.displaySmall?.copyWith(color: colors.text, fontWeight: FontWeight.w700, letterSpacing: -0.5),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Net Margin Bar
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: colors.card,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: colors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.trending_up_rounded, color: colors.success, size: 16),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Agency Net Margin: ৳${_formatCurrency(netMargin)} ($marginPercent%)',
-                              style: TextStyle(color: colors.success, fontSize: 12, fontWeight: FontWeight.bold),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Sub-Metrics Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: colors.card,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('SETTLED REVENUE', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 4),
-                                RollingCounter(
-  prefix: '৳',
-  grouped: true,
-  value: approvedRevenue.toInt(),
-  style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
-                                ),
-                                Text('${approvedProjects.length} approved cuts', style: TextStyle(color: colors.muted, fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: colors.card,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('COMMITTED PAYOUTS', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 4),
-                                RollingCounter(
-  prefix: '৳',
-  grouped: true,
-  value: totalEditorPayouts.toInt(),
-  style: TextStyle(color: colors.primary, fontSize: 15, fontWeight: FontWeight.bold),
-                                ),
-                                Text('৳${_formatCurrency(approvedEditorPayouts)} settled • ৳${_formatCurrency(inProductionPayouts)} in escrow', style: TextStyle(color: colors.muted, fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: AppSpacing.xs),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(metrics[i].value,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: text.titleSmall?.copyWith(color: metrics[i].color ?? colors.text, fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
-              // ── Project Financial Allocation Ledger ─────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'PROJECT FINANCIAL LEDGER',
-                    style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
-                  ),
-                  Text(
-                    '${projects.length} Live Projects',
-                    style: TextStyle(color: colors.muted, fontSize: 12),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
+class _LedgerRow extends StatelessWidget {
+  final ProjectItem project;
+  const _LedgerRow({required this.project});
 
-              if (projects.isEmpty)
-                const WaraEmptyState(
-                  compact: true,
-                  icon: Icons.receipt_long_outlined,
-                  title: 'No projects',
-                )
-              else
-                Column(
-                  children: [
-                    for (final p in projects)
-                      WaraProjectCard(
-                        project: p,
-                        listId: 'finance',
-                        showAssignee: true,
-                        amount: p.clientBudget,
-                        payoutLabel: 'Client value',
-                        notice: Text('Editor ৳${p.editorPayout.toInt()}', style: Theme.of(context).textTheme.bodySmall),
-                      ),
-                  ],
-                ),
-              const SizedBox(height: 28),
-
-              // ── Active Editor Payouts Ledger ─────────────────────────────
-              Text(
-                'EDITOR PAYOUTS & DISBURSEMENTS',
-                style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
-              ),
-              const SizedBox(height: 12),
-
-              if (editorEarningsMap.isEmpty)
-                const WaraEmptyState(
-                  compact: true,
-                  icon: Icons.groups_outlined,
-                  title: 'No payouts',
-                )
-              else
-                Column(
-                  children: editorEarningsMap.entries.map((entry) {
-                    final editorName = entry.key;
-                    final stats = entry.value;
-                    final totalEarnedAndActive = stats.earned + stats.inProduction;
-                    final share = totalPipelineVolume > 0 ? (totalEarnedAndActive / totalPipelineVolume).clamp(0.0, 1.0) : 0.0;
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: colors.card,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: colors.border),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              WaraAvatar(
-                                name: editorName,
-                                radius: 18,
-                                fontSize: 12,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      editorName,
-                                      style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold),
-                                    ),
-                                    Text(
-                                      '${stats.completed} Completed • ${stats.active} Active Cuts',
-                                      style: TextStyle(color: colors.muted, fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  RollingCounter(
-  prefix: '৳',
-  value: stats.earned.toInt(),
-  style: TextStyle(color: colors.primary, fontSize: 15, fontWeight: FontWeight.bold),
-                                  ),
-                                  if (stats.inProduction > 0)
-                                    Text(
-                                      '+৳${stats.inProduction.toInt()} in escrow',
-                                      style: TextStyle(color: colors.muted, fontSize: 12),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: share,
-                              backgroundColor: colors.surface,
-                              valueColor: AlwaysStoppedAnimation(colors.primary),
-                              minHeight: 5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              const SizedBox(height: 30),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final text = Theme.of(context).textTheme;
+    final p = project;
+    final (tone, statusLabel) = projectStatusTone(p);
+    final sub = [p.claimedByEditorName ?? 'Unassigned', _shortDate(p.claimedAt)].where((s) => s.isNotEmpty).join(' · ');
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      decoration: BoxDecoration(color: c.card, borderRadius: AppRadius.brMd, border: Border.all(color: c.border)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: text.titleSmall?.copyWith(color: c.text, fontWeight: FontWeight.w600)),
+                const SizedBox(height: AppSpacing.xs),
+                Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.bodySmall?.copyWith(color: c.muted)),
+              ],
+            ),
           ),
-        ),
+          const SizedBox(width: AppSpacing.md),
+          Text('৳${formatTaka(p.editorPayout)}',
+              maxLines: 1, style: text.titleSmall?.copyWith(color: c.text, fontWeight: FontWeight.w700)),
+          const SizedBox(width: AppSpacing.sm),
+          Tooltip(
+            message: statusLabel,
+            child: Semantics(
+              label: statusLabel,
+              child: Container(width: 8, height: 8, decoration: BoxDecoration(color: tone.fg(c), shape: BoxShape.circle)),
+            ),
+          ),
+        ],
       ),
     );
   }
