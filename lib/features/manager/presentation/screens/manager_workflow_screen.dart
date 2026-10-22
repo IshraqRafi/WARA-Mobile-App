@@ -4,18 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
-import '../../../../shared/widgets/wara_banner.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_project_card.dart';
 import '../../../../shared/widgets/wara_section_header.dart';
-import '../../../../shared/widgets/wara_stat_card.dart';
+import '../../../../shared/widgets/wara_stat_strip.dart';
 import '../../../../shared/widgets/wara_status_chip.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../widgets/rate_editor_dialog.dart';
+
+/// Index of the active stat filter on the workflow screen (null = all).
+final _workflowFilterProvider = StateProvider.autoDispose<int?>((ref) => null);
 
 class ManagerWorkflowScreen extends ConsumerWidget {
   const ManagerWorkflowScreen({super.key});
@@ -801,6 +803,14 @@ class ManagerWorkflowScreen extends ConsumerWidget {
     final claimedCount = projects.where((p) => p.status == ProjectStatus.claimed).length;
     final submittedCount = projects.where((p) => p.status == ProjectStatus.submitted).length;
     final overdueCount = projects.where((p) => p.isOverdue).length;
+    final filter = ref.watch(_workflowFilterProvider);
+    final filterTests = <bool Function(ProjectItem)>[
+      (p) => p.status == ProjectStatus.open,
+      (p) => p.status == ProjectStatus.claimed,
+      (p) => p.status == ProjectStatus.submitted,
+      (p) => p.isOverdue,
+    ];
+    final visible = filter == null ? projects : projects.where(filterTests[filter]).toList();
 
     return Scaffold(
       backgroundColor: colors.bg,
@@ -831,56 +841,49 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  // Summary stats
-                  LayoutBuilder(builder: (context, box) {
-                    final cards = [
-                      WaraStatCard(icon: Icons.inbox_rounded, value: '$openCount', label: 'Open', tone: WaraTone.info),
-                      WaraStatCard(icon: Icons.movie_edit, value: '$claimedCount', label: 'In production', tone: WaraTone.warning),
-                      WaraStatCard(icon: Icons.fact_check_rounded, value: '$submittedCount', label: 'To review', tone: WaraTone.success),
-                      WaraStatCard(
-                        icon: Icons.warning_amber_rounded,
-                        value: '$overdueCount',
-                        label: 'Overdue',
-                        tone: overdueCount > 0 ? WaraTone.error : WaraTone.neutral,
-                      ),
-                    ];
-                    final perRow = box.maxWidth >= 560 ? 4 : 2;
-                    final w = (box.maxWidth - AppSpacing.md * (perRow - 1)) / perRow;
-                    return Wrap(
-                      spacing: AppSpacing.md,
-                      runSpacing: AppSpacing.md,
-                      children: [for (final c in cards) SizedBox(width: w, child: c)],
-                    );
-                  }),
-                  WaraSectionHeader(title: 'All projects', subtitle: '${projects.length} total'),
+                  WaraStatStrip(
+                    stats: [
+                      WaraStat(label: 'Open', value: openCount, tone: WaraTone.info),
+                      WaraStat(label: 'Active', value: claimedCount, tone: WaraTone.warning),
+                      WaraStat(label: 'Review', value: submittedCount, tone: WaraTone.success),
+                      WaraStat(label: 'Overdue', value: overdueCount, tone: WaraTone.error),
+                    ],
+                    selected: filter,
+                    onSelect: (i) => ref.read(_workflowFilterProvider.notifier).state = i,
+                  ),
+                  WaraSectionHeader(title: 'Projects', subtitle: filter == null ? null : '${visible.length} of ${projects.length}'),
                 ],
               ),
             ),
-            if (projects.isEmpty)
+            if (visible.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: WaraEmptyState(
-                  icon: Icons.post_add_rounded,
-                  title: 'No projects yet',
-                  message: 'Post your first project offer and your editors will see it in their marketplace.',
-                  actionLabel: 'New project',
-                  onAction: () => _showCreateOfferModal(context, ref),
-                ),
+                child: filter != null
+                    ? WaraEmptyState(
+                        icon: Icons.filter_alt_off_rounded,
+                        title: 'No matches',
+                        actionLabel: 'Clear filter',
+                        actionIcon: Icons.close_rounded,
+                        onAction: () => ref.read(_workflowFilterProvider.notifier).state = null,
+                      )
+                    : WaraEmptyState(
+                        icon: Icons.post_add_rounded,
+                        title: 'No projects',
+                        actionLabel: 'New project',
+                        onAction: () => _showCreateOfferModal(context, ref),
+                      ),
               )
             else
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(margin, 0, margin, AppSpacing.bottomInset(context, extra: 88)),
                 sliver: SliverList.builder(
-                  itemCount: projects.length,
+                  itemCount: visible.length,
                   itemBuilder: (context, index) {
-                    final project = projects[index];
+                    final project = visible[index];
                     return WaraProjectCard(
                       project: project,
                       showAssignee: true,
                       onTap: () => _showEditOfferModal(context, ref, project),
-                      notice: project.isOverdue
-                          ? const WaraBanner(message: 'Overdue: the editor didn\'t deliver before the deadline.')
-                          : null,
                       actions: _cardActions(context, ref, project),
                     );
                   },

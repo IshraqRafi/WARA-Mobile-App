@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
-/// Shared empty state: icon, title, message and an optional action.
+/// Shared empty state: icon, short title, optional message and action.
 /// Mirrors [WaraErrorState] so empty and failed screens look consistent.
 class WaraEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String message;
+  final String? message;
   final String? actionLabel;
   final IconData? actionIcon;
   final VoidCallback? onAction;
@@ -16,7 +16,7 @@ class WaraEmptyState extends StatelessWidget {
     super.key,
     this.icon = Icons.inbox_outlined,
     required this.title,
-    required this.message,
+    this.message,
     this.actionLabel,
     this.actionIcon,
     this.onAction,
@@ -42,11 +42,13 @@ class WaraEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(title, textAlign: TextAlign.center, style: text.titleMedium),
-            const SizedBox(height: AppSpacing.xs),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Text(message, textAlign: TextAlign.center, style: text.bodyMedium?.copyWith(color: colors.muted)),
-            ),
+            if (message != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Text(message!, textAlign: TextAlign.center, style: text.bodyMedium?.copyWith(color: colors.muted)),
+              ),
+            ],
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: AppSpacing.lg),
               OutlinedButton.icon(
