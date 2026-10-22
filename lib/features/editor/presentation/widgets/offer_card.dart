@@ -27,35 +27,31 @@ bool isNewOffer(ProjectItem p, DateTime now) {
   return at != null && now.difference(at) < const Duration(hours: 24);
 }
 
-String initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-  if (parts.isEmpty) return '';
-  return (parts.length == 1 ? parts.first.substring(0, 1) : '${parts[0][0]}${parts[1][0]}').toUpperCase();
-}
+/// Live deadline label: '2d left', '5h left', '<1h left', 'Overdue'.
+String offerDueLabel(int h) => h < 0 ? 'Overdue' : '${offerDue(h)} left';
 
-/// Marketplace offer. Editor payout only (never client price). Fields
-/// that are missing on the doc are hidden, never filled in.
+/// Compact marketplace offer (~76dp). Editor payout only, never client
+/// price. Missing fields are hidden.
 class OfferCard extends StatelessWidget {
   final ProjectItem project;
   final VoidCallback onLongPress;
-  final String? agencyName;
+  final VoidCallback? onTap;
   final DateTime? now;
-  const OfferCard({super.key, required this.project, required this.onLongPress, this.agencyName, this.now});
+  const OfferCard({super.key, required this.project, required this.onLongPress, this.onTap, this.now});
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final t = Theme.of(context).textTheme;
     final at = now ?? DateTime.now();
-    final brief = project.description.trim().split('\n').first.trim();
-    final type = project.requiredSkills.where((s) => s.trim().isNotEmpty).firstOrNull;
+    final skill = project.requiredSkills.map((s) => s.trim()).where((s) => s.isNotEmpty).firstOrNull;
     final h = offerHoursLeft(project, at);
-    final urgent = h < 24;
-    final ini = initials(agencyName ?? '');
+    final dueColor = h < 0 ? c.error : (h < 24 ? c.warning : c.muted);
     const tab = [FontFeature.tabularFigures()];
+    final meta = t.bodySmall?.copyWith(color: c.muted, fontFeatures: tab);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Pressable(
         scale: 0.98,
         child: Material(
@@ -64,77 +60,45 @@ class OfferCard extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             key: ValueKey('offer_${project.id}'),
+            onTap: onTap,
             onLongPress: onLongPress,
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  if (type != null)
-                    Flexible(
-                      child: Container(
-                        key: const ValueKey('offer_type'),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(6), border: Border.all(color: c.border, width: 0.5)),
-                        child: Text(type, maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: t.labelSmall?.copyWith(color: c.muted, fontWeight: FontWeight.w600)),
-                      ),
-                    ),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 72),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                   if (isNewOffer(project, at)) ...[
-                    const SizedBox(width: 8),
                     Semantics(
                       label: 'New',
                       child: Container(key: const ValueKey('offer_new'), width: 6, height: 6,
                           decoration: BoxDecoration(color: c.primary, shape: BoxShape.circle)),
                     ),
+                    const SizedBox(width: 6),
                   ],
-                  const Spacer(),
-                  Container(
-                    key: const ValueKey('offer_due'),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: urgent ? c.warningTint : c.card,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.schedule_rounded, size: 12, color: urgent ? c.warning : c.muted),
-                      const SizedBox(width: 4),
-                      Text(offerDue(h),
-                          style: t.labelSmall?.copyWith(color: urgent ? c.warning : c.muted, fontWeight: FontWeight.w600, fontFeatures: tab)),
+                  Expanded(
+                    child: Text(project.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: t.titleSmall?.copyWith(color: c.text, fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(width: 12),
+                  Text.rich(
+                    key: const ValueKey('offer_payout'),
+                    TextSpan(children: [
+                      TextSpan(text: '৳', style: t.labelSmall?.copyWith(color: c.muted, fontWeight: FontWeight.w500)),
+                      TextSpan(text: groupedDigits(project.editorPayout),
+                          style: t.titleMedium?.copyWith(color: c.text, fontWeight: FontWeight.w700, fontFeatures: tab)),
                     ]),
                   ),
                 ]),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: 4),
                 Text.rich(
-                  key: const ValueKey('offer_payout'),
-                  TextSpan(children: [
-                    TextSpan(text: '৳ ', style: t.titleSmall?.copyWith(color: c.muted, fontWeight: FontWeight.w500)),
-                    TextSpan(text: groupedDigits(project.editorPayout),
-                        style: t.headlineMedium?.copyWith(color: c.text, fontWeight: FontWeight.w600, letterSpacing: -0.5, fontFeatures: tab)),
+                  key: const ValueKey('offer_meta'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  TextSpan(style: meta, children: [
+                    TextSpan(text: offerDueLabel(h), style: meta?.copyWith(color: dueColor, fontWeight: h < 24 ? FontWeight.w600 : null)),
+                    if (skill != null) TextSpan(text: '  ·  $skill'),
                   ]),
                 ),
-                const SizedBox(height: 4),
-                Text(project.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: t.bodyMedium?.copyWith(color: c.text, fontWeight: FontWeight.w500)),
-                if (brief.isNotEmpty)
-                  Text(brief, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: c.muted)),
-                if (ini.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  Row(children: [
-                    // Duration/length and included revisions aren't stored on
-                    // offers yet, so they're not shown.
-                    const Spacer(),
-                    if (ini.isNotEmpty)
-                      Tooltip(
-                        message: agencyName!,
-                        child: CircleAvatar(
-                          key: const ValueKey('offer_avatar'),
-                          radius: 11,
-                          backgroundColor: c.card,
-                          child: Text(ini, style: t.labelSmall?.copyWith(color: c.muted, fontSize: 9, fontWeight: FontWeight.w700)),
-                        ),
-                      ),
-                  ]),
-                ],
               ]),
             ),
           ),
@@ -144,7 +108,40 @@ class OfferCard extends StatelessWidget {
   }
 }
 
-/// Shimmer placeholder shaped like [OfferCard].
+/// Read-only offer detail (tap). Shows the brief; payout only.
+Future<void> showOfferDetail(BuildContext context, ProjectItem p) {
+  final c = context.colors;
+  final t = Theme.of(context).textTheme;
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: c.surface,
+    showDragHandle: true,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
+    builder: (_) => SafeArea(
+      child: Padding(
+        key: const ValueKey('offer_detail'),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(p.title, style: t.titleMedium?.copyWith(color: c.text, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text(groupedTaka(p.editorPayout), style: t.titleSmall?.copyWith(color: c.text, fontFeatures: const [FontFeature.tabularFigures()])),
+          if (p.requiredSkills.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(p.requiredSkills.join(' · '), style: t.bodySmall?.copyWith(color: c.muted)),
+          ],
+          if (p.description.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(p.description.trim(), style: t.bodyMedium?.copyWith(color: c.text)),
+          ],
+          const SizedBox(height: 12),
+          Text('Swipe right or long-press the card to claim.', style: t.bodySmall?.copyWith(color: c.muted)),
+        ]),
+      ),
+    ),
+  );
+}
+
+/// Shimmer placeholder matching [OfferCard]'s compact height.
 class OfferCardSkeleton extends StatelessWidget {
   const OfferCardSkeleton({super.key});
 
@@ -152,18 +149,14 @@ class OfferCardSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.border, width: 0.5)),
-        child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [SkeletonBox(width: 56, height: 16), Spacer(), SkeletonBox(width: 40, height: 16)]),
-          SizedBox(height: AppSpacing.md),
-          SkeletonBox(width: 120, height: 28),
-          SizedBox(height: 8),
-          FractionallySizedBox(widthFactor: 0.6, child: SkeletonBox(height: 14)),
-          SizedBox(height: 6),
-          FractionallySizedBox(widthFactor: 0.85, child: SkeletonBox(height: 12)),
+        child: const Column(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [Expanded(child: FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: 0.6, child: SkeletonBox(height: 16))), SizedBox(width: 12), SkeletonBox(width: 64, height: 18)]),
+          SkeletonBox(width: 110, height: 12),
         ]),
       ),
     );

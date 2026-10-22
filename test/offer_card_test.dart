@@ -6,61 +6,80 @@ import 'package:flutter_test/flutter_test.dart';
 
 final now = DateTime(2026, 10, 23, 12);
 
-ProjectItem offer({int hours = 30, List<String> skills = const ['Reel'], DateTime? posted, DateTime? deadlineAt}) => ProjectItem(
+ProjectItem offer({int hours = 60, List<String> skills = const ['Reels'], DateTime? posted, DateTime? deadlineAt}) => ProjectItem(
     id: 'p', title: 'Brand reel', clientName: 'C', editorPayout: 12000, legacyClientBudget: 99999,
     deadlineStr: '', deadlineHoursLeft: hours, deadlineAt: deadlineAt, postedAt: posted,
-    description: 'Cut a 30s reel\nsecond line', requiredSkills: skills, status: ProjectStatus.open);
+    description: 'Cut a 30s reel', requiredSkills: skills, status: ProjectStatus.open);
 
-Future<void> pump(WidgetTester t, ProjectItem p, {String? agency, VoidCallback? onLong}) => t.pumpWidget(MaterialApp(
+Future<void> pump(WidgetTester t, ProjectItem p, {VoidCallback? onLong, VoidCallback? onTap}) => t.pumpWidget(MaterialApp(
     theme: AppTheme.dark,
-    home: Scaffold(body: OfferCard(project: p, agencyName: agency, now: now, onLongPress: onLong ?? () {}))));
+    home: Scaffold(body: ListView(children: [OfferCard(project: p, now: now, onTap: onTap, onLongPress: onLong ?? () {})]))));
+
+Color? colorOf(WidgetTester t, String label) {
+  final rich = t.widget<RichText>(find.byWidgetPredicate((w) => w is RichText && w.text.toPlainText().contains(label)));
+  Color? found;
+  rich.text.visitChildren((s) {
+    if (s is TextSpan && s.text == label) found = s.style?.color;
+    return true;
+  });
+  return found;
+}
 
 void main() {
   test('helpers', () {
     expect(groupedTaka(1200000), '৳1,200,000');
-    expect(groupedDigits(950), '950');
-    expect(offerDue(0), '<1h');
-    expect(offerDue(30), '30h');
-    expect(offerDue(60), '2d');
-    expect(initials('Studio Alpha'), 'SA');
-    expect(initials(''), '');
+    expect(offerDueLabel(60), '2d left');
+    expect(offerDueLabel(5), '5h left');
+    expect(offerDueLabel(0), '<1h left');
+    expect(offerDueLabel(-3), 'Overdue');
     expect(isNewOffer(offer(posted: now.subtract(const Duration(hours: 2))), now), isTrue);
-    expect(isNewOffer(offer(posted: now.subtract(const Duration(hours: 30))), now), isFalse);
     expect(isNewOffer(offer(), now), isFalse);
   });
 
-  testWidgets('payout, type chip, deadline pill, brief, avatar; never client price; long-press claims', (t) async {
-    var claimed = 0;
-    await pump(t, offer(), agency: 'Studio Alpha', onLong: () => claimed++);
+  testWidgets('compact: title + payout, then deadline · skill; no brief, avatar or chip; no client price', (t) async {
+    await pump(t, offer());
+    expect(find.text('Brand reel'), findsOneWidget);
     expect(find.textContaining('12,000', findRichText: true), findsOneWidget);
-    expect(find.text('Reel'), findsOneWidget);
-    expect(find.text('30h'), findsOneWidget);
-    expect(find.text('Cut a 30s reel'), findsOneWidget);
-    expect(find.text('second line'), findsNothing);
-    expect(find.text('SA'), findsOneWidget);
+    expect(find.textContaining('2d left  ·  Reels', findRichText: true), findsOneWidget);
+    expect(find.text('Cut a 30s reel'), findsNothing);
+    expect(find.byType(CircleAvatar), findsNothing);
     expect(find.textContaining('99', findRichText: true), findsNothing);
     expect(find.byKey(const ValueKey('offer_new')), findsNothing);
+  });
+
+  testWidgets('height stays within 72-84dp', (t) async {
+    await pump(t, offer(posted: now));
+    final h = t.getSize(find.byKey(const ValueKey('offer_p'))).height;
+    expect(h, inInclusiveRange(72, 84));
+  });
+
+  testWidgets('new dot, no skill hides separator, amber <24h, error when past', (t) async {
+    final colors = AppTheme.dark.extension<AppColors>()!;
+    await pump(t, offer(skills: const [], hours: 99, deadlineAt: now.add(const Duration(hours: 5)), posted: now));
+    expect(find.byKey(const ValueKey('offer_new')), findsOneWidget);
+    expect(find.textContaining('·', findRichText: true), findsNothing);
+    expect(colorOf(t, '5h left'), colors.warning);
+    await pump(t, offer(hours: -2));
+    expect(colorOf(t, 'Overdue'), colors.error);
+  });
+
+  testWidgets('long-press claims; tap opens detail with brief', (t) async {
+    var claimed = 0;
+    late BuildContext ctx;
+    await t.pumpWidget(MaterialApp(theme: AppTheme.dark, home: Scaffold(body: Builder(builder: (c) {
+      ctx = c;
+      return ListView(children: [OfferCard(project: offer(), now: now, onLongPress: () => claimed++, onTap: () => showOfferDetail(ctx, offer()))]);
+    }))));
     await t.longPress(find.byKey(const ValueKey('offer_p')));
     expect(claimed, 1);
+    await t.tap(find.byKey(const ValueKey('offer_p')));
+    await t.pumpAndSettle();
+    expect(find.text('Cut a 30s reel'), findsOneWidget);
+    expect(find.textContaining('99'), findsNothing);
   });
 
-  testWidgets('missing fields are hidden; new dot when posted < 24h; 2d pill', (t) async {
-    await pump(t, offer(skills: const [], hours: 60, posted: now.subtract(const Duration(hours: 1))));
-    expect(find.byKey(const ValueKey('offer_type')), findsNothing);
-    expect(find.byKey(const ValueKey('offer_avatar')), findsNothing);
-    expect(find.byKey(const ValueKey('offer_new')), findsOneWidget);
-    expect(find.text('2d'), findsOneWidget);
-  });
-
-  testWidgets('pill turns amber under 24h (live from deadlineAt)', (t) async {
-    await pump(t, offer(hours: 99, deadlineAt: now.add(const Duration(hours: 5))));
-    expect(find.text('5h'), findsOneWidget);
-    final text = t.widget<Text>(find.text('5h'));
-    expect(text.style?.color, AppTheme.dark.extension<AppColors>()?.warning ?? text.style?.color);
-  });
-
-  testWidgets('skeleton renders', (t) async {
-    await t.pumpWidget(MaterialApp(theme: AppTheme.dark, home: const Scaffold(body: OfferCardSkeleton())));
-    expect(find.byType(OfferCardSkeleton), findsOneWidget);
+  testWidgets('skeleton matches compact height', (t) async {
+    await t.pumpWidget(MaterialApp(theme: AppTheme.dark, home: const Scaffold(body: Column(children: [OfferCardSkeleton()]))));
+    expect(t.getSize(find.byType(OfferCardSkeleton)).height, 80);
   });
 }

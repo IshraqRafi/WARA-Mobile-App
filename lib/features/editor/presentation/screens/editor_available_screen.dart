@@ -190,7 +190,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                                 onDismissed: (dir) => dir == DismissDirection.endToStart
                                     ? _hide(project)
                                     : _claim(project, user),
-                                child: OfferCard(project: project, agencyName: user?.agencyName, onLongPress: () => _claim(project, user)),
+                                child: OfferCard(project: project, onTap: () => showOfferDetail(context, project), onLongPress: () => _claim(project, user)),
                               ),
                             ),
                           );
