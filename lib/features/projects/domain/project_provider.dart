@@ -130,6 +130,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
       editorPayout: editorPayout,
       deadlineStr: '$deadlineDays Days Left ($deadlineHours Hours)',
       deadlineHoursLeft: deadlineHours,
+      deadlineAt: DateTime.now().add(Duration(hours: deadlineHours)),
       description: description,
       requiredSkills: skills.isEmpty ? ['Video Editing'] : skills,
       status: ProjectStatus.open,
@@ -175,6 +176,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
             editorPayout: editorPayout,
             deadlineStr: newDeadlineStr,
             deadlineHoursLeft: deadlineHours,
+            deadlineAt: DateTime.now().add(Duration(hours: deadlineHours)),
           )
         else
           item
@@ -186,6 +188,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
       'editorPayout': editorPayout,
       'deadlineHoursLeft': deadlineHours,
       'deadlineStr': newDeadlineStr,
+      'deadlineAt': DateTime.now().add(Duration(hours: deadlineHours)).toIso8601String(),
       'description': description,
     });
     if (clientPrice != null && clientPrice > 0) {
@@ -251,6 +254,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
             claimedAt: null,
             status: ProjectStatus.open,
             deadlineHoursLeft: newHoursLeft,
+            deadlineAt: DateTime.now().add(Duration(hours: newHoursLeft)),
             deadlineStr: newDeadlineStr,
             submissionLink: null,
             submissionNote: null,
@@ -282,6 +286,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
             status: ProjectStatus.open,
             editorPayout: newPayout,
             deadlineHoursLeft: 24,
+            deadlineAt: DateTime.now().add(const Duration(hours: 24)),
             deadlineStr: 'Urgent • 24 Hours Left',
             submissionLink: null,
             submissionNote: null,

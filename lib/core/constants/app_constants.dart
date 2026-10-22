@@ -75,6 +75,9 @@ class ProjectItem {
   final bool isOverdue;
   /// When the manager approved (= paid) the work; null on legacy docs.
   final DateTime? approvedAt;
+  /// Absolute deadline (drives live countdowns); null on legacy docs, which
+  /// only have the static [deadlineHoursLeft].
+  final DateTime? deadlineAt;
 
   const ProjectItem({
     required this.id,
@@ -96,6 +99,7 @@ class ProjectItem {
     this.submittedAt,
     this.isOverdue = false,
     this.approvedAt,
+    this.deadlineAt,
   });
 
   bool get canReturn => status == ProjectStatus.claimed && deadlineHoursLeft > 72;
@@ -114,6 +118,7 @@ class ProjectItem {
     String? submittedAt,
     bool? isOverdue,
     DateTime? approvedAt,
+    DateTime? deadlineAt,
   }) {
     return ProjectItem(
       id: id,
@@ -135,6 +140,7 @@ class ProjectItem {
       submittedAt: submittedAt ?? this.submittedAt,
       isOverdue: isOverdue ?? this.isOverdue,
       approvedAt: approvedAt ?? this.approvedAt,
+      deadlineAt: deadlineAt ?? this.deadlineAt,
     );
   }
 
@@ -157,6 +163,7 @@ class ProjectItem {
       'submittedAt': submittedAt,
       'isOverdue': isOverdue,
       if (approvedAt != null) 'approvedAt': approvedAt!.toIso8601String(),
+      if (deadlineAt != null) 'deadlineAt': deadlineAt!.toIso8601String(),
     };
   }
 
@@ -184,6 +191,7 @@ class ProjectItem {
       submittedAt: map['submittedAt'] as String?,
       isOverdue: map['isOverdue'] as bool? ?? false,
       approvedAt: _date(map['approvedAt']),
+      deadlineAt: _date(map['deadlineAt']),
     );
   }
 }

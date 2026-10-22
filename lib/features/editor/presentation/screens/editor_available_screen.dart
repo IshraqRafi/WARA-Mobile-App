@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
@@ -11,6 +12,7 @@ import '../../../../shared/widgets/wara_section_header.dart';
 import '../../../../shared/widgets/wara_page_header.dart';
 import '../../domain/editor_earnings.dart';
 import '../widgets/earnings_header.dart';
+import '../widgets/today_strip.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
@@ -85,6 +87,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
       return ProjectsLoadError(error: projectsError);
     }
     final user = ref.watch(authProvider.select((s) => s.user));
+    final today = nextDeadline(projects.where((p) => isClaimedBy(p, user?.id)), DateTime.now());
 
     // Filter only open offers in the marketplace
     final hidden = ref.watch(hiddenOffersProvider);
@@ -109,6 +112,17 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                 subtitle: (user?.agencyName ?? '').isNotEmpty ? user!.agencyName : null,
                 trailing: const NotificationBellButton(),
               ),
+              if (today != null) ...[
+                const SizedBox(height: AppSpacing.lg),
+                TodayStrip(
+                  key: ValueKey('today_${today.id}'),
+                  project: today,
+                  onTap: () {
+                    ref.read(expandedCardProvider('workspace').notifier).state = today.id;
+                    context.go('/editor/workspace');
+                  },
+                ),
+              ],
               const SizedBox(height: AppSpacing.xl),
               EarningsHeader(earnings: ref.watch(editorEarningsProvider)),
               const SizedBox(height: AppSpacing.xl),
