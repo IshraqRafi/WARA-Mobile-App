@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required in release builds: Firebase Auth/Firestore and Google Sign-In need network. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="wara.io"
         android:name="${applicationName}"
