@@ -161,7 +161,7 @@ Future<void> showAgencyLeaderboardModal(BuildContext context, WidgetRef ref) {
                                 child: Text(
                                   'YOU',
                                   style: TextStyle(
-                                    color: colors.isDark ? Colors.black : Colors.white,
+                                    color: colors.onPrimary,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -349,7 +349,7 @@ class _LeaderboardRow extends StatelessWidget {
                         child: Text(
                           'YOU',
                           style: TextStyle(
-                            color: colors.isDark ? Colors.black : Colors.white,
+                            color: colors.onPrimary,
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),

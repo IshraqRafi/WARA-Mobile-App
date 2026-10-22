@@ -182,11 +182,11 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                             WaraToast.show(context, message: '✅ Profile updated successfully!', icon: Icons.check_circle_rounded);
                           }
                         },
-                        icon: Icon(Icons.save_rounded, size: 18, color: colors.isDark ? Colors.black : Colors.white),
-                        label: Text('Save Changes', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                        icon: Icon(Icons.save_rounded, size: 18, color: colors.onPrimary),
+                        label: Text('Save Changes', style: TextStyle(color: colors.onPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: colors.primary,
-                          foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                          foregroundColor: colors.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
@@ -388,9 +388,9 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                     },
                     backgroundColor: colors.card,
                     selectedColor: colors.primary,
-                    checkmarkColor: colors.isDark ? Colors.black : Colors.white,
+                    checkmarkColor: colors.onPrimary,
                     labelStyle: TextStyle(
-                      color: isSelected ? (colors.isDark ? Colors.black : Colors.white) : colors.text,
+                      color: isSelected ? colors.onPrimary : colors.text,
                       fontSize: 12,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
@@ -465,7 +465,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                               child: Text(
                                 day[0],
                                 style: TextStyle(
-                                  color: isActive ? (colors.isDark ? Colors.black : Colors.white) : colors.muted,
+                                  color: isActive ? colors.onPrimary : colors.muted,
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                 ),

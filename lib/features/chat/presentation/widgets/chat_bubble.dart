@@ -121,7 +121,7 @@ class ChatBubble extends StatelessWidget {
                         message.text,
                         style: TextStyle(
                           color: isMe
-                              ? (colors.isDark ? Colors.black : Colors.white)
+                              ? colors.onPrimary
                               : colors.text,
                           fontSize: 14,
                           height: 1.35,
@@ -147,12 +147,12 @@ class ChatBubble extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
                               color: isMe
-                                  ? (colors.isDark ? Colors.black.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.2))
+                                  ? colors.onPrimary.withValues(alpha: 0.15)
                                   : colors.surface,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: isMe
-                                    ? (colors.isDark ? Colors.black26 : Colors.white30)
+                                    ? colors.onPrimary.withValues(alpha: 0.3)
                                     : colors.border,
                               ),
                             ),
@@ -163,7 +163,7 @@ class ChatBubble extends StatelessWidget {
                                   Icons.cloud_download_outlined,
                                   size: 15,
                                   color: isMe
-                                      ? (colors.isDark ? Colors.black : Colors.white)
+                                      ? colors.onPrimary
                                       : colors.primary,
                                 ),
                                 const SizedBox(width: 6),
@@ -174,7 +174,7 @@ class ChatBubble extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       color: isMe
-                                          ? (colors.isDark ? Colors.black : Colors.white)
+                                          ? colors.onPrimary
                                           : colors.primary,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
@@ -187,7 +187,7 @@ class ChatBubble extends StatelessWidget {
                                   Icons.copy_rounded,
                                   size: 12,
                                   color: isMe
-                                      ? (colors.isDark ? Colors.black54 : Colors.white70)
+                                      ? colors.onPrimary.withValues(alpha: 0.7)
                                       : colors.muted,
                                 ),
                               ],
@@ -204,7 +204,7 @@ class ChatBubble extends StatelessWidget {
                           _formatTime(message.createdAt),
                           style: TextStyle(
                             color: isMe
-                                ? (colors.isDark ? Colors.black.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.75))
+                                ? colors.onPrimary.withValues(alpha: 0.7)
                                 : colors.muted,
                             fontSize: 9.5,
                             fontWeight: FontWeight.w500,

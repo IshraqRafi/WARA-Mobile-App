@@ -343,12 +343,12 @@ class ManagerSettingsScreen extends ConsumerWidget {
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.copy_rounded, color: colors.isDark ? Colors.black : Colors.white, size: 14),
+                                  Icon(Icons.copy_rounded, color: colors.onPrimary, size: 14),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Copy',
                                     style: TextStyle(
-                                      color: colors.isDark ? Colors.black : Colors.white,
+                                      color: colors.onPrimary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -392,7 +392,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                                   ElevatedButton(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: colors.primary,
-                                      foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                                      foregroundColor: colors.onPrimary,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                     ),
                                     onPressed: () => Navigator.pop(ctx, true),

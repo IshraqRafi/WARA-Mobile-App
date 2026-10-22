@@ -224,11 +224,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                         onPressed: () => Navigator.pop(ctx),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: colors.primary,
-                          foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                          foregroundColor: colors.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: Text('Close', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                        child: Text('Close', style: TextStyle(color: colors.onPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -348,11 +348,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                       );
                     }
                   },
-                  icon: Icon(Icons.save_rounded, size: 16, color: colors.isDark ? Colors.black : Colors.white),
-                  label: Text('Save Changes to Offer', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                  icon: Icon(Icons.save_rounded, size: 16, color: colors.onPrimary),
+                  label: Text('Save Changes to Offer', style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colors.primary,
-                    foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                    foregroundColor: colors.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
@@ -495,11 +495,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                       icon: Icons.rocket_launch_rounded,
                     );
                   },
-                  icon: Icon(Icons.send_rounded, size: 16, color: colors.isDark ? Colors.black : Colors.white),
-                  label: Text('Publish Offer to Pool', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                  icon: Icon(Icons.send_rounded, size: 16, color: colors.onPrimary),
+                  label: Text('Publish Offer to Pool', style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colors.primary,
-                    foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                    foregroundColor: colors.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
@@ -693,11 +693,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
-                  foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                  foregroundColor: colors.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                child: Text('Re-list to Pool with New Payout', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                child: Text('Re-list to Pool with New Payout', style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

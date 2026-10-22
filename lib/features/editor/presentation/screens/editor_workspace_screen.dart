@@ -129,14 +129,14 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                         icon: Icons.check_circle_rounded,
                       );
                     },
-                    icon: Icon(Icons.send_rounded, size: 18, color: colors.isDark ? Colors.black : Colors.white),
+                    icon: Icon(Icons.send_rounded, size: 18, color: colors.onPrimary),
                     label: Text(
                       project.status == ProjectStatus.submitted ? 'Update Submission' : 'Submit for Approval',
-                      style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: colors.onPrimary, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colors.primary,
-                      foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                      foregroundColor: colors.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

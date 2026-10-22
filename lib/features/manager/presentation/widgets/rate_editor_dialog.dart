@@ -320,18 +320,18 @@ Future<void> showRateEditorSheet({
                               );
                             }
                           },
-                          icon: Icon(Icons.star_rounded, size: 18, color: colors.isDark ? Colors.black : Colors.white),
+                          icon: Icon(Icons.star_rounded, size: 18, color: colors.onPrimary),
                           label: Text(
                             isProjectApproval ? 'Approve & Award ${selectedRating.toStringAsFixed(0)}★' : 'Submit Rating (${selectedRating.toStringAsFixed(0)}★)',
                             style: TextStyle(
-                              color: colors.isDark ? Colors.black : Colors.white,
+                              color: colors.onPrimary,
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: colors.primary,
-                            foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                            foregroundColor: colors.onPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,

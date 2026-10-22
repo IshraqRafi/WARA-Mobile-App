@@ -140,7 +140,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.primary,
-              foregroundColor: colors.isDark ? Colors.black : Colors.white,
+              foregroundColor: colors.onPrimary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
@@ -317,7 +317,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
 
             // Bottom Input Composer
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
               decoration: BoxDecoration(
                 color: colors.surface,
                 border: Border(top: BorderSide(color: colors.border)),
@@ -351,6 +351,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                           hintText: isChannel ? 'Message # agency-room...' : 'Message ${widget.title}...',
                           hintStyle: TextStyle(color: colors.muted, fontSize: 13),
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(vertical: 10),
                         ),
@@ -360,23 +363,25 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
 
                   const SizedBox(width: 8),
 
-                  // Send Button
-                  GestureDetector(
-                    onTap: _handleSend,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        shape: BoxShape.circle,
+                  // Send Button (48dp)
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: IconButton.filled(
+                      onPressed: _isSending ? null : _handleSend,
+                      tooltip: 'Send',
+                      style: IconButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
+                        disabledBackgroundColor: colors.primary.withValues(alpha: 0.6),
                       ),
-                      child: Center(
-                        child: Icon(
-                          Icons.arrow_upward_rounded,
-                          color: colors.isDark ? Colors.black : Colors.white,
-                          size: 20,
-                        ),
-                      ),
+                      icon: _isSending
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary),
+                            )
+                          : const Icon(Icons.arrow_upward_rounded, size: 22),
                     ),
                   ),
                 ],

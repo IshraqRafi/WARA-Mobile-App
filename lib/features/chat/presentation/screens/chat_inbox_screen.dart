@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
+import '../../../../shared/widgets/wara_empty_state.dart';
+import '../../../../shared/widgets/wara_status_chip.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../../notifications/presentation/widgets/notification_center_modal.dart';
 import '../../../projects/domain/project_provider.dart';
@@ -344,7 +346,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                       // Feed ListView
                       Expanded(
                         child: ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                          padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.xs, AppSpacing.screenMargin(context), AppSpacing.bottomInset(context)),
                           children: [
                             // 1. Pinned Agency Room Card
                             if (chatState.activeFilter != ChatFilter.direct) ...[
@@ -370,86 +372,24 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                                           );
                                       _openConversation(target);
                                     },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: isGeneralUnread
-                                            ? (colors.isDark ? colors.primary.withValues(alpha: 0.08) : colors.primary.withValues(alpha: 0.05))
-                                            : colors.surface,
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: isGeneralUnread ? colors.primary : colors.primary.withValues(alpha: 0.4),
-                                          width: isGeneralUnread ? 1.8 : 1.2,
-                                        ),
-                                      ),
-                                  child: Row(
-                                    children: [
-                                      Container(
+                                    child: _InboxRow(
+                                      unread: isGeneralUnread,
+                                      leading: Container(
                                         width: 44,
                                         height: 44,
-                                        decoration: BoxDecoration(
-                                          color: colors.primary.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Center(
-                                          child: Icon(Icons.tag_rounded, color: colors.primary, size: 22),
-                                        ),
+                                        decoration: BoxDecoration(color: colors.primaryTint, borderRadius: AppRadius.brMd),
+                                        child: Icon(Icons.tag_rounded, color: colors.primary, size: 22),
                                       ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  '# agency-room',
-                                                  style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: colors.primary.withValues(alpha: 0.15),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                  child: Text(
-                                                    'ALL TEAM',
-                                                    style: TextStyle(color: colors.primary, fontSize: 9.5, fontWeight: FontWeight.bold),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 3),
-                                            Text(
-                                              channelConvos.isNotEmpty && channelConvos.first.lastMessage.isNotEmpty
-                                                  ? '${channelConvos.first.lastSenderName.isNotEmpty ? "${channelConvos.first.lastSenderName}: " : ""}${channelConvos.first.lastMessage}'
-                                                  : 'Official studio communication and project announcement channel',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(color: colors.muted, fontSize: 12),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            channelConvos.isNotEmpty ? _formatTimeAgo(channelConvos.first.lastMessageTime) : 'Live',
-                                            style: TextStyle(color: colors.muted, fontSize: 10),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Icon(Icons.chevron_right_rounded, color: colors.muted, size: 18),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                                      title: 'agency-room',
+                                      badge: 'All team',
+                                      subtitle: channelConvos.isNotEmpty && channelConvos.first.lastMessage.isNotEmpty
+                                          ? '${channelConvos.first.lastSenderName.isNotEmpty ? "${channelConvos.first.lastSenderName}: " : ""}${channelConvos.first.lastMessage}'
+                                          : 'Agency-wide announcements and project updates',
+                                      time: channelConvos.isNotEmpty ? _formatTimeAgo(channelConvos.first.lastMessageTime) : '',
+                                    ),
+                                  );
+                                },
+                              ),
                           const SizedBox(height: 16),
                             ],
 
@@ -471,33 +411,18 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                               const SizedBox(height: 10),
 
                               if (filteredMembers.isEmpty)
-                                Container(
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: colors.surface,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: colors.border),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Icon(Icons.people_outline_rounded, color: colors.muted, size: 32),
-                                      const SizedBox(height: 8),
-                                      Text('No team members found', style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Registered agency creative editors and managers will appear here automatically.',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: colors.muted, fontSize: 11),
-                                      ),
-                                    ],
-                                  ),
+                                const WaraEmptyState(
+                                  compact: true,
+                                  icon: Icons.people_outline_rounded,
+                                  title: 'No team members yet',
+                                  message: 'Editors and managers in your agency appear here automatically.',
                                 )
                               else
                                 ListView.separated(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemCount: filteredMembers.length,
-                                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                                  separatorBuilder: (_, _) => Divider(height: 1, indent: 72, color: colors.border),
                                   itemBuilder: (context, index) {
                                     final member = filteredMembers[index];
                                     final memberId = member['id'] as String? ?? member['uid'] as String? ?? '';
@@ -530,91 +455,13 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                                           _startDirectMessage(memberId, memberName, memberPhoto);
                                         }
                                       },
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: isUnread
-                                              ? (colors.isDark ? colors.primary.withValues(alpha: 0.08) : colors.primary.withValues(alpha: 0.05))
-                                              : colors.surface,
-                                          borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(
-                                            color: isUnread ? colors.primary : colors.border,
-                                            width: isUnread ? 1.8 : 1.0,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            WaraAvatar(
-                                              name: memberName,
-                                              photoUrl: memberPhoto,
-                                              radius: 20,
-                                              fontSize: 13,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    memberName,
-                                                    style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  Text(
-                                                    displaySnippet,
-                                                    style: TextStyle(
-                                                      color: hasRealMessage ? colors.text.withValues(alpha: 0.85) : colors.muted,
-                                                      fontSize: 12,
-                                                      fontWeight: hasRealMessage ? FontWeight.w500 : FontWeight.normal,
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.end,
-                                              children: [
-                                                if (isUnread) ...[
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                    decoration: BoxDecoration(
-                                                      color: colors.primary,
-                                                      borderRadius: BorderRadius.circular(6),
-                                                    ),
-                                                    child: Text(
-                                                      'NEW',
-                                                      style: TextStyle(
-                                                        color: colors.isDark ? Colors.black : Colors.white,
-                                                        fontSize: 9,
-                                                        fontWeight: FontWeight.w900,
-                                                        letterSpacing: 0.5,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                ],
-                                                Text(
-                                                  timeLabel,
-                                                  style: TextStyle(
-                                                    color: isUnread
-                                                        ? colors.primary
-                                                        : (hasRealMessage ? colors.primary : colors.muted),
-                                                    fontSize: 10,
-                                                    fontWeight: (isUnread || hasRealMessage) ? FontWeight.bold : FontWeight.normal,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Icon(Icons.chevron_right_rounded, color: isUnread ? colors.primary : colors.muted, size: 18),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
+                                      child: _InboxRow(
+                                        unread: isUnread,
+                                        leading: WaraAvatar(name: memberName, photoUrl: memberPhoto, radius: 22, fontSize: 14),
+                                        title: memberName,
+                                        subtitle: displaySnippet,
+                                        subtitleStrong: hasRealMessage,
+                                        time: hasRealMessage ? timeLabel : '',
                                       ),
                                     );
                                   },
@@ -658,11 +505,96 @@ class _FilterChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? (colors.isDark ? Colors.black : Colors.white) : colors.text,
+            color: isSelected ? colors.onPrimary : colors.text,
             fontSize: 11,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 72dp inbox row: avatar, name (+badge), one-line preview, time and unread dot.
+class _InboxRow extends StatelessWidget {
+  final Widget leading;
+  final String title;
+  final String? badge;
+  final String subtitle;
+  final bool subtitleStrong;
+  final String time;
+  final bool unread;
+
+  const _InboxRow({
+    required this.leading,
+    required this.title,
+    required this.subtitle,
+    required this.time,
+    this.badge,
+    this.subtitleStrong = false,
+    this.unread = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final t = Theme.of(context).textTheme;
+    return Container(
+      height: 72,
+      color: Colors.transparent,
+      child: Row(
+        children: [
+          leading,
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.titleSmall?.copyWith(fontWeight: unread ? FontWeight.w700 : FontWeight.w600),
+                      ),
+                    ),
+                    if (badge != null) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      WaraStatusChip(label: badge!, tone: WaraTone.info),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.bodyMedium?.copyWith(
+                    color: unread || subtitleStrong ? c.text : c.muted,
+                    fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (time.isNotEmpty)
+                Text(time, style: t.labelMedium?.copyWith(color: unread ? c.primary : c.muted)),
+              const SizedBox(height: AppSpacing.xs + 2),
+              if (unread)
+                Container(width: 10, height: 10, decoration: BoxDecoration(color: c.primary, shape: BoxShape.circle))
+              else
+                const SizedBox(height: 10),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -126,11 +126,11 @@ class EditorAvailableScreen extends ConsumerWidget {
                       icon: Icons.check_circle_rounded,
                     );
                   },
-                  icon: Icon(Icons.touch_app_rounded, size: 18, color: colors.isDark ? Colors.black : Colors.white),
-                  label: Text('Accept Offer & Claim Project', style: TextStyle(color: colors.isDark ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                  icon: Icon(Icons.touch_app_rounded, size: 18, color: colors.onPrimary),
+                  label: Text('Accept Offer & Claim Project', style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colors.primary,
-                    foregroundColor: colors.isDark ? Colors.black : Colors.white,
+                    foregroundColor: colors.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),

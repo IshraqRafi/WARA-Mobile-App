@@ -38,6 +38,8 @@ class AppColors extends ThemeExtension<AppColors> {
   Color get warningTint => warning.withValues(alpha: 0.12);
   Color get infoTint => info.withValues(alpha: 0.12);
   Color get primaryTint => primary.withValues(alpha: 0.12);
+  /// Foreground on top of [primary] (black on the dark theme's light primary).
+  Color get onPrimary => isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
 
   /// Fixed brand surface behind the logo (dark in both themes).
   static const Color brandInk = Color(0xFF141414);
@@ -156,7 +158,7 @@ class AppTheme {
       );
 
   static ThemeData _build(AppColors c) {
-    final onPrimary = c.isDark ? Colors.black : Colors.white;
+    final onPrimary = c.onPrimary;
     final scheme = (c.isDark ? const ColorScheme.dark() : const ColorScheme.light()).copyWith(
       primary: c.primary,
       onPrimary: onPrimary,
