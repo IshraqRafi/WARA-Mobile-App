@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_banner.dart';
 import '../../../../shared/widgets/wara_logo.dart';
 import '../../../../shared/widgets/wara_section_header.dart';
 import '../../domain/auth_provider.dart';
 
-/// First run for a new Google account: create an agency (manager) or join one
-/// (editor, finishes on the profile setup screen with a join key).
+/// First run for a new Google account. The role was chosen on the login
+/// screen: managers name their agency; editors continue to profile setup,
+/// where they enter the agency join key.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -15,11 +17,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-enum _Path { createAgency, joinAgency }
-
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _agencyCtrl = TextEditingController();
-  _Path _path = _Path.createAgency;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -35,7 +34,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _errorMessage = null;
     });
     final notifier = ref.read(authProvider.notifier);
-    final res = _path == _Path.createAgency
+    final isManager = ref.read(authProvider).pendingUser?.role == UserRole.manager;
+    final res = isManager
         ? await notifier.createAgencyAsManager(_agencyCtrl.text)
         : await notifier.continueAsEditor();
     if (!mounted) return;
@@ -52,6 +52,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final pending = ref.watch(authProvider.select((s) => s.pendingUser));
     final firstName = (pending?.name ?? '').split(' ').first;
     final margin = AppSpacing.screenMargin(context);
+    final isManager = pending?.role == UserRole.manager;
 
     return Scaffold(
       backgroundColor: colors.bg,
@@ -74,33 +75,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           textAlign: TextAlign.center,
                           style: text.headlineSmall,
                         ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text('How will you use wara.io?', textAlign: TextAlign.center, style: text.bodyMedium?.copyWith(color: colors.muted)),
-                        WaraSectionCard(
-                          title: 'Choose your role',
-                          divided: false,
-                          contentPadding: const EdgeInsets.all(AppSpacing.md),
-                          children: [
-                            _OptionCard(
-                              icon: Icons.business_center_rounded,
-                              title: 'Create an agency',
-                              subtitle: 'Manage projects, invite editors and track payouts.',
-                              selected: _path == _Path.createAgency,
-                              onTap: () => setState(() => _path = _Path.createAgency),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            _OptionCard(
-                              icon: Icons.movie_edit,
-                              title: 'Join an agency as an editor',
-                              subtitle: 'Use the join key your agency manager shared with you.',
-                              selected: _path == _Path.joinAgency,
-                              onTap: () => setState(() => _path = _Path.joinAgency),
-                            ),
-                          ],
-                        ),
-                        if (_path == _Path.createAgency)
+                        if (isManager)
                           WaraSectionCard(
-                            title: 'Agency details',
+                            title: 'Agency',
                             divided: false,
                             contentPadding: const EdgeInsets.all(AppSpacing.lg),
                             children: [
@@ -145,7 +122,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   dimension: 22,
                                   child: CircularProgressIndicator(color: Theme.of(context).colorScheme.onPrimary, strokeWidth: 2.5),
                                 )
-                              : Text(_path == _Path.createAgency ? 'Create agency' : 'Continue'),
+                              : Text(isManager ? 'Create agency' : 'Continue'),
                         ),
                       ),
                       TextButton(
@@ -162,63 +139,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OptionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _OptionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final text = Theme.of(context).textTheme;
-    return Semantics(
-      selected: selected,
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.brMd,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: selected ? colors.primaryTint : colors.surface,
-            borderRadius: AppRadius.brMd,
-            border: Border.all(color: selected ? colors.primary : colors.border, width: selected ? 1.5 : 1),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: selected ? colors.primary : colors.muted, size: 24),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: text.titleMedium),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(subtitle, style: text.bodySmall),
-                  ],
-                ),
-              ),
-              Icon(selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                  color: selected ? colors.primary : colors.muted, size: 20),
-            ],
-          ),
         ),
       ),
     );

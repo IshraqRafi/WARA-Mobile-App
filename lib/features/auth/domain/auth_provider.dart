@@ -120,11 +120,15 @@ class PendingGoogleUser {
   final String name;
   final String? photoUrl;
 
+  /// Role chosen on the login screen. A new account is created with it.
+  final UserRole role;
+
   const PendingGoogleUser({
     required this.uid,
     required this.email,
     required this.name,
     this.photoUrl,
+    this.role = UserRole.editor,
   });
 }
 
@@ -143,6 +147,10 @@ class AuthState {
 }
 
 typedef AuthResult = ({bool success, String? error});
+
+/// Result of a Google sign-in. [roleMismatch] holds the stored role when it
+/// differs from the role selected on the login screen (the stored one wins).
+typedef SignInResult = ({bool success, String? error, UserRole? roleMismatch});
 
 class AuthNotifier extends StateNotifier<AuthState> {
   static const _keyIsLoggedIn = 'wara_auth_is_logged_in';
@@ -202,7 +210,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState(isAuthenticated: true, user: session);
   }
 
-  PendingGoogleUser _pendingFrom(User fbUser) {
+  PendingGoogleUser _pendingFrom(User fbUser, {UserRole role = UserRole.editor}) {
     final email = (fbUser.email ?? '').trim().toLowerCase();
     final display = (fbUser.displayName ?? '').trim();
     return PendingGoogleUser(
@@ -210,16 +218,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
       email: email,
       name: display.isNotEmpty ? display : email.split('@').first,
       photoUrl: fbUser.photoURL,
+      role: role,
     );
   }
 
   /// Loads the profile for [fbUser]. Users without a profile (or a manager
   /// without an agency) are sent to onboarding instead of getting defaults.
-  Future<void> _resolveSignedInUser(User fbUser) async {
+  /// [requestedRole] only applies to accounts without a stored role; an
+  /// existing profile always keeps its role. Returns the resolved role.
+  Future<UserRole?> _resolveSignedInUser(User fbUser, {UserRole? requestedRole}) async {
     final profile = await _firestoreService.getUserProfile(fbUser.uid);
     if (profile == null || profile['role'] == null) {
-      state = AuthState(isAuthenticated: false, pendingUser: _pendingFrom(fbUser));
-      return;
+      state = AuthState(
+        isAuthenticated: false,
+        pendingUser: _pendingFrom(fbUser, role: requestedRole ?? UserRole.editor),
+      );
+      return null;
     }
 
     final role = profile['role'] == 'manager' ? UserRole.manager : UserRole.editor;
@@ -229,8 +243,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     if (role == UserRole.manager) {
       if (agencyId == null || agencyId.isEmpty) {
-        state = AuthState(isAuthenticated: false, pendingUser: _pendingFrom(fbUser));
-        return;
+        state = AuthState(isAuthenticated: false, pendingUser: _pendingFrom(fbUser, role: UserRole.manager));
+        return role;
       }
       // Keep the manager's copy of the join key in sync with the agency doc.
       final agency = await _firestoreService.getAgencyById(agencyId);
@@ -259,14 +273,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isProfileComplete: role == UserRole.manager || profile['isProfileComplete'] == true,
     );
     await _setSession(session);
+    return role;
   }
 
-  /// Google is the only sign-in method.
-  Future<AuthResult> signInWithGoogle() async {
+  /// Google is the only sign-in method. [role] is the role selected on the
+  /// login screen; it is used for new accounts only.
+  Future<SignInResult> signInWithGoogle({UserRole role = UserRole.editor}) async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        return (success: false, error: null); // cancelled by the user
+        return (success: false, error: null, roleMismatch: null); // cancelled by the user
       }
 
       final googleAuth = await googleUser.authentication;
@@ -278,16 +294,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final userCred = await _auth.signInWithCredential(credential);
       final fbUser = userCred.user;
       if (fbUser == null) {
-        return (success: false, error: 'Google sign-in failed. Please try again.');
+        return (success: false, error: 'Google sign-in failed. Try again.', roleMismatch: null);
       }
-      await _resolveSignedInUser(fbUser);
-      return (success: true, error: null);
+      final stored = await _resolveSignedInUser(fbUser, requestedRole: role);
+      return (success: true, error: null, roleMismatch: (stored != null && stored != role) ? stored : null);
     } on FirebaseAuthException catch (e) {
       debugPrint('Google sign-in FirebaseAuthException: ${e.code}');
-      return (success: false, error: 'Google sign-in failed (${e.code}). Please try again.');
+      return (success: false, error: 'Google sign-in failed (${e.code}).', roleMismatch: null);
     } catch (e) {
       debugPrint('Google sign-in failed: $e');
-      return (success: false, error: 'Google sign-in failed. Check your connection and try again.');
+      return (success: false, error: 'Google sign-in failed. Check your connection.', roleMismatch: null);
     }
   }
 
