@@ -540,8 +540,9 @@ class FirestoreService {
   }) async {
     try {
       final convoDocRef = _conversationsRef(agencyId).doc('agency_general');
-      final convoDoc = await convoDocRef.get();
-      if (!convoDoc.exists) {
+      // Seed only when the room has no messages; never clear existing history.
+      final existing = await _messagesRef(agencyId, 'agency_general').limit(1).get();
+      if (existing.docs.isEmpty) {
         final now = DateTime.now();
         final generalConvo = ChatConversation(
           id: 'agency_general',
@@ -556,7 +557,7 @@ class FirestoreService {
           lastSenderName: managerName.isNotEmpty ? managerName : 'Director',
           lastMessageTime: now,
         );
-        await convoDocRef.set(generalConvo.toMap());
+        await convoDocRef.set(generalConvo.toMap(), SetOptions(merge: true));
 
         // First message in # general
         final welcomeMsg = ChatMessage(
@@ -571,60 +572,6 @@ class FirestoreService {
         );
         await _messagesRef(agencyId, 'agency_general').doc(welcomeMsg.id).set(welcomeMsg.toMap());
       }
-    } catch (_) {}
-  }
-
-  /// Reset the agency room in messenger and seed a pre-welcoming message from the owner/director
-  Future<void> resetAgencyRoom({
-    required String agencyId,
-    required String agencyName,
-    required String managerName,
-    required String managerId,
-    String? managerPhotoUrl,
-  }) async {
-    try {
-      final now = DateTime.now();
-
-      // Clear any stale messages in agency_general
-      final msgsSnap = await _messagesRef(agencyId, 'agency_general').get();
-      final batch = _db.batch();
-      for (final doc in msgsSnap.docs) {
-        batch.delete(doc.reference);
-      }
-
-      // Update agency_general conversation document
-      final convoDocRef = _conversationsRef(agencyId).doc('agency_general');
-      final generalConvo = ChatConversation(
-        id: 'agency_general',
-        agencyId: agencyId,
-        type: ConversationType.channel,
-        title: '# agency-room',
-        description: 'Official Agency Workspace & Production Channel for $agencyName',
-        participantIds: [],
-        participantNames: {},
-        participantPhotos: {},
-        lastMessage: '👋 Welcome to $agencyName team channel! Post updates, drop assets, or ask questions here.',
-        lastSenderName: managerName.isNotEmpty ? managerName : 'Agency Director',
-        lastMessageTime: now,
-      );
-      batch.set(convoDocRef, generalConvo.toMap(), SetOptions(merge: true));
-
-      // Post pristine welcome message from the owner's account
-      final welcomeMsg = ChatMessage(
-        id: 'msg_welcome_${now.millisecondsSinceEpoch}',
-        conversationId: 'agency_general',
-        agencyId: agencyId,
-        senderId: managerId,
-        senderName: managerName.isNotEmpty ? managerName : 'Agency Director',
-        senderPhotoUrl: managerPhotoUrl,
-        senderRole: 'manager',
-        text: '👋 Welcome to $agencyName! All project notifications, urgent cuts, and asset drive links will be shared here. Feel free to discuss ideas or ask any questions.',
-        createdAt: now,
-      );
-      final msgDocRef = _messagesRef(agencyId, 'agency_general').doc(welcomeMsg.id);
-      batch.set(msgDocRef, welcomeMsg.toMap());
-
-      await batch.commit();
     } catch (_) {}
   }
 

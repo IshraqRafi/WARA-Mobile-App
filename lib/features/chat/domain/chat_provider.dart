@@ -75,17 +75,13 @@ class ChatNotifier extends StateNotifier<ChatState> {
         ? _currentUser!.agencyId!
         : 'agency_demo_wara';
 
-    // Reset agency general chat with owner welcome message
-    _firestoreService.resetAgencyRoom(
+    // Seed the agency room with a welcome message only if it is empty.
+    _firestoreService.seedInitialAgencyChatIfEmpty(
       agencyId: agencyId,
       agencyName: _currentUser?.agencyName ?? 'Wara Media Group',
       managerName: _currentUser?.role == UserRole.manager
           ? (_currentUser?.name.isNotEmpty == true ? _currentUser!.name : 'Ishraq Rafi')
           : 'Ishraq Rafi',
-      managerId: _currentUser?.role == UserRole.manager
-          ? (_currentUser?.id ?? 'manager_1')
-          : 'manager_1',
-      managerPhotoUrl: _currentUser?.role == UserRole.manager ? _currentUser?.photoUrl : null,
     );
 
     // Stream real-time conversations for this agency
