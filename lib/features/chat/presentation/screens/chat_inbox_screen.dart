@@ -400,11 +400,11 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                                 children: [
                                   Text(
                                     'DIRECT MESSAGES',
-                                    style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.1),
+                                    style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.1),
                                   ),
                                   Text(
                                     '${filteredMembers.length} team members',
-                                    style: TextStyle(color: colors.muted, fontSize: 11),
+                                    style: TextStyle(color: colors.muted, fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -506,7 +506,7 @@ class _FilterChip extends StatelessWidget {
           label,
           style: TextStyle(
             color: isSelected ? colors.onPrimary : colors.text,
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           ),
         ),

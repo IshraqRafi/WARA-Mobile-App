@@ -65,7 +65,7 @@ class NotificationBellButton extends ConsumerWidget {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                       height: 1,
                     ),
@@ -176,7 +176,7 @@ class _NotificationCenterSheet extends ConsumerWidget {
                     ),
                     child: Text(
                       '$unreadCount New',
-                      style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -308,7 +308,7 @@ class _NotificationCenterSheet extends ConsumerWidget {
                                         ),
                                         Text(
                                           _formatTimeAgo(notif.createdAt),
-                                          style: TextStyle(color: colors.muted, fontSize: 10),
+                                          style: TextStyle(color: colors.muted, fontSize: 12),
                                         ),
                                       ],
                                     ),

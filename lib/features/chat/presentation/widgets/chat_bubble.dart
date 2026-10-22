@@ -44,7 +44,7 @@ class ChatBubble extends StatelessWidget {
                   name: message.senderName,
                   photoUrl: message.senderPhotoUrl,
                   radius: 16,
-                  fontSize: 10,
+                  fontSize: 12,
                 ),
               )
             else
@@ -84,7 +84,7 @@ class ChatBubble extends StatelessWidget {
                           isManager ? 'DIRECTOR' : 'EDITOR',
                           style: TextStyle(
                             color: isManager ? colors.primary : colors.muted,
-                            fontSize: 8.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
                           ),
@@ -176,7 +176,7 @@ class ChatBubble extends StatelessWidget {
                                       color: isMe
                                           ? colors.onPrimary
                                           : colors.primary,
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       decoration: TextDecoration.underline,
                                     ),
@@ -206,7 +206,7 @@ class ChatBubble extends StatelessWidget {
                             color: isMe
                                 ? colors.onPrimary.withValues(alpha: 0.7)
                                 : colors.muted,
-                            fontSize: 9.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
                         ),

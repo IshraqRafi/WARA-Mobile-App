@@ -44,7 +44,7 @@ class EditorAvailableScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                    child: Text(project.clientName, style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600)),
+                    child: Text(project.clientName, style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
                   ),
                   const Spacer(),
                   Container(
@@ -55,7 +55,7 @@ class EditorAvailableScreen extends ConsumerWidget {
                       children: [
                         Icon(Icons.timer_outlined, color: colors.muted, size: 12),
                         const SizedBox(width: 4),
-                        Text(project.deadlineStr, style: TextStyle(color: colors.muted, fontSize: 11)),
+                        Text(project.deadlineStr, style: TextStyle(color: colors.muted, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -90,12 +90,12 @@ class EditorAvailableScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
 
-              Text('PROJECT BRIEF & DELIVERABLE SPECIFICATIONS', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+              Text('PROJECT BRIEF & DELIVERABLE SPECIFICATIONS', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
               const SizedBox(height: 8),
               Text(project.description, style: TextStyle(color: colors.text, fontSize: 13, height: 1.5)),
               const SizedBox(height: 20),
 
-              Text('REQUIRED CREATIVE SKILLS', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+              Text('REQUIRED CREATIVE SKILLS', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 6,
@@ -104,7 +104,7 @@ class EditorAvailableScreen extends ConsumerWidget {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: colors.border)),
-                    child: Text(skill, style: TextStyle(color: colors.text, fontSize: 11)),
+                    child: Text(skill, style: TextStyle(color: colors.text, fontSize: 12)),
                   );
                 }).toList(),
               ),
@@ -219,7 +219,7 @@ class EditorAvailableScreen extends ConsumerWidget {
                         children: [
                           Text('Welcome back, ${user?.name ?? ''}', style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 2),
-                          Text('Claim available offers below. Tap any card for details.', style: TextStyle(color: colors.muted, fontSize: 11)),
+                          Text('Claim available offers below. Tap any card for details.', style: TextStyle(color: colors.muted, fontSize: 12)),
                         ],
                       ),
                     ),

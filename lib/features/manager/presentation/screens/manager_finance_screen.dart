@@ -131,7 +131,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
                       children: [
                         Text(
                           'TOTAL PROJECT PIPELINE VALUE',
-                          style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2),
+                          style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
                         ),
                         Icon(Icons.account_balance_wallet_outlined, color: colors.primary, size: 20),
                       ],
@@ -180,13 +180,13 @@ class ManagerFinanceScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('SETTLED REVENUE', style: TextStyle(color: colors.muted, fontSize: 10, fontWeight: FontWeight.w600)),
+                                Text('SETTLED REVENUE', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 4),
                                 Text(
                                   '৳${_formatCurrency(approvedRevenue)}',
                                   style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
                                 ),
-                                Text('${approvedProjects.length} approved cuts', style: TextStyle(color: colors.muted, fontSize: 10)),
+                                Text('${approvedProjects.length} approved cuts', style: TextStyle(color: colors.muted, fontSize: 12)),
                               ],
                             ),
                           ),
@@ -202,13 +202,13 @@ class ManagerFinanceScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('COMMITTED PAYOUTS', style: TextStyle(color: colors.muted, fontSize: 10, fontWeight: FontWeight.w600)),
+                                Text('COMMITTED PAYOUTS', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 4),
                                 Text(
                                   '৳${_formatCurrency(totalEditorPayouts)}',
                                   style: TextStyle(color: colors.primary, fontSize: 15, fontWeight: FontWeight.bold),
                                 ),
-                                Text('৳${_formatCurrency(approvedEditorPayouts)} settled • ৳${_formatCurrency(inProductionPayouts)} in escrow', style: TextStyle(color: colors.muted, fontSize: 9.5)),
+                                Text('৳${_formatCurrency(approvedEditorPayouts)} settled • ৳${_formatCurrency(inProductionPayouts)} in escrow', style: TextStyle(color: colors.muted, fontSize: 12)),
                               ],
                             ),
                           ),
@@ -226,11 +226,11 @@ class ManagerFinanceScreen extends ConsumerWidget {
                 children: [
                   Text(
                     'PROJECT FINANCIAL LEDGER',
-                    style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2),
+                    style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
                   ),
                   Text(
                     '${projects.length} Live Projects',
-                    style: TextStyle(color: colors.muted, fontSize: 11),
+                    style: TextStyle(color: colors.muted, fontSize: 12),
                   ),
                 ],
               ),
@@ -264,7 +264,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
               // ── Active Editor Payouts Ledger ─────────────────────────────
               Text(
                 'EDITOR PAYOUTS & DISBURSEMENTS',
-                style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2),
+                style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
               ),
               const SizedBox(height: 12),
 
@@ -312,7 +312,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
                                     ),
                                     Text(
                                       '${stats.completed} Completed • ${stats.active} Active Cuts',
-                                      style: TextStyle(color: colors.muted, fontSize: 11),
+                                      style: TextStyle(color: colors.muted, fontSize: 12),
                                     ),
                                   ],
                                 ),
@@ -327,7 +327,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
                                   if (stats.inProduction > 0)
                                     Text(
                                       '+৳${stats.inProduction.toInt()} in escrow',
-                                      style: TextStyle(color: colors.muted, fontSize: 10),
+                                      style: TextStyle(color: colors.muted, fontSize: 12),
                                     ),
                                 ],
                               ),

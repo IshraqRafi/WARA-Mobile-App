@@ -79,7 +79,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                         Clipboard.setData(ClipboardData(text: key));
                         WaraToast.show(context, message: 'Copied Join Key "$key" to clipboard!', icon: Icons.copy_rounded);
                       },
-                      child: Text('COPY', style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+                      child: Text('COPY', style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -219,7 +219,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                            child: Text('Agency Director • Admin', style: TextStyle(color: colors.primary, fontSize: 10, fontWeight: FontWeight.w600)),
+                            child: Text('Agency Director • Admin', style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -261,7 +261,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                               ),
                               Text(
                                 'Private Team Workspace & Room',
-                                style: TextStyle(color: colors.muted, fontSize: 11),
+                                style: TextStyle(color: colors.muted, fontSize: 12),
                               ),
                             ],
                           ),
@@ -301,7 +301,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('AGENCY JOIN KEY', style: TextStyle(color: colors.muted, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.1)),
+                                Text('AGENCY JOIN KEY', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.1)),
                                 const SizedBox(height: 2),
                                 Text(
                                   user?.agencyJoinKey ?? '—',
@@ -352,7 +352,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             'Share this key with editors so they can enter your agency room.',
-                            style: TextStyle(color: colors.muted, fontSize: 11, height: 1.3),
+                            style: TextStyle(color: colors.muted, fontSize: 12, height: 1.3),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -394,7 +394,7 @@ class ManagerSettingsScreen extends ConsumerWidget {
                             }
                           },
                           icon: Icon(Icons.refresh_rounded, color: colors.muted, size: 14),
-                          label: Text('Regenerate', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600)),
+                          label: Text('Regenerate', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             minimumSize: Size.zero,
@@ -496,7 +496,7 @@ class _EditorCard extends StatelessWidget {
             children: [
               Text('🥇', style: TextStyle(fontSize: 12)),
               SizedBox(width: 4),
-              Text('#1 Leader', style: TextStyle(color: AppColors.star, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text('#1 Leader', style: TextStyle(color: AppColors.star, fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
         );
@@ -514,7 +514,7 @@ class _EditorCard extends StatelessWidget {
             children: [
               const Text('🥈', style: TextStyle(fontSize: 12)),
               const SizedBox(width: 4),
-              Text('#2 Top', style: TextStyle(color: AppColors.medalSilver, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text('#2 Top', style: TextStyle(color: AppColors.medalSilver, fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
         );
@@ -532,7 +532,7 @@ class _EditorCard extends StatelessWidget {
             children: [
               const Text('🥉', style: TextStyle(fontSize: 12)),
               const SizedBox(width: 4),
-              Text('#3 Rising', style: TextStyle(color: AppColors.medalBronze, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text('#3 Rising', style: TextStyle(color: AppColors.medalBronze, fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
         );
@@ -544,7 +544,7 @@ class _EditorCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: colors.border),
         ),
-        child: Text('#$rank', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.bold)),
+        child: Text('#$rank', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.bold)),
       );
     }
 
@@ -590,7 +590,7 @@ class _EditorCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         email!,
-                        style: TextStyle(color: colors.muted.withValues(alpha: 0.8), fontSize: 11),
+                        style: TextStyle(color: colors.muted.withValues(alpha: 0.8), fontSize: 12),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -624,11 +624,11 @@ class _EditorCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       rating.toStringAsFixed(1),
-                      style: const TextStyle(color: AppColors.star, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: AppColors.star, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       ' ($ratingCount)',
-                      style: TextStyle(color: colors.muted, fontSize: 10),
+                      style: TextStyle(color: colors.muted, fontSize: 12),
                     ),
                   ],
                 ),
@@ -649,7 +649,7 @@ class _EditorCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '$completedProjects cuts',
-                      style: TextStyle(color: colors.text, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -670,7 +670,7 @@ class _EditorCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '$hoursPerWeek hrs/wk',
-                      style: TextStyle(color: colors.text, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -685,7 +685,7 @@ class _EditorCard extends StatelessWidget {
             runSpacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('Days:', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600)),
+              Text('Days:', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
               ...activeDays.map((d) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
@@ -693,7 +693,7 @@ class _EditorCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: colors.border),
                 ),
-                child: Text(d, style: TextStyle(color: colors.text, fontSize: 10)),
+                child: Text(d, style: TextStyle(color: colors.text, fontSize: 12)),
               )),
             ],
           ),
@@ -711,7 +711,7 @@ class _EditorCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: colors.border),
                 ),
-                child: Text(s, style: TextStyle(color: colors.text, fontSize: 10)),
+                child: Text(s, style: TextStyle(color: colors.text, fontSize: 12)),
               )).toList(),
             ),
           ],
@@ -726,7 +726,7 @@ class _EditorCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     portfolioLink!,
-                    style: TextStyle(color: colors.primary, fontSize: 11, decoration: TextDecoration.underline),
+                    style: TextStyle(color: colors.primary, fontSize: 12, decoration: TextDecoration.underline),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

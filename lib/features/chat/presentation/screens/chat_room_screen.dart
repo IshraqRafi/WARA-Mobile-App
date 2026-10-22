@@ -223,7 +223,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                     isChannel
                         ? '${currentUser?.agencyName ?? "Agency Room"} • General Channel'
                         : 'Active in Agency Workspace',
-                    style: TextStyle(color: colors.muted, fontSize: 11),
+                    style: TextStyle(color: colors.muted, fontSize: 12),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],

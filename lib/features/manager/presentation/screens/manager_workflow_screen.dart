@@ -61,7 +61,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         'Currently assigned to ${project.claimedByEditorName}. Deleting will remove it from their workspace.',
-                        style: TextStyle(color: colors.error, fontSize: 11, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: colors.error, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -71,7 +71,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               'This action will permanently remove the offer from Cloud Firestore across all devices and cannot be undone.',
-              style: TextStyle(color: colors.muted, fontSize: 11),
+              style: TextStyle(color: colors.muted, fontSize: 12),
             ),
           ],
         ),
@@ -610,7 +610,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                                 'Online',
                                 style: TextStyle(
                                   color: colors.success,
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -619,7 +619,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                         ),
                         subtitle: Text(
                           '${activeEditors[i]['specialization'] ?? 'Video Editor'} • Skills: ${(activeEditors[i]['skills'] as List?)?.join(', ') ?? 'Editing'}',
-                          style: TextStyle(color: colors.muted, fontSize: 11),
+                          style: TextStyle(color: colors.muted, fontSize: 12),
                         ),
                         trailing: Icon(Icons.arrow_forward_ios_rounded, color: colors.muted, size: 14),
                       ),

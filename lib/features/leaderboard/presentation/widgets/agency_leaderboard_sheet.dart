@@ -162,7 +162,7 @@ Future<void> showAgencyLeaderboardModal(BuildContext context, WidgetRef ref) {
                                   'YOU',
                                   style: TextStyle(
                                     color: colors.onPrimary,
-                                    fontSize: 10,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -350,7 +350,7 @@ class _LeaderboardRow extends StatelessWidget {
                           'YOU',
                           style: TextStyle(
                             color: colors.onPrimary,
-                            fontSize: 9,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -361,7 +361,7 @@ class _LeaderboardRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '$specialization • $completedProjects cuts completed',
-                  style: TextStyle(color: colors.muted, fontSize: 11),
+                  style: TextStyle(color: colors.muted, fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -405,7 +405,7 @@ class _LeaderboardRow extends StatelessWidget {
                 ),
                 child: Text(
                   'Rate',
-                  style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -477,7 +477,7 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                         ),
                         Text(
                           'Performance ranking inside your agency',
-                          style: TextStyle(color: colors.muted, fontSize: 11),
+                          style: TextStyle(color: colors.muted, fontSize: 12),
                         ),
                       ],
                     ),
@@ -493,7 +493,7 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
-                          Text('View All', style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+                          Text('View All', style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                           const SizedBox(width: 2),
                           Icon(Icons.chevron_right_rounded, color: colors.primary, size: 14),
                         ],
@@ -528,7 +528,7 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text('Your Rank', style: TextStyle(color: colors.muted, fontSize: 11)),
+                        Text('Your Rank', style: TextStyle(color: colors.muted, fontSize: 12)),
                       ],
                     ),
                     Container(width: 1, height: 28, color: colors.border),
@@ -546,7 +546,7 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text('Avg Rating', style: TextStyle(color: colors.muted, fontSize: 11)),
+                        Text('Avg Rating', style: TextStyle(color: colors.muted, fontSize: 12)),
                       ],
                     ),
                     Container(width: 1, height: 28, color: colors.border),
@@ -557,7 +557,7 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                           style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),
-                        Text('Completed', style: TextStyle(color: colors.muted, fontSize: 11)),
+                        Text('Completed', style: TextStyle(color: colors.muted, fontSize: 12)),
                       ],
                     ),
                   ],
@@ -567,7 +567,7 @@ class AgencyLeaderboardCard extends ConsumerWidget {
               // Top 3 preview if editors exist
               if (editors.isNotEmpty) ...[
                 const SizedBox(height: 14),
-                Text('TOP EDITORS', style: TextStyle(color: colors.muted, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.1)),
+                Text('TOP EDITORS', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.1)),
                 const SizedBox(height: 8),
                 Column(
                   children: editors.take(3).toList().asMap().entries.map((entry) {
@@ -606,10 +606,10 @@ class AgencyLeaderboardCard extends ConsumerWidget {
                               const SizedBox(width: 2),
                               Text(
                                 rat.toStringAsFixed(1),
-                                style: const TextStyle(color: AppColors.star, fontSize: 11, fontWeight: FontWeight.bold),
+                                style: const TextStyle(color: AppColors.star, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(width: 8),
-                              Text('$cp cuts', style: TextStyle(color: colors.muted, fontSize: 11)),
+                              Text('$cp cuts', style: TextStyle(color: colors.muted, fontSize: 12)),
                             ],
                           ),
                         ],

@@ -49,7 +49,7 @@ class ChatMemberStrip extends ConsumerWidget {
                       currentUser?.role == UserRole.manager
                           ? 'No editors connected yet. Share your Agency Join Key to invite your team.'
                           : 'No other editors in this room yet. You are all set to claim projects!',
-                      style: TextStyle(color: colors.muted, fontSize: 11.5),
+                      style: TextStyle(color: colors.muted, fontSize: 12),
                     ),
                   ),
                 ],
@@ -123,7 +123,7 @@ class ChatMemberStrip extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: colors.text,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

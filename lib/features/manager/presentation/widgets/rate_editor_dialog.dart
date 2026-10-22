@@ -124,7 +124,7 @@ Future<void> showRateEditorSheet({
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(editorName, style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold)),
-                              Text('Production Contributor • In Agency Room', style: TextStyle(color: colors.muted, fontSize: 11)),
+                              Text('Production Contributor • In Agency Room', style: TextStyle(color: colors.muted, fontSize: 12)),
                             ],
                           ),
                         ),
@@ -137,7 +137,7 @@ Future<void> showRateEditorSheet({
                           ),
                           child: Text(
                             'Editor',
-                            style: TextStyle(color: colors.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -191,7 +191,7 @@ Future<void> showRateEditorSheet({
                   const SizedBox(height: 20),
 
                   // Quick Review Tags
-                  Text('Quick Feedback Tags', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text('Quick Feedback Tags', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -218,7 +218,7 @@ Future<void> showRateEditorSheet({
                           ),
                           child: Text(
                             tag,
-                            style: TextStyle(color: colors.text, fontSize: 11),
+                            style: TextStyle(color: colors.text, fontSize: 12),
                           ),
                         ),
                       );

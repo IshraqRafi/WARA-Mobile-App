@@ -90,7 +90,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Live Avatar Preview',
-                        style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w500),
+                        style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -141,7 +141,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                 const SizedBox(height: 8),
                 Text(
                   '💡 If left blank, your avatar displays two letters: first letter of your surname and then real name.',
-                  style: TextStyle(color: colors.muted, fontSize: 11, height: 1.4),
+                  style: TextStyle(color: colors.muted, fontSize: 12, height: 1.4),
                 ),
                 const SizedBox(height: 24),
 
@@ -286,7 +286,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(color: colors.card, borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.border)),
-                              child: Text('Creative Editor • Tap to Edit', style: TextStyle(color: colors.primary, fontSize: 10, fontWeight: FontWeight.w600)),
+                              child: Text('Creative Editor • Tap to Edit', style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
                             ),
                           ],
                         ),
@@ -337,7 +337,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                           const SizedBox(height: 2),
                           Text(
                             'Connected Agency Room • Key: ${user?.agencyJoinKey ?? "—"}',
-                            style: TextStyle(color: colors.muted, fontSize: 11),
+                            style: TextStyle(color: colors.muted, fontSize: 12),
                           ),
                         ],
                       ),
@@ -365,7 +365,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
               const SizedBox(height: 24),
 
               // Skills Customizer
-              Text('CREATIVE SKILLS TAXONOMY', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+              Text('CREATIVE SKILLS TAXONOMY', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
               const SizedBox(height: 6),
               Text('Managers match project assignments based on your active skill set.', style: TextStyle(color: colors.muted, fontSize: 12)),
               const SizedBox(height: 14),
@@ -405,7 +405,7 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
               const SizedBox(height: 28),
 
               // Availability & Time Schedule
-              Text('WORKING AVAILABILITY & SCHEDULE', style: TextStyle(color: colors.muted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+              Text('WORKING AVAILABILITY & SCHEDULE', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
               const SizedBox(height: 14),
 
               Container(
