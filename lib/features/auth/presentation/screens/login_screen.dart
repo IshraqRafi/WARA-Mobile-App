@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
+import 'package:flutter/services.dart';
+import '../../../../shared/motion/motion.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -73,33 +76,54 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     WaraBanner(message: _errorMessage!),
                     const SizedBox(height: AppSpacing.lg),
                   ],
-                  SizedBox(
-                    height: 52,
-                    child: Semantics(
-                      button: true,
-                      label: _isLoading ? 'Signing in with Google' : 'Continue with Google',
-                      excludeSemantics: true,
-                      child: OutlinedButton(
-                        onPressed: _isLoading ? null : _handleGoogleSignIn,
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: colors.card,
-                          disabledBackgroundColor: colors.card,
-                          minimumSize: const Size.fromHeight(52),
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                        ),
-                        child: _isLoading
-                            ? SizedBox.square(
-                                dimension: 22,
-                                child: CircularProgressIndicator(color: colors.primary, strokeWidth: 2.5),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const GoogleGLogo(size: 20),
-                                  const SizedBox(width: AppSpacing.md),
-                                  Text('Continue with Google', style: text.titleMedium),
-                                ],
+                  LayoutBuilder(
+                    builder: (context, box) => Center(
+                      child: Semantics(
+                        button: true,
+                        label: _isLoading ? 'Signing in with Google' : 'Continue with Google',
+                        excludeSemantics: true,
+                        child: Pressable(
+                          enabled: !_isLoading,
+                          child: AnimatedContainer(
+                            duration: Motion.of(context, Motion.medium),
+                            curve: Motion.curve,
+                            width: _isLoading ? 52 : box.maxWidth,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: colors.card,
+                              borderRadius: BorderRadius.circular(26),
+                              border: Border.all(color: colors.border),
+                            ),
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(26),
+                                onTap: _isLoading ? null : _handleGoogleSignIn,
+                                child: AnimatedSwitcher(
+                                  duration: Motion.of(context, Motion.fast),
+                                  child: _isLoading
+                                      ? SizedBox.square(
+                                          key: const ValueKey('busy'),
+                                          dimension: 22,
+                                          child: CircularProgressIndicator(color: colors.primary, strokeWidth: 2.5),
+                                        )
+                                      : FittedBox(
+                                          key: const ValueKey('idle'),
+                                          fit: BoxFit.scaleDown,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const GoogleGLogo(size: 20),
+                                              const SizedBox(width: AppSpacing.md),
+                                              Text('Continue with Google', style: text.titleMedium),
+                                            ],
+                                          ),
+                                        ),
+                                ),
                               ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -115,8 +139,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-/// Two-segment [Editor | Manager] selector with a sliding thumb.
-class RoleSlider extends StatelessWidget {
+/// Two-segment [Editor | Manager] selector with a spring-driven thumb.
+class RoleSlider extends StatefulWidget {
   final UserRole value;
   final ValueChanged<UserRole> onChanged;
   final bool enabled;
@@ -127,11 +151,38 @@ class RoleSlider extends StatelessWidget {
   static const _labels = {UserRole.editor: 'Editor', UserRole.manager: 'Manager'};
 
   @override
+  State<RoleSlider> createState() => _RoleSliderState();
+}
+
+class _RoleSliderState extends State<RoleSlider> with SingleTickerProviderStateMixin {
+  static const _spring = SpringDescription(mass: 1, stiffness: 420, damping: 26);
+  late final AnimationController _x = AnimationController.unbounded(vsync: this, value: _target);
+
+  double get _target => widget.value == RoleSlider._roles.first ? -1 : 1;
+
+  @override
+  void didUpdateWidget(RoleSlider old) {
+    super.didUpdateWidget(old);
+    if (old.value == widget.value) return;
+    if (Motion.reduced(context)) {
+      _x.value = _target;
+    } else {
+      _x.animateWith(SpringSimulation(_spring, _x.value, _target, _x.velocity));
+    }
+  }
+
+  @override
+  void dispose() {
+    _x.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final text = Theme.of(context).textTheme;
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
-    final isLeft = value == _roles.first;
+    final value = widget.value;
     return Container(
       height: 48,
       padding: const EdgeInsets.all(4),
@@ -142,39 +193,45 @@ class RoleSlider extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          AnimatedAlign(
-            alignment: isLeft ? Alignment.centerLeft : Alignment.centerRight,
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            child: FractionallySizedBox(
-              widthFactor: 0.5,
-              heightFactor: 1,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _x,
+              builder: (context, child) => Align(alignment: Alignment(_x.value, 0), child: child),
+              child: FractionallySizedBox(
+                widthFactor: 0.5,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
+                ),
               ),
             ),
           ),
           Row(
             children: [
-              for (final r in _roles)
+              for (final r in RoleSlider._roles)
                 Expanded(
                   child: Semantics(
                     button: true,
                     selected: r == value,
-                    label: _labels[r],
+                    label: RoleSlider._labels[r],
                     excludeSemantics: true,
                     child: InkWell(
                       key: ValueKey('role_${r.name}'),
                       borderRadius: BorderRadius.circular(20),
-                      onTap: enabled ? () => onChanged(r) : null,
+                      onTap: widget.enabled
+                          ? () {
+                              if (r != value) HapticFeedback.selectionClick();
+                              widget.onChanged(r);
+                            }
+                          : null,
                       child: Center(
                         child: AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 220),
+                          duration: Motion.of(context, const Duration(milliseconds: 220)),
                           style: (text.labelLarge ?? const TextStyle()).copyWith(
                             color: r == value ? onPrimary : colors.muted,
                             fontWeight: FontWeight.w600,
                           ),
-                          child: Text(_labels[r]!),
+                          child: Text(RoleSlider._labels[r]!),
                         ),
                       ),
                     ),

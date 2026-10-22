@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -36,7 +37,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
           children: [
             Icon(Icons.warning_amber_rounded, color: colors.error, size: 24),
             const SizedBox(width: 10),
-            Text('Delete Project Offer?', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Delete Project Offer?',
+              style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Column(
@@ -86,14 +90,13 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             onPressed: () {
               ref.read(projectsProvider.notifier).deleteProject(project.id);
               Navigator.pop(ctx);
-              WaraToast.show(
-                context,
-                message: 'Project deleted',
-                icon: Icons.delete_forever_rounded,
-              );
+              WaraToast.show(context, message: 'Project deleted', icon: Icons.delete_forever_rounded);
             },
             icon: const Icon(Icons.delete_forever_rounded, size: 16, color: Colors.white),
-            label: const Text('Delete Permanently', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            label: const Text(
+              'Delete Permanently',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.error,
               foregroundColor: Colors.white,
@@ -120,19 +123,18 @@ class ManagerWorkflowScreen extends ConsumerWidget {
         backgroundColor: colors.card,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
         builder: (ctx) => Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
+          padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Center(
-                  child: Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2))),
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2)),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -152,7 +154,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: colors.border)),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: colors.border),
+                  ),
                   child: Row(
                     children: [
                       Icon(Icons.info_outline_rounded, color: colors.muted, size: 18),
@@ -173,7 +179,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Payment / Payout', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
+                          Text(
+                            'Payment / Payout',
+                            style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
                           const SizedBox(height: 6),
                           TextField(
                             controller: payoutCtrl,
@@ -189,7 +198,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Real-Time Deadline', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
+                          Text(
+                            'Real-Time Deadline',
+                            style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
                           const SizedBox(height: 6),
                           TextField(
                             controller: deadlineCtrl,
@@ -212,7 +224,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                           _showDeleteConfirmation(context, ref, project);
                         },
                         icon: Icon(Icons.delete_outline_rounded, size: 16, color: colors.error),
-                        label: Text('Delete Offer', style: TextStyle(color: colors.error, fontSize: 13, fontWeight: FontWeight.bold)),
+                        label: Text(
+                          'Delete Offer',
+                          style: TextStyle(color: colors.error, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           side: BorderSide(color: colors.error.withValues(alpha: 0.5)),
@@ -230,7 +245,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: Text('Close', style: TextStyle(color: colors.onPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'Close',
+                          style: TextStyle(color: colors.onPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],
@@ -256,33 +274,38 @@ class ManagerWorkflowScreen extends ConsumerWidget {
       backgroundColor: colors.card,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
+        padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
-                child: Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2))),
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2)),
+                ),
               ),
               const SizedBox(height: 20),
               Row(
                 children: [
                   Icon(Icons.edit_note_rounded, color: colors.primary, size: 24),
                   const SizedBox(width: 10),
-                  Text('Edit project', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    'Edit project',
+                    style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(project.clientName, style: TextStyle(color: colors.muted, fontSize: 12)),
               const SizedBox(height: 20),
 
-              Text('Project Title', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(
+                'Project Title',
+                style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 6),
               TextField(
                 controller: titleCtrl,
@@ -318,7 +341,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 14),
 
-              Text('Project Brief & Instructions', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(
+                'Project Brief & Instructions',
+                style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 6),
               TextField(
                 controller: descCtrl,
@@ -333,7 +359,9 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     if (titleCtrl.text.trim().isEmpty) return;
-                    final ok = ref.read(projectsProvider.notifier).updateOpenProject(
+                    final ok = ref
+                        .read(projectsProvider.notifier)
+                        .updateOpenProject(
                           projectId: project.id,
                           title: titleCtrl.text.trim(),
                           editorPayout: double.tryParse(payoutCtrl.text) ?? project.editorPayout,
@@ -343,15 +371,14 @@ class ManagerWorkflowScreen extends ConsumerWidget {
 
                     Navigator.pop(ctx);
                     if (ok) {
-                      WaraToast.show(
-                        context,
-                        message: 'Project updated',
-                        icon: Icons.check_circle_rounded,
-                      );
+                      WaraToast.show(context, message: 'Project updated', icon: Icons.check_circle_rounded);
                     }
                   },
                   icon: Icon(Icons.save_rounded, size: 16, color: colors.onPrimary),
-                  label: Text('Save Changes to Offer', style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    'Save Changes to Offer',
+                    style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colors.primary,
                     foregroundColor: colors.onPrimary,
@@ -369,7 +396,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     _showDeleteConfirmation(context, ref, project);
                   },
                   icon: Icon(Icons.delete_outline_rounded, size: 16, color: colors.error),
-                  label: Text('Delete Project Offer', style: TextStyle(color: colors.error, fontSize: 13, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    'Delete Project Offer',
+                    style: TextStyle(color: colors.error, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -393,31 +423,36 @@ class ManagerWorkflowScreen extends ConsumerWidget {
       backgroundColor: colors.card,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
+        padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
-                child: Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2))),
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2)),
+                ),
               ),
               const SizedBox(height: 20),
               Row(
                 children: [
                   Icon(Icons.add_circle_outline_rounded, color: colors.primary, size: 22),
                   const SizedBox(width: 10),
-                  Text('New project', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    'New project',
+                    style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
 
-              Text('Project Title', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(
+                'Project Title',
+                style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 6),
               TextField(
                 controller: titleCtrl,
@@ -458,7 +493,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 14),
 
-              Text('Project Brief & Instructions', style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(
+                'Project Brief & Instructions',
+                style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 6),
               TextField(
                 controller: descCtrl,
@@ -479,7 +517,9 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                   onPressed: () {
                     if (titleCtrl.text.trim().isEmpty) return;
                     final payout = double.tryParse(payoutCtrl.text) ?? 1400;
-                    ref.read(projectsProvider.notifier).createNewProject(
+                    ref
+                        .read(projectsProvider.notifier)
+                        .createNewProject(
                           title: titleCtrl.text.trim(),
                           clientName: clientCtrl.text.trim().isEmpty ? 'LuxeLiving Apparel' : clientCtrl.text.trim(),
                           clientBudget: payout * 2.2,
@@ -489,14 +529,13 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                           skills: ['Video Editing', 'Color Grading', 'Sound Design'],
                         );
                     Navigator.pop(ctx);
-                    WaraToast.show(
-                      context,
-                      message: 'Project published',
-                      icon: Icons.rocket_launch_rounded,
-                    );
+                    WaraToast.show(context, message: 'Project published', icon: Icons.rocket_launch_rounded);
                   },
                   icon: Icon(Icons.send_rounded, size: 16, color: colors.onPrimary),
-                  label: Text('Publish Offer to Pool', style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    'Publish Offer to Pool',
+                    style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colors.primary,
                     foregroundColor: colors.onPrimary,
@@ -525,10 +564,17 @@ class ManagerWorkflowScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2))),
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2)),
+              ),
             ),
             const SizedBox(height: 20),
-            Text('Assign Project to Editor', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Assign Project to Editor',
+              style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 4),
             Text(project.title, style: TextStyle(color: colors.muted, fontSize: 12)),
             const SizedBox(height: 20),
@@ -539,7 +585,9 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 final cloudEditors = snapshot.data ?? [];
 
                 // Filter complete profiles or combine with fallback
-                final activeEditors = cloudEditors.where((e) => e['name'] != null && (e['name'] as String).isNotEmpty).toList();
+                final activeEditors = cloudEditors
+                    .where((e) => e['name'] != null && (e['name'] as String).isNotEmpty)
+                    .toList();
 
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const Padding(
@@ -562,7 +610,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                       children: [
                         Icon(Icons.group_add_rounded, color: colors.muted, size: 28),
                         const SizedBox(height: 10),
-                        Text('No editors yet', style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
+                        Text(
+                          'No editors yet',
+                          style: TextStyle(color: colors.text, fontWeight: FontWeight.bold),
+                        ),
                         const SizedBox(height: 6),
                         Text(
                           joinKey.isEmpty
@@ -608,11 +659,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                               ),
                               child: Text(
                                 'Online',
-                                style: TextStyle(
-                                  color: colors.success,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: TextStyle(color: colors.success, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
@@ -643,25 +690,27 @@ class ManagerWorkflowScreen extends ConsumerWidget {
       backgroundColor: colors.card,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
+        padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2))),
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2)),
+              ),
             ),
             const SizedBox(height: 20),
             Row(
               children: [
                 Icon(Icons.trending_up_rounded, color: colors.primary, size: 22),
                 const SizedBox(width: 10),
-                Text('Re-list & Increase Editor Payout', style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  'Re-list & Increase Editor Payout',
+                  style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -685,11 +734,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                   final newPayout = double.tryParse(payoutCtrl.text) ?? (project.editorPayout + 300);
                   ref.read(projectsProvider.notifier).relistOverdueProject(project.id, increasedPayout: newPayout);
                   Navigator.pop(ctx);
-                  WaraToast.show(
-                    context,
-                    message: 'Re-listed at ৳$newPayout',
-                    icon: Icons.bolt_rounded,
-                  );
+                  WaraToast.show(context, message: 'Re-listed at ৳$newPayout', icon: Icons.bolt_rounded);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
@@ -697,7 +742,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                child: Text('Re-list to Pool with New Payout', style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'Re-list to Pool with New Payout',
+                  style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -722,12 +770,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
         return [
           OutlinedButton(
             onPressed: () {
-              ref.read(projectsProvider.notifier).requestRevision(project.id, 'Please adjust sound levels and speed ramp transition.');
-              WaraToast.show(
-                context,
-                message: 'Revision requested',
-                icon: Icons.edit_note_rounded,
-              );
+              ref
+                  .read(projectsProvider.notifier)
+                  .requestRevision(project.id, 'Please adjust sound levels and speed ramp transition.');
+              WaraToast.show(context, message: 'Revision requested', icon: Icons.edit_note_rounded);
             },
             style: waraCompactButton(),
             child: const Text('Revision'),
@@ -746,11 +792,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                 );
               } else {
                 ref.read(projectsProvider.notifier).approveProject(project.id);
-                WaraToast.show(
-                  context,
-                  message: 'Approved',
-                  icon: Icons.check_circle_rounded,
-                );
+                WaraToast.show(context, message: 'Approved', icon: Icons.check_circle_rounded);
               }
             },
             style: waraCompactButton(),
@@ -829,7 +871,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('wara.io', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+                            Text(
+                              'wara.io',
+                              style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5),
+                            ),
                           ],
                         ),
                       ),
@@ -848,11 +893,22 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     selected: filter,
                     onSelect: (i) => ref.read(_workflowFilterProvider.notifier).state = i,
                   ),
-                  WaraSectionHeader(title: 'Projects', subtitle: filter == null ? null : '${visible.length} of ${projects.length}'),
+                  WaraSectionHeader(
+                    title: 'Projects',
+                    subtitle: filter == null ? null : '${visible.length} of ${projects.length}',
+                  ),
                 ],
               ),
             ),
-            if (visible.isEmpty)
+            if (visible.isEmpty && filter == null && !ref.watch(projectsLoadedProvider))
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: margin),
+                sliver: SliverList.builder(
+                  itemCount: 4,
+                  itemBuilder: (c, i) => const Shimmer(child: ProjectCardSkeleton()),
+                ),
+              )
+            else if (visible.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: filter != null
@@ -877,11 +933,16 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                   itemCount: visible.length,
                   itemBuilder: (context, index) {
                     final project = visible[index];
-                    return WaraProjectCard(
-                      project: project,
-                      listId: 'workflow',
-                      showAssignee: true,
-                      actions: _cardActions(context, ref, project),
+                    return StaggerIn(
+                      key: ValueKey(project.id),
+                      screen: 'workflow',
+                      index: index,
+                      child: WaraProjectCard(
+                        project: project,
+                        listId: 'workflow',
+                        showAssignee: true,
+                        actions: _cardActions(context, ref, project),
+                      ),
                     );
                   },
                 ),
@@ -889,7 +950,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: Pressable(child: FloatingActionButton.extended(
         onPressed: () => _showCreateOfferModal(context, ref),
         backgroundColor: colors.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -897,7 +958,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brLg),
         icon: const Icon(Icons.add_rounded),
         label: const Text('New project'),
-      ),
+      )),
     );
   }
 }
@@ -937,7 +998,10 @@ class _NumberStepperField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(

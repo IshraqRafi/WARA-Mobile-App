@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -32,7 +33,10 @@ class EditorWorkspaceScreen extends ConsumerWidget {
               child: Container(
                 width: 36,
                 height: 4,
-                decoration: BoxDecoration(color: colors.muted.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                  color: colors.muted.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -166,7 +170,12 @@ class EditorWorkspaceScreen extends ConsumerWidget {
       backgroundColor: colors.bg,
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.lg, AppSpacing.screenMargin(context), 0),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.screenMargin(context),
+            AppSpacing.lg,
+            AppSpacing.screenMargin(context),
+            0,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -181,7 +190,12 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                       children: [
                         Text(
                           'wara.io',
-                          style: TextStyle(color: colors.text, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                          style: TextStyle(
+                            color: colors.text,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
                         ),
                         Text(
                           'My pending workspace & submissions',
@@ -224,43 +238,56 @@ class EditorWorkspaceScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               Expanded(
-                child: myProjects.isEmpty
+                child: myProjects.isEmpty && !ref.watch(projectsLoadedProvider)
+                    ? const SkeletonList(item: ProjectCardSkeleton())
+                    : myProjects.isEmpty
                     ? const WaraEmptyState(icon: Icons.folder_open_outlined, title: 'No projects')
                     : ListView.builder(
                         padding: EdgeInsets.only(bottom: AppSpacing.bottomInset(context)),
                         itemCount: myProjects.length,
                         itemBuilder: (context, index) {
                           final project = myProjects[index];
-                          return WaraProjectCard(
-                            project: project,
-                            listId: 'workspace',
-                            payoutLabel: 'Payout',
-                            actions: [
-                              if (project.status == ProjectStatus.claimed)
-                                Tooltip(
-                                  message: project.canReturn ? 'Return to pool (deadline −1 day)' : 'Locked: 3 days or less left',
-                                  child: OutlinedButton.icon(
-                                    onPressed: project.canReturn
-                                        ? () {
-                                            final ok = ref.read(projectsProvider.notifier).returnProject(project.id);
-                                            if (ok) {
-                                              WaraToast.show(context, message: 'Returned to pool', icon: Icons.replay_rounded);
+                          return StaggerIn(
+                            key: ValueKey(project.id),
+                            screen: 'workspace',
+                            index: index,
+                            child: WaraProjectCard(
+                              project: project,
+                              listId: 'workspace',
+                              payoutLabel: 'Payout',
+                              actions: [
+                                if (project.status == ProjectStatus.claimed)
+                                  Tooltip(
+                                    message: project.canReturn
+                                        ? 'Return to pool (deadline −1 day)'
+                                        : 'Locked: 3 days or less left',
+                                    child: OutlinedButton.icon(
+                                      onPressed: project.canReturn
+                                          ? () {
+                                              final ok = ref.read(projectsProvider.notifier).returnProject(project.id);
+                                              if (ok) {
+                                                WaraToast.show(
+                                                  context,
+                                                  message: 'Returned to pool',
+                                                  icon: Icons.replay_rounded,
+                                                );
+                                              }
                                             }
-                                          }
-                                        : null,
-                                    style: waraCompactButton(),
-                                    icon: const Icon(Icons.undo_rounded, size: 18),
-                                    label: Text(project.canReturn ? 'Return' : 'Locked'),
+                                          : null,
+                                      style: waraCompactButton(),
+                                      icon: const Icon(Icons.undo_rounded, size: 18),
+                                      label: Text(project.canReturn ? 'Return' : 'Locked'),
+                                    ),
                                   ),
-                                ),
-                              if (project.status != ProjectStatus.approved)
-                                ElevatedButton.icon(
-                                  onPressed: () => _showSubmitModal(context, ref, project),
-                                  style: waraCompactButton(),
-                                  icon: const Icon(Icons.upload_file_rounded, size: 18),
-                                  label: Text(project.status == ProjectStatus.submitted ? 'Update' : 'Submit link'),
-                                ),
-                            ],
+                                if (project.status != ProjectStatus.approved)
+                                  ElevatedButton.icon(
+                                    onPressed: () => _showSubmitModal(context, ref, project),
+                                    style: waraCompactButton(),
+                                    icon: const Icon(Icons.upload_file_rounded, size: 18),
+                                    label: Text(project.status == ProjectStatus.submitted ? 'Update' : 'Submit link'),
+                                  ),
+                              ],
+                            ),
                           );
                         },
                       ),
