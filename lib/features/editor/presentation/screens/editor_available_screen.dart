@@ -96,16 +96,16 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
         margin: const EdgeInsets.only(bottom: AppSpacing.sm),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
         alignment: claim ? Alignment.centerLeft : Alignment.centerRight,
-        decoration: BoxDecoration(color: claim ? c.successTint : c.surface, borderRadius: AppRadius.brLg),
+        decoration: BoxDecoration(color: claim ? c.primary.withValues(alpha: 0.12) : c.surface, borderRadius: BorderRadius.circular(8)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             SwipeIcon(
               progress: progress,
-              child: Icon(claim ? Icons.touch_app_rounded : Icons.visibility_off_outlined, size: 20, color: claim ? c.success : c.muted),
+              child: Icon(claim ? Icons.check_rounded : Icons.visibility_off_outlined, size: 22, color: claim ? c.primary : c.muted),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Text(claim ? 'Claim' : 'Hide', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: claim ? c.success : c.muted)),
+            Text(claim ? 'Claim' : 'Hide', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: claim ? c.primary : c.muted)),
           ],
         ),
       );
@@ -165,7 +165,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
               ),
               Expanded(
                 child: !loaded && availableProjects.isEmpty
-                    ? const SkeletonList(item: ProjectCardSkeleton())
+                    ? const SkeletonList(item: OfferCardSkeleton())
                     : availableProjects.isEmpty
                     ? const WaraEmptyState(
                         icon: Icons.check_circle_outline_rounded,
@@ -190,7 +190,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                                 onDismissed: (dir) => dir == DismissDirection.endToStart
                                     ? _hide(project)
                                     : _claim(project, user),
-                                child: OfferCard(project: project, onLongPress: () => _claim(project, user)),
+                                child: OfferCard(project: project, agencyName: user?.agencyName, onLongPress: () => _claim(project, user)),
                               ),
                             ),
                           );

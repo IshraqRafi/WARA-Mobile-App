@@ -153,6 +153,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
       deadlineStr: '$deadlineDays Days Left ($deadlineHours Hours)',
       deadlineHoursLeft: deadlineHours,
       deadlineAt: DateTime.now().add(Duration(hours: deadlineHours)),
+      postedAt: DateTime.now(),
       description: description,
       requiredSkills: skills.isEmpty ? ['Video Editing'] : skills,
       status: ProjectStatus.open,
