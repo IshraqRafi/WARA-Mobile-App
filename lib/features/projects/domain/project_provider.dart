@@ -60,6 +60,24 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     _subscribe();
   }
 
+  Completer<void>? _refresh;
+
+  /// Pull-to-refresh: re-subscribes and completes when the fresh snapshot
+  /// (or an error) arrives, or after 8s at most.
+  Future<void> refresh() {
+    _refresh?.complete();
+    final c = _refresh = Completer<void>();
+    _subscribe();
+    if ((_agencyId ?? '').isEmpty) _completeRefresh();
+    return c.future.timeout(const Duration(seconds: 8), onTimeout: () {});
+  }
+
+  void _completeRefresh() {
+    final c = _refresh;
+    _refresh = null;
+    if (c != null && !c.isCompleted) c.complete();
+  }
+
   void _subscribe() {
     _subscription?.cancel();
     final agencyId = _agencyId;
@@ -74,17 +92,20 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
         _onError?.call(null);
         _onLoaded?.call();
         state = projects;
+        _completeRefresh();
       },
       onError: (Object err) {
         // Keep the local state, but surface the failure to the UI.
         debugPrint('Projects stream error: $err');
         _onError?.call(err);
+        _completeRefresh();
       },
     );
   }
 
   @override
   void dispose() {
+    _completeRefresh();
     _subscription?.cancel();
     super.dispose();
   }

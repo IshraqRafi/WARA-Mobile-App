@@ -161,7 +161,10 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                         icon: Icons.check_circle_outline_rounded,
                         title: 'No open offers',
                       )
-                    : ListView.builder(
+                    : WaraRefresh(
+                        onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
+                        child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         padding: EdgeInsets.only(bottom: AppSpacing.bottomInset(context)),
                         itemCount: availableProjects.length,
                         itemBuilder: (context, index) {
@@ -222,6 +225,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                             ),
                           );
                         },
+                      ),
                       ),
               ),
             ],

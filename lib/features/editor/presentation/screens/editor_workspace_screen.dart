@@ -235,7 +235,10 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                     ? const SkeletonList(item: ProjectCardSkeleton())
                     : myProjects.isEmpty
                     ? const WaraEmptyState(icon: Icons.folder_open_outlined, title: 'No projects')
-                    : ListView.builder(
+                    : WaraRefresh(
+                        onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
+                        child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         padding: EdgeInsets.only(bottom: AppSpacing.bottomInset(context)),
                         itemCount: myProjects.length,
                         itemBuilder: (context, index) {
@@ -283,6 +286,7 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                             ),
                           );
                         },
+                      ),
                       ),
               ),
             ],

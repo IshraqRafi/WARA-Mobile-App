@@ -96,6 +96,24 @@ class ChatNotifier extends StateNotifier<ChatState> {
     _subscribeConversations();
   }
 
+  Completer<void>? _refresh;
+
+  /// Pull-to-refresh: re-subscribes and completes on the next snapshot or
+  /// error (8s cap).
+  Future<void> refresh() {
+    _refresh?.complete();
+    final c = _refresh = Completer<void>();
+    _subscribeConversations();
+    if (_agencyId == null || _currentUser == null) _completeRefresh();
+    return c.future.timeout(const Duration(seconds: 8), onTimeout: () {});
+  }
+
+  void _completeRefresh() {
+    final c = _refresh;
+    _refresh = null;
+    if (c != null && !c.isCompleted) c.complete();
+  }
+
   void _subscribeConversations() {
     _convosSubscription?.cancel();
     final agencyId = _agencyId;
@@ -106,16 +124,19 @@ class ChatNotifier extends StateNotifier<ChatState> {
     _convosSubscription = _firestoreService.streamAgencyConversations(agencyId, user.id).listen(
       (convos) {
         state = state.copyWith(conversations: convos, clearError: true);
+        _completeRefresh();
       },
       onError: (Object err) {
         debugPrint('Conversations stream error: $err');
         state = state.copyWith(error: err);
+        _completeRefresh();
       },
     );
   }
 
   @override
   void dispose() {
+    _completeRefresh();
     _convosSubscription?.cancel();
     for (final sub in _msgSubscriptions.values) {
       sub.cancel();

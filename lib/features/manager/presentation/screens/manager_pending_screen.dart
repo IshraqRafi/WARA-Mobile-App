@@ -1,4 +1,4 @@
-import '../../../../shared/motion/rolling_counter.dart';
+import '../../../../shared/motion/motion.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -94,7 +94,10 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                       icon: Icons.verified_outlined,
                       title: 'Nothing pending',
                     )
-                  : ListView.builder(
+                  : WaraRefresh(
+                        onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
+                        child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
                       padding: EdgeInsets.fromLTRB(margin, 0, margin, AppSpacing.bottomInset(context)),
                       itemCount: pendingProjects.length,
                       itemBuilder: (context, index) {
@@ -131,6 +134,7 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                         );
                       },
                     ),
+                      ),
             ),
           ],
         ),

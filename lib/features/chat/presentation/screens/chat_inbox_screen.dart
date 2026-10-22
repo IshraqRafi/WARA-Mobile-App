@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/motion/shimmer.dart';
+import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -341,7 +341,10 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
 
                       // Feed ListView
                       Expanded(
+                        child: WaraRefresh(
+                        onRefresh: () => ref.read(chatProvider.notifier).refresh(),
                         child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
                           padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.xs, AppSpacing.screenMargin(context), AppSpacing.bottomInset(context)),
                           children: [
                             // 1. Pinned Agency Room Card
@@ -464,6 +467,7 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                             ],
                           ],
                         ),
+                      ),
                       ),
                     ],
                   );

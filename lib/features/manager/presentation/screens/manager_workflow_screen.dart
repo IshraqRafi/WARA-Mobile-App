@@ -718,7 +718,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
       backgroundColor: colors.bg,
       body: SafeArea(
         bottom: false,
-        child: CustomScrollView(
+        child: WaraRefresh(
+                        onRefresh: () => ref.read(projectsProvider.notifier).refresh(),
+                        child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverPadding(
               padding: EdgeInsets.fromLTRB(margin, AppSpacing.lg, margin, 0),
@@ -813,6 +816,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
               ),
           ],
         ),
+                      ),
       ),
       floatingActionButton: Builder(builder: (fabCtx) => Pressable(child: FloatingActionButton.extended(
         heroTag: null,
