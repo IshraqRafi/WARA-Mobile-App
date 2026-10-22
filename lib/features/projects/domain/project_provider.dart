@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firestore_service.dart';
 import '../../auth/domain/auth_provider.dart';
+import '../../../shared/motion/haptics.dart';
 
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
   return FirestoreService();
@@ -171,6 +172,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   /// returned future completes when Firestore accepts the write, and on
   /// failure the local change is rolled back and the error rethrown.
   Future<void> claimProject(String projectId, String editorId, String editorName) async {
+    Haptics.statusChange(ProjectStatus.claimed);
     final now = DateTime.now();
     final previous = state.where((p) => p.id == projectId).firstOrNull;
 
@@ -204,6 +206,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     if (!target.canReturn) {
       return false;
     }
+    Haptics.statusChange(ProjectStatus.open);
 
     final newHoursLeft = (target.deadlineHoursLeft - 24).clamp(0, 9999);
     final daysLeft = (newHoursLeft / 24).ceil();
@@ -237,6 +240,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   }
 
   void relistOverdueProject(String projectId, {double? increasedPayout}) {
+    Haptics.statusChange(ProjectStatus.open);
     final target = state.firstWhere((p) => p.id == projectId);
     final newPayout = increasedPayout ?? target.editorPayout;
 
@@ -266,6 +270,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   }
 
   void submitWork(String projectId, String submissionLink, String submissionNote) {
+    Haptics.statusChange(ProjectStatus.submitted);
     final nowStr = 'Today at ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
 
     // Optimistic update
@@ -287,6 +292,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   }
 
   void approveProject(String projectId) {
+    Haptics.statusChange(ProjectStatus.approved);
     // Optimistic update
     state = [
       for (final item in state)
@@ -301,6 +307,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   }
 
   void requestRevision(String projectId, String feedback) {
+    Haptics.statusChange(ProjectStatus.claimed);
     // Optimistic update
     state = [
       for (final item in state)
@@ -318,6 +325,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   }
 
   void assignProject(String projectId, String editorId, String editorName) {
+    Haptics.statusChange(ProjectStatus.claimed);
     final now = DateTime.now();
 
     // Optimistic update

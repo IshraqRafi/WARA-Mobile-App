@@ -1,3 +1,4 @@
+import '../../../../shared/motion/rolling_counter.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -128,9 +129,7 @@ class ManagerFinanceScreen extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '৳${_formatCurrency(totalPipelineVolume)}',
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(color: colors.text, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+                    RollingCounter(prefix: '৳', grouped: true, value: totalPipelineVolume.toInt(), style: Theme.of(context).textTheme.displaySmall?.copyWith(color: colors.text, fontWeight: FontWeight.w700, letterSpacing: -0.5),
                     ),
                     const SizedBox(height: 14),
 
@@ -173,9 +172,11 @@ class ManagerFinanceScreen extends ConsumerWidget {
                               children: [
                                 Text('SETTLED REVENUE', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 4),
-                                Text(
-                                  '৳${_formatCurrency(approvedRevenue)}',
-                                  style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
+                                RollingCounter(
+  prefix: '৳',
+  grouped: true,
+  value: approvedRevenue.toInt(),
+  style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.bold),
                                 ),
                                 Text('${approvedProjects.length} approved cuts', style: TextStyle(color: colors.muted, fontSize: 12)),
                               ],
@@ -195,9 +196,11 @@ class ManagerFinanceScreen extends ConsumerWidget {
                               children: [
                                 Text('COMMITTED PAYOUTS', style: TextStyle(color: colors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 4),
-                                Text(
-                                  '৳${_formatCurrency(totalEditorPayouts)}',
-                                  style: TextStyle(color: colors.primary, fontSize: 15, fontWeight: FontWeight.bold),
+                                RollingCounter(
+  prefix: '৳',
+  grouped: true,
+  value: totalEditorPayouts.toInt(),
+  style: TextStyle(color: colors.primary, fontSize: 15, fontWeight: FontWeight.bold),
                                 ),
                                 Text('৳${_formatCurrency(approvedEditorPayouts)} settled • ৳${_formatCurrency(inProductionPayouts)} in escrow', style: TextStyle(color: colors.muted, fontSize: 12)),
                               ],
@@ -307,9 +310,10 @@ class ManagerFinanceScreen extends ConsumerWidget {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text(
-                                    '৳${stats.earned.toInt()}',
-                                    style: TextStyle(color: colors.primary, fontSize: 15, fontWeight: FontWeight.bold),
+                                  RollingCounter(
+  prefix: '৳',
+  value: stats.earned.toInt(),
+  style: TextStyle(color: colors.primary, fontSize: 15, fontWeight: FontWeight.bold),
                                   ),
                                   if (stats.inProduction > 0)
                                     Text(

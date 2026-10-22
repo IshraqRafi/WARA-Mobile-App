@@ -1,12 +1,13 @@
 import 'package:flutter/widgets.dart';
 
-export 'animated_count.dart';
 export 'claim_button.dart';
 export 'collapse_out.dart';
 export 'glow_pulse.dart';
+export 'haptics.dart';
 export 'page_transitions.dart';
 export 'pop_badge.dart';
 export 'pressable.dart';
+export 'rolling_counter.dart';
 export 'shimmer.dart';
 export 'stagger_in.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../motion/animated_count.dart';
+import '../motion/rolling_counter.dart';
 import '../../core/theme/app_theme.dart';
 import 'wara_status_chip.dart';
 
@@ -63,7 +63,7 @@ class WaraStatStrip extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AnimatedCount(value: s.value, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, height: 1.1)),
+                  RollingCounter(value: s.value, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, height: 1.1)),
                   const SizedBox(height: 2),
                   Row(
                     mainAxisSize: MainAxisSize.min,

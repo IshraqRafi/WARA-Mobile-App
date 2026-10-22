@@ -1,3 +1,4 @@
+import '../../../../shared/motion/rolling_counter.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,7 +71,7 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
                   const SizedBox(height: AppSpacing.xl),
                   Text('PIPELINE VALUE', style: text.labelMedium?.copyWith(letterSpacing: 0.8)),
                   const SizedBox(height: AppSpacing.xs),
-                  Text('৳${pipelineValue.toInt()}', style: text.displaySmall?.copyWith(fontWeight: FontWeight.w700, color: colors.text)),
+                  RollingCounter(prefix: '৳', value: pipelineValue.toInt(), style: text.displaySmall?.copyWith(fontWeight: FontWeight.w700, color: colors.text)),
                   const SizedBox(height: AppSpacing.xs),
                   Text('${pendingProjects.length} open deliverables · $toReview to review', style: text.bodyMedium?.copyWith(color: colors.muted)),
                   const SizedBox(height: AppSpacing.lg),
