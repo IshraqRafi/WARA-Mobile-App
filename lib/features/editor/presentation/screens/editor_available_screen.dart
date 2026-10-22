@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,7 +57,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
     ));
   }
 
-  Widget _swipeBg(AppColors c, {required bool claim}) => Container(
+  Widget _swipeBg(AppColors c, ValueListenable<double> progress, {required bool claim}) => Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.sm),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
         alignment: claim ? Alignment.centerLeft : Alignment.centerRight,
@@ -64,7 +65,10 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(claim ? Icons.touch_app_rounded : Icons.visibility_off_outlined, size: 20, color: claim ? c.success : c.muted),
+            SwipeIcon(
+              progress: progress,
+              child: Icon(claim ? Icons.touch_app_rounded : Icons.visibility_off_outlined, size: 20, color: claim ? c.success : c.muted),
+            ),
             const SizedBox(width: AppSpacing.sm),
             Text(claim ? 'Claim' : 'Hide', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: claim ? c.success : c.muted)),
           ],
@@ -198,10 +202,12 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                               }),
                               child: _settling.contains(project.id)
                                   ? card
-                                  : Dismissible(
+                                  : SwipeFeedback(
+                                      builder: (context, progress, onUpdate) => Dismissible(
                                       key: ValueKey('swipe_${project.id}'),
-                                      background: _swipeBg(colors, claim: true),
-                                      secondaryBackground: _swipeBg(colors, claim: false),
+                                      background: _swipeBg(colors, progress, claim: true),
+                                      onUpdate: onUpdate,
+                                      secondaryBackground: _swipeBg(colors, progress, claim: false),
                                       confirmDismiss: (dir) async {
                                         if (dir == DismissDirection.endToStart) return true;
                                         try {
@@ -221,7 +227,7 @@ class _EditorAvailableScreenState extends ConsumerState<EditorAvailableScreen> {
                                         }
                                       },
                                       child: card,
-                                    ),
+                                    )),
                             ),
                           );
                         },

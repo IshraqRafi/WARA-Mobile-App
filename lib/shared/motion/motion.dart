@@ -13,6 +13,7 @@ export 'rolling_counter.dart';
 export 'shared_axis.dart';
 export 'shimmer.dart';
 export 'stagger_in.dart';
+export 'swipe_feedback.dart';
 export 'wara_refresh.dart';
 
 /// Shared motion tokens. Every animation in the app goes through [Motion.of]
