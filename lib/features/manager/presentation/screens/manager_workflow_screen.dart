@@ -423,145 +423,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
     );
   }
 
-  void _showCreateOfferModal(BuildContext context, WidgetRef ref) {
-    final colors = context.colors;
-    final titleCtrl = TextEditingController(text: '');
-    final clientCtrl = TextEditingController(text: '');
-    final payoutCtrl = TextEditingController(text: '');
-    final deadlineCtrl = TextEditingController(text: '');
-    final descCtrl = TextEditingController(text: '');
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: colors.card,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Icon(Icons.add_circle_outline_rounded, color: colors.primary, size: 22),
-                  const SizedBox(width: 10),
-                  Text(
-                    'New project',
-                    style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              Text(
-                'Project Title',
-                style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: titleCtrl,
-                style: TextStyle(color: colors.text, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Title',
-                  hintStyle: TextStyle(color: colors.muted, fontSize: 13),
-                  fillColor: colors.surface,
-                  filled: true,
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _NumberStepperField(
-                      controller: payoutCtrl,
-                      label: r'Editor Payout (৳)',
-                      hintText: '0৳',
-                      step: 50.0,
-                      isCurrency: true,
-                      minVal: 50,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _NumberStepperField(
-                      controller: deadlineCtrl,
-                      label: 'Deadline (Days)',
-                      hintText: 'e.g. 5',
-                      step: 1.0,
-                      isCurrency: false,
-                      minVal: 1,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              Text(
-                'Project Brief & Instructions',
-                style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: descCtrl,
-                maxLines: 3,
-                style: TextStyle(color: colors.text, fontSize: 13),
-                decoration: InputDecoration(
-                  hintText: 'Brief',
-                  hintStyle: TextStyle(color: colors.muted, fontSize: 13),
-                  fillColor: colors.surface,
-                  filled: true,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    if (titleCtrl.text.trim().isEmpty) return;
-                    final payout = double.tryParse(payoutCtrl.text) ?? 1400;
-                    ref
-                        .read(projectsProvider.notifier)
-                        .createNewProject(
-                          title: titleCtrl.text.trim(),
-                          clientName: clientCtrl.text.trim().isEmpty ? 'LuxeLiving Apparel' : clientCtrl.text.trim(),
-                          clientBudget: payout * 2.2,
-                          editorPayout: payout,
-                          deadlineDays: int.tryParse(deadlineCtrl.text) ?? 5,
-                          description: descCtrl.text.trim(),
-                          skills: ['Video Editing', 'Color Grading', 'Sound Design'],
-                        );
-                    Navigator.pop(ctx);
-                    WaraToast.show(context, message: 'Project published', icon: Icons.rocket_launch_rounded);
-                  },
-                  icon: Icon(Icons.send_rounded, size: 16, color: colors.onPrimary),
-                  label: Text(
-                    'Publish Offer to Pool',
-                    style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.primary,
-                    foregroundColor: colors.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+  void _openCreate(BuildContext from) {
+    ContainerTransformRoute.open<void>(
+      from,
+      color: from.colors.primary,
+      builder: (_) => _CreateProjectScreen(toastContext: from),
     );
   }
 
@@ -921,7 +787,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                         icon: Icons.post_add_rounded,
                         title: 'No projects',
                         actionLabel: 'New project',
-                        onAction: () => _showCreateOfferModal(context, ref),
+                        onAction: () => _openCreate(context),
                       ),
               )
             else
@@ -948,15 +814,16 @@ class ManagerWorkflowScreen extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: Pressable(child: FloatingActionButton.extended(
-        onPressed: () => _showCreateOfferModal(context, ref),
+      floatingActionButton: Builder(builder: (fabCtx) => Pressable(child: FloatingActionButton.extended(
+        heroTag: null,
+        onPressed: () => _openCreate(fabCtx),
         backgroundColor: colors.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 2,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brLg),
         icon: const Icon(Icons.add_rounded),
         label: const Text('New project'),
-      )),
+      ))),
     );
   }
 }
@@ -1055,6 +922,168 @@ class _NumberStepperField extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Full-screen create flow (opened with a container transform from the FAB).
+/// Owns and disposes its text controllers.
+class _CreateProjectScreen extends ConsumerStatefulWidget {
+  final BuildContext? toastContext;
+  const _CreateProjectScreen({this.toastContext});
+
+  @override
+  ConsumerState<_CreateProjectScreen> createState() => _CreateProjectScreenState();
+}
+
+class _CreateProjectScreenState extends ConsumerState<_CreateProjectScreen> {
+  final titleCtrl = TextEditingController();
+  final clientCtrl = TextEditingController();
+  final payoutCtrl = TextEditingController();
+  final deadlineCtrl = TextEditingController();
+  final descCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    titleCtrl.dispose();
+    clientCtrl.dispose();
+    payoutCtrl.dispose();
+    deadlineCtrl.dispose();
+    descCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Scaffold(
+      backgroundColor: colors.card,
+      appBar: AppBar(
+        backgroundColor: colors.card,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Padding(
+        padding: EdgeInsets.only(left: 24, right: 24, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.add_circle_outline_rounded, color: colors.primary, size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    'New project',
+                    style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              Text(
+                'Project Title',
+                style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: titleCtrl,
+                style: TextStyle(color: colors.text, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Title',
+                  hintStyle: TextStyle(color: colors.muted, fontSize: 13),
+                  fillColor: colors.surface,
+                  filled: true,
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _NumberStepperField(
+                      controller: payoutCtrl,
+                      label: r'Editor Payout (৳)',
+                      hintText: '0৳',
+                      step: 50.0,
+                      isCurrency: true,
+                      minVal: 50,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _NumberStepperField(
+                      controller: deadlineCtrl,
+                      label: 'Deadline (Days)',
+                      hintText: 'e.g. 5',
+                      step: 1.0,
+                      isCurrency: false,
+                      minVal: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              Text(
+                'Project Brief & Instructions',
+                style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: descCtrl,
+                maxLines: 3,
+                style: TextStyle(color: colors.text, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Brief',
+                  hintStyle: TextStyle(color: colors.muted, fontSize: 13),
+                  fillColor: colors.surface,
+                  filled: true,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    if (titleCtrl.text.trim().isEmpty) return;
+                    final payout = double.tryParse(payoutCtrl.text) ?? 1400;
+                    ref
+                        .read(projectsProvider.notifier)
+                        .createNewProject(
+                          title: titleCtrl.text.trim(),
+                          clientName: clientCtrl.text.trim().isEmpty ? 'LuxeLiving Apparel' : clientCtrl.text.trim(),
+                          clientBudget: payout * 2.2,
+                          editorPayout: payout,
+                          deadlineDays: int.tryParse(deadlineCtrl.text) ?? 5,
+                          description: descCtrl.text.trim(),
+                          skills: ['Video Editing', 'Color Grading', 'Sound Design'],
+                        );
+                    Navigator.pop(context);
+                    WaraToast.show(widget.toastContext ?? context, message: 'Project published', icon: Icons.rocket_launch_rounded);
+                  },
+                  icon: Icon(Icons.send_rounded, size: 16, color: colors.onPrimary),
+                  label: Text(
+                    'Publish Offer to Pool',
+                    style: TextStyle(color: colors.onPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

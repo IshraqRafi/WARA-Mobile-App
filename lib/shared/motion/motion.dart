@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 export 'claim_button.dart';
 export 'collapse_out.dart';
+export 'container_transform.dart';
 export 'glow_pulse.dart';
 export 'haptics.dart';
 export 'launch_reveal.dart';
