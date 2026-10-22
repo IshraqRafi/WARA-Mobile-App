@@ -19,6 +19,7 @@ import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 import '../../shared/widgets/wara_bottom_bar.dart';
 import '../../shared/motion/page_transitions.dart';
+import '../../shared/motion/shared_axis.dart';
 import '../../features/projects/domain/project_provider.dart';
 
 /// Bridges auth changes into GoRouter without rebuilding the router.
@@ -142,7 +143,7 @@ class _EditorShell extends ConsumerWidget {
     final active = ref.watch(workspaceBadgeProvider);
     return Scaffold(
       backgroundColor: colors.bg,
-      body: shell,
+      body: SharedAxisTabs(index: shell.currentIndex, child: shell),
       bottomNavigationBar: WaraBottomBar(
         selectedIndex: shell.currentIndex,
         onItemSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
@@ -183,7 +184,7 @@ class _ManagerShell extends StatelessWidget {
     final colors = context.colors;
     return Scaffold(
       backgroundColor: colors.bg,
-      body: shell,
+      body: SharedAxisTabs(index: shell.currentIndex, child: shell),
       bottomNavigationBar: WaraBottomBar(
         selectedIndex: shell.currentIndex,
         onItemSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),

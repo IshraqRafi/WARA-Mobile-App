@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../motion/pop_badge.dart';
+import '../motion/shared_axis.dart';
 
 class WaraNavItem {
   final IconData icon;
@@ -94,10 +95,10 @@ class WaraBottomBar extends StatelessWidget {
                               clipBehavior: Clip.none,
                               alignment: Alignment.center,
                               children: [
-                                Icon(
-                                  isSelected
-                                      ? (item.selectedIcon ?? item.icon)
-                                      : item.icon,
+                                MorphIcon(
+                                  selected: isSelected,
+                                  icon: item.icon,
+                                  selectedIcon: item.selectedIcon ?? item.icon,
                                   size: 24,
                                   color: isSelected
                                       ? colors.primary

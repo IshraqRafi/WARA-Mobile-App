@@ -9,6 +9,7 @@ export 'page_transitions.dart';
 export 'pop_badge.dart';
 export 'pressable.dart';
 export 'rolling_counter.dart';
+export 'shared_axis.dart';
 export 'shimmer.dart';
 export 'stagger_in.dart';
 
