@@ -11,8 +11,9 @@ class WaraStat {
 }
 
 /// One compact row of equal, tappable metric segments. The selected segment
-/// sits on a fully rounded pill that slides between items and takes the
-/// segment's tone; tapping it again clears. No ink, no rectangles.
+/// sits on a small-radius (8px) neutral highlight that slides between items:
+/// low-opacity white on dark, light gray on light. Text never changes
+/// colour. Tapping the selected segment again clears. No ink.
 class WaraStatStrip extends StatefulWidget {
   final List<WaraStat> stats;
   final int? selected;
@@ -36,7 +37,8 @@ class _WaraStatStripState extends State<WaraStatStrip> {
     final sel = widget.selected;
     if (sel != null) _last = sel;
     final dur = Motion.of(context, const Duration(milliseconds: 320));
-    final pillTone = widget.stats[_last.clamp(0, n - 1)].tone;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fill = dark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05);
     final x = n <= 1 ? 0.0 : -1 + 2 * _last / (n - 1);
 
     return Container(
@@ -44,7 +46,7 @@ class _WaraStatStripState extends State<WaraStatStrip> {
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: c.card,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: c.border),
       ),
       child: Stack(
@@ -61,31 +63,28 @@ class _WaraStatStripState extends State<WaraStatStrip> {
                   duration: dur,
                   curve: Curves.easeOutCubic,
                   opacity: sel == null ? 0 : 1,
-                  child: AnimatedContainer(
+                  child: DecoratedBox(
                     key: const ValueKey('stat_pill'),
-                    duration: dur,
-                    curve: Curves.easeOutCubic,
-                    decoration: BoxDecoration(
-                      color: pillTone.fg(c).withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: pillTone.fg(c).withValues(alpha: 0.28)),
-                    ),
+                    decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
               ),
             ),
           ),
-          Row(
-            children: [
-              for (var i = 0; i < n; i++) Expanded(child: _segment(context, c, text, i, dur)),
-            ],
+          Positioned.fill(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < n; i++) Expanded(child: _segment(context, c, text, i)),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _segment(BuildContext context, AppColors c, TextTheme text, int i, Duration dur) {
+  Widget _segment(BuildContext context, AppColors c, TextTheme text, int i) {
     final s = widget.stats[i];
     final isSel = widget.selected == i;
     final fg = s.tone.fg(c);
@@ -105,34 +104,20 @@ class _WaraStatStripState extends State<WaraStatStrip> {
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: TweenAnimationBuilder<Color?>(
-              duration: dur,
-              curve: Curves.easeOutCubic,
-              tween: ColorTween(end: isSel ? fg : c.text),
-              builder: (context, color, _) => Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  RollingCounter(value: s.value, style: baseNum.copyWith(color: color)),
+                  RollingCounter(value: s.value, style: baseNum.copyWith(color: c.text)),
                   const SizedBox(height: 2),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      AnimatedContainer(
-                        duration: dur,
-                        width: isSel ? 0 : 6,
-                        height: 6,
-                        decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-                      ),
-                      AnimatedContainer(duration: dur, width: isSel ? 0 : 4),
-                      Text(
-                        s.label,
-                        style: text.labelMedium?.copyWith(
-                          color: isSel ? color : null,
-                          fontWeight: isSel ? FontWeight.w700 : null,
-                        ),
-                      ),
+                      Container(width: 6, height: 6, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+                      const SizedBox(width: 4),
+                      Text(s.label, style: text.labelMedium?.copyWith(color: c.muted)),
                     ],
                   ),
                 ],

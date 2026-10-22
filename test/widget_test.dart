@@ -69,6 +69,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(selected, 3);
     expect(tester.getRect(find.byKey(const ValueKey('stat_pill'))).left, greaterThan(pillA.left));
+    // Content is centred in its cell; selection does not tint the text.
+    final cell = tester.getRect(find.byKey(const ValueKey('stat_Overdue')));
+    final content = tester.getRect(find.ancestor(of: find.text('Overdue'), matching: find.byType(Column)).first);
+    expect((content.center.dy - cell.center.dy).abs(), lessThan(1.0));
+    expect((content.center.dx - cell.center.dx).abs(), lessThan(1.0));
+    final pillBox = tester.widget<DecoratedBox>(find.byKey(const ValueKey('stat_pill'))).decoration as BoxDecoration;
+    expect(pillBox.borderRadius, BorderRadius.circular(8));
     await tester.tap(find.text('Overdue'));
     await tester.pumpAndSettle();
     expect(selected, isNull);
