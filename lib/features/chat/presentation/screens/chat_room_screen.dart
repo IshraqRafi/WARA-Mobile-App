@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
@@ -67,13 +68,18 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     _msgCtrl.clear();
     setState(() => _isSending = true);
 
-    await ref.read(chatProvider.notifier).sendMessage(
+    final sent = await ref.read(chatProvider.notifier).sendMessage(
           conversationId: widget.conversationId,
           text: text,
           recipientId: widget.otherUserId,
         );
 
+    if (!mounted) return;
     setState(() => _isSending = false);
+    if (!sent) {
+      _msgCtrl.text = text; // give the user their text back to retry
+      WaraToast.show(context, message: 'Message not sent. Check your connection and try again.', icon: Icons.error_outline_rounded);
+    }
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
   }
 
@@ -143,7 +149,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               if (link.isEmpty) return;
 
               final fullText = note.isNotEmpty ? '$note\n$link' : link;
-              ref.read(chatProvider.notifier).sendMessage(
+              final sendFuture = ref.read(chatProvider.notifier).sendMessage(
                     conversationId: widget.conversationId,
                     text: fullText,
                     attachmentUrl: link,
@@ -151,7 +157,14 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                   );
               Navigator.pop(ctx);
               Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
-              WaraToast.show(context, message: 'Asset link shared with team!', icon: Icons.check_circle_rounded);
+              sendFuture.then((sent) {
+                if (!mounted) return;
+                WaraToast.show(
+                  context,
+                  message: sent ? 'Asset link shared with team!' : 'Link not shared. Check your connection and try again.',
+                  icon: sent ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                );
+              });
             },
             child: const Text('Share Link'),
           ),
@@ -164,8 +177,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final currentUser = ref.watch(authProvider).user;
-    final messagesMap = ref.watch(chatProvider).messagesMap;
-    final messages = messagesMap[widget.conversationId] ?? [];
+    final chatState = ref.watch(chatProvider);
+    final messages = chatState.messagesMap[widget.conversationId] ?? [];
+    final roomError = chatState.roomErrors[widget.conversationId];
     final isChannel = widget.type == ConversationType.channel;
 
     return Scaffold(
@@ -237,7 +251,15 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           children: [
             // Message Feed
             Expanded(
-              child: messages.isEmpty
+              child: roomError != null && messages.isEmpty
+                  ? WaraErrorState(
+                      title: 'Couldn\'t load messages',
+                      message: friendlyErrorMessage(roomError),
+                      onRetry: () => ref
+                          .read(chatProvider.notifier)
+                          .subscribeToConversationMessages(widget.conversationId),
+                    )
+                  : messages.isEmpty
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(32),

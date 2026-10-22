@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -22,6 +23,19 @@ class ManagerFinanceScreen extends ConsumerWidget {
     final colors = context.colors;
     final user = ref.watch(authProvider).user;
     final projects = ref.watch(projectsProvider);
+    final projectsError = ref.watch(projectsErrorProvider);
+    if (projectsError != null && projects.isEmpty) {
+      return Scaffold(
+        backgroundColor: colors.bg,
+        body: SafeArea(
+          child: WaraErrorState(
+            title: 'Couldn\'t load projects',
+            message: friendlyErrorMessage(projectsError),
+            onRetry: () => ref.read(projectsProvider.notifier).retry(),
+          ),
+        ),
+      );
+    }
 
     // ── Live Calculated Financial Metrics from Firestore ──────────────────
     final totalPipelineVolume = projects.fold<double>(0.0, (sum, p) => sum + p.clientBudget);

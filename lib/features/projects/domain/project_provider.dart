@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firestore_service.dart';
@@ -8,12 +9,16 @@ final firestoreServiceProvider = Provider<FirestoreService>((ref) {
   return FirestoreService();
 });
 
+/// Last load error from the projects stream (null when healthy).
+final projectsErrorProvider = StateProvider<Object?>((ref) => null);
+
 class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
   final FirestoreService _firestoreService;
   final String? _agencyId;
+  final void Function(Object? error)? _onError;
   StreamSubscription<List<ProjectItem>>? _subscription;
 
-  ProjectsNotifier(this._firestoreService, [this._agencyId])
+  ProjectsNotifier(this._firestoreService, [this._agencyId, this._onError])
       : super(_agencyId == 'agency_demo_wara' || _agencyId == null
             ? kInitialProjectsData
             : []) {
@@ -26,17 +31,31 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
       _firestoreService.seedInitialProjectsIfEmpty(agencyId: 'agency_demo_wara');
     }
 
+    _subscribe();
+  }
+
+  /// Re-open the projects stream (used by the Retry button).
+  void retry() {
+    _onError?.call(null);
+    _subscribe();
+  }
+
+  void _subscribe() {
+    _subscription?.cancel();
     // Listen to real-time updates from Cloud Firestore scoped by agencyId
     _subscription = _firestoreService.streamProjects(agencyId: _agencyId).listen(
       (projects) {
+        _onError?.call(null);
         if (projects.isNotEmpty) {
           state = projects;
         } else if (_agencyId != 'agency_demo_wara' && _agencyId != null) {
           state = [];
         }
       },
-      onError: (err) {
-        // Fallback to local state if offline or permission error
+      onError: (Object err) {
+        // Keep the local state, but surface the failure to the UI.
+        debugPrint('Projects stream error: $err');
+        _onError?.call(err);
       },
     );
   }
@@ -290,5 +309,13 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
 final projectsProvider = StateNotifierProvider<ProjectsNotifier, List<ProjectItem>>((ref) {
   final firestoreService = ref.watch(firestoreServiceProvider);
   final agencyId = ref.watch(authProvider.select((s) => s.user?.agencyId));
-  return ProjectsNotifier(firestoreService, agencyId);
+  return ProjectsNotifier(
+    firestoreService,
+    agencyId,
+    (err) {
+      if (ref.read(projectsErrorProvider) != err) {
+        ref.read(projectsErrorProvider.notifier).state = err;
+      }
+    },
+  );
 });

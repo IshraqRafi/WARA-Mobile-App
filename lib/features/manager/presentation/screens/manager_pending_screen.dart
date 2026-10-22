@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -21,6 +22,19 @@ class _ManagerPendingScreenState extends ConsumerState<ManagerPendingScreen> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final projects = ref.watch(projectsProvider);
+    final projectsError = ref.watch(projectsErrorProvider);
+    if (projectsError != null && projects.isEmpty) {
+      return Scaffold(
+        backgroundColor: colors.bg,
+        body: SafeArea(
+          child: WaraErrorState(
+            title: 'Couldn\'t load projects',
+            message: friendlyErrorMessage(projectsError),
+            onRetry: () => ref.read(projectsProvider.notifier).retry(),
+          ),
+        ),
+      );
+    }
 
     // Filter pending works (claimed or submitted)
     final pendingProjects = projects.where((p) => p.status != ProjectStatus.approved).toList();

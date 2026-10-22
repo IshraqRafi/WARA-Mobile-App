@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firestore_service.dart';
@@ -14,8 +15,14 @@ class ChatState {
   final bool isLoading;
   final String searchQuery;
   final ChatFilter activeFilter;
+  /// Error from the conversations stream (null when healthy).
+  final Object? error;
+  /// Per-room message stream errors.
+  final Map<String, Object> roomErrors;
 
   const ChatState({
+    this.error,
+    this.roomErrors = const {},
     this.conversations = const [],
     this.messagesMap = const {},
     this.isLoading = false,
@@ -48,8 +55,13 @@ class ChatState {
     bool? isLoading,
     String? searchQuery,
     ChatFilter? activeFilter,
+    Object? error,
+    bool clearError = false,
+    Map<String, Object>? roomErrors,
   }) {
     return ChatState(
+      error: clearError ? null : (error ?? this.error),
+      roomErrors: roomErrors ?? this.roomErrors,
       conversations: conversations ?? this.conversations,
       messagesMap: messagesMap ?? this.messagesMap,
       isLoading: isLoading ?? this.isLoading,
@@ -84,6 +96,21 @@ class ChatNotifier extends StateNotifier<ChatState> {
           : 'Ishraq Rafi',
     );
 
+    _subscribeConversations(agencyId);
+  }
+
+  /// Re-open the conversation streams (used by the Retry button).
+  void retry() {
+    final agencyId = _currentUser?.agencyId?.isNotEmpty == true
+        ? _currentUser!.agencyId!
+        : 'agency_demo_wara';
+    state = state.copyWith(clearError: true);
+    _subscribeConversations(agencyId);
+  }
+
+  void _subscribeConversations(String agencyId) {
+    _convosSubscription?.cancel();
+    _demoConvosSubscription?.cancel();
     // Stream real-time conversations for this agency
     _convosSubscription = _firestoreService.streamAgencyConversations(agencyId).listen(
       (convos) {
@@ -93,10 +120,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
         }
         final list = currentMap.values.toList()
           ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-        state = state.copyWith(conversations: list);
+        state = state.copyWith(conversations: list, clearError: true);
       },
-      onError: (_) {
-        // Fallback or offline
+      onError: (Object err) {
+        debugPrint('Conversations stream error: $err');
+        state = state.copyWith(error: err);
       },
     );
 
@@ -112,7 +140,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
             ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
           state = state.copyWith(conversations: list);
         },
-        onError: (_) {},
+        onError: (Object err) {
+          // Secondary demo workspace feed; log only, the main feed drives the UI.
+          debugPrint('Demo conversations stream error: $err');
+        },
       );
     }
   }
@@ -146,15 +177,24 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     _msgSubscriptions[conversationId] = _firestoreService
         .streamConversationMessages(agencyId, conversationId)
-        .listen((messages) {
-      final updatedMap = Map<String, List<ChatMessage>>.from(state.messagesMap);
-      updatedMap[conversationId] = messages;
-      state = state.copyWith(messagesMap: updatedMap);
-    });
+        .listen(
+      (messages) {
+        final updatedMap = Map<String, List<ChatMessage>>.from(state.messagesMap);
+        updatedMap[conversationId] = messages;
+        final errors = Map<String, Object>.from(state.roomErrors)..remove(conversationId);
+        state = state.copyWith(messagesMap: updatedMap, roomErrors: errors);
+      },
+      onError: (Object err) {
+        debugPrint('Messages stream error ($conversationId): $err');
+        final errors = Map<String, Object>.from(state.roomErrors)..[conversationId] = err;
+        state = state.copyWith(roomErrors: errors);
+      },
+    );
   }
 
-  /// Send a message with optimistic local update followed by Firestore persistence
-  Future<void> sendMessage({
+  /// Send a message with optimistic local update followed by Firestore persistence.
+  /// Returns false if the message could not be saved (it is removed locally).
+  Future<bool> sendMessage({
     required String conversationId,
     required String text,
     String? attachmentUrl,
@@ -163,11 +203,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }) async {
     final cleanText = text.trim();
     if (cleanText.isEmpty && (attachmentUrl == null || attachmentUrl.isEmpty)) {
-      return;
+      return false;
     }
 
     final user = _currentUser;
-    if (user == null) return;
+    if (user == null) return false;
     final agencyId = user.agencyId?.isNotEmpty == true ? user.agencyId! : 'agency_demo_wara';
 
     final now = DateTime.now();
@@ -201,8 +241,15 @@ class ChatNotifier extends StateNotifier<ChatState> {
         message: newMessage,
         recipientId: recipientId,
       );
-    } catch (_) {
-      // Revert or show offline state if needed
+      return true;
+    } catch (err) {
+      debugPrint('sendMessage failed: $err');
+      // Revert the optimistic message so the UI doesn't show an unsent message as sent.
+      final reverted = Map<String, List<ChatMessage>>.from(state.messagesMap);
+      reverted[conversationId] =
+          (reverted[conversationId] ?? []).where((m) => m.id != messageId).toList();
+      state = state.copyWith(messagesMap: reverted);
+      return false;
     }
   }
 

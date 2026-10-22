@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/wara_error_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -166,6 +167,21 @@ class _ChatInboxScreenState extends ConsumerState<ChatInboxScreen> {
                         padding: EdgeInsets.all(32),
                         child: CircularProgressIndicator(),
                       ),
+                    );
+                  }
+
+                  if (snapshot.hasError && !snapshot.hasData) {
+                    return WaraErrorState(
+                      title: 'Couldn\'t load your team',
+                      message: friendlyErrorMessage(snapshot.error),
+                      onRetry: () => setState(() {}), // rebuild re-opens the stream
+                    );
+                  }
+                  if (chatState.error != null && chatState.conversations.isEmpty) {
+                    return WaraErrorState(
+                      title: 'Couldn\'t load conversations',
+                      message: friendlyErrorMessage(chatState.error),
+                      onRetry: () => ref.read(chatProvider.notifier).retry(),
                     );
                   }
 
