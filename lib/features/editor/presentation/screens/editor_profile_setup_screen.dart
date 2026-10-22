@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/wara_avatar.dart';
+import '../../../../shared/widgets/wara_section_header.dart';
+import '../../../../shared/widgets/wara_status_chip.dart';
 import '../../../../shared/widgets/wara_toast.dart';
 import '../../../auth/domain/auth_provider.dart';
 
@@ -79,8 +81,7 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: colors.surface,
-          title: Text('Discard profile?', style: TextStyle(color: colors.text)),
+          title: const Text('Discard profile?'),
           content: Text('Your changes will be lost and you will be signed out.', style: TextStyle(color: colors.muted)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Stay')),
@@ -139,9 +140,26 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
     }
   }
 
+  Widget _label(String text, {Widget? trailing}) {
+    final t = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        children: [
+          Expanded(child: Text(text, style: t.labelLarge)),
+          ?trailing,
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final text = Theme.of(context).textTheme;
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final margin = AppSpacing.screenMargin(context);
+    const gap = SizedBox(height: AppSpacing.lg);
 
     return PopScope(
       canPop: false,
@@ -150,173 +168,128 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
       },
       child: Scaffold(
         backgroundColor: colors.bg,
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: 'Back to login',
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: (_isLoading || _isLeaving) ? null : _backToLogin,
+          ),
+          title: const Text('Editor profile'),
+        ),
         body: SafeArea(
-          child: Stack(
-            children: [
-              Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 560),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // ── Header ───────────────────────────────────────────
-                          Center(
-                            child: WaraAvatar(
-                              name: _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : 'Editor',
-                              photoUrl: _photoCtrl.text.trim().isNotEmpty ? _photoCtrl.text.trim() : null,
-                              radius: 36,
-                              fontSize: 22,
+          top: false,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(margin, AppSpacing.sm, margin, AppSpacing.xl),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 560),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // ── Header ─────────────────────────────────────
+                            Center(
+                              child: WaraAvatar(
+                                name: _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : 'Editor',
+                                photoUrl: _photoCtrl.text.trim().isNotEmpty ? _photoCtrl.text.trim() : null,
+                                radius: 36,
+                                fontSize: 22,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Complete Your Editor Profile',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: colors.text, fontSize: 24, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Welcome to wara.io! Set up your creative identity so managers can discover and assign projects to you.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: colors.muted, fontSize: 13, height: 1.4),
-                          ),
-                          const SizedBox(height: 28),
+                            const SizedBox(height: AppSpacing.lg),
+                            Text('Complete your editor profile', textAlign: TextAlign.center, style: text.headlineSmall),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              'Set up your creative identity so managers can discover and assign projects to you.',
+                              textAlign: TextAlign.center,
+                              style: text.bodyMedium?.copyWith(color: colors.muted),
+                            ),
 
-                          // ── Form Container ───────────────────────────────────
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: colors.surface,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: colors.border),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            // ── Agency ─────────────────────────────────────
+                            WaraSectionCard(
+                              title: 'Agency',
+                              subtitle: 'Ask your agency manager for their room join key.',
+                              divided: false,
+                              contentPadding: const EdgeInsets.all(AppSpacing.lg),
                               children: [
-                                // Agency Join Key / Server Room Key
-                                Container(
-                                  padding: const EdgeInsets.all(14),
-                                  margin: const EdgeInsets.only(bottom: 20),
-                                  decoration: BoxDecoration(
-                                    color: colors.card,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(Icons.vpn_key_rounded, color: colors.primary, size: 18),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Agency Room Join Key',
-                                            style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.bold),
-                                          ),
-                                          const Spacer(),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
-                                            child: Text(
-                                              'Required',
-                                              style: TextStyle(color: colors.primary, fontSize: 10, fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Ask your Agency Manager for their room join key to enter their workspace.',
-                                        style: TextStyle(color: colors.muted, fontSize: 11),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      TextFormField(
-                                        controller: _agencyKeyCtrl,
-                                        textCapitalization: TextCapitalization.characters,
-                                        style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-                                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your agency join key' : null,
-                                        decoration: InputDecoration(
-                                          hintText: 'e.g. STUD-7K4M2Q',
-                                          hintStyle: TextStyle(color: colors.muted.withValues(alpha: 0.5), fontSize: 13, letterSpacing: 1.0),
-                                          prefixIcon: Icon(Icons.meeting_room_outlined, color: colors.primary, size: 20),
-                                          fillColor: colors.surface,
-                                          filled: true,
-                                        ),
-                                      ),
-                                    ],
+                                _label('Agency join key',
+                                    trailing: const WaraStatusChip(label: 'Required', tone: WaraTone.warning)),
+                                TextFormField(
+                                  controller: _agencyKeyCtrl,
+                                  textCapitalization: TextCapitalization.characters,
+                                  style: text.bodyLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.2),
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your agency join key' : null,
+                                  decoration: const InputDecoration(
+                                    hintText: 'e.g. STUD-7K4M2Q',
+                                    prefixIcon: Icon(Icons.vpn_key_rounded),
                                   ),
                                 ),
+                              ],
+                            ),
 
-                                // Full Name
-                                Text(
-                                  'Full Name',
-                                  style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 8),
+                            // ── About you ──────────────────────────────────
+                            WaraSectionCard(
+                              title: 'About you',
+                              divided: false,
+                              contentPadding: const EdgeInsets.all(AppSpacing.lg),
+                              children: [
+                                _label('Full name'),
                                 TextFormField(
                                   controller: _nameCtrl,
                                   onChanged: (_) => setState(() {}),
-                                  style: TextStyle(color: colors.text, fontSize: 14),
+                                  style: text.bodyLarge,
                                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your full name' : null,
-                                  decoration: InputDecoration(
+                                  decoration: const InputDecoration(
                                     hintText: 'Your full name',
-                                    hintStyle: TextStyle(color: colors.muted, fontSize: 13),
-                                    prefixIcon: Icon(Icons.person_outline_rounded, color: colors.muted, size: 20),
-                                    fillColor: colors.card,
-                                    filled: true,
+                                    prefixIcon: Icon(Icons.person_outline_rounded),
                                   ),
                                 ),
-                                const SizedBox(height: 20),
-
-                                // Creative Specialization / Role
-                                Text(
-                                  'Primary Specialization / Title',
-                                  style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 8),
+                                gap,
+                                _label('Primary specialization'),
                                 TextFormField(
                                   controller: _specializationCtrl,
-                                  style: TextStyle(color: colors.text, fontSize: 14),
+                                  style: text.bodyLarge,
                                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Please specify your specialization' : null,
-                                  decoration: InputDecoration(
+                                  decoration: const InputDecoration(
                                     hintText: 'e.g. Senior Video Editor & Colorist',
-                                    hintStyle: TextStyle(color: colors.muted, fontSize: 13),
-                                    prefixIcon: Icon(Icons.work_outline_rounded, color: colors.muted, size: 20),
-                                    fillColor: colors.card,
-                                    filled: true,
+                                    prefixIcon: Icon(Icons.work_outline_rounded),
                                   ),
                                 ),
-                                const SizedBox(height: 20),
-
-                                // Core Skills Chips
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Core Skills',
-                                      style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-                                    ),
-                                    Text('${_selectedSkills.length} selected', style: TextStyle(color: colors.muted, fontSize: 11)),
-                                  ],
+                                gap,
+                                _label('Profile picture URL (optional)'),
+                                TextFormField(
+                                  controller: _photoCtrl,
+                                  onChanged: (_) => setState(() {}),
+                                  style: text.bodyLarge,
+                                  decoration: const InputDecoration(
+                                    hintText: 'https://… image link',
+                                    prefixIcon: Icon(Icons.image_outlined),
+                                    helperText: 'Leave blank to show your initials.',
+                                  ),
                                 ),
-                                const SizedBox(height: 10),
+                              ],
+                            ),
+
+                            // ── Skills ─────────────────────────────────────
+                            WaraSectionCard(
+                              title: 'Skills',
+                              subtitle: '${_selectedSkills.length} selected',
+                              divided: false,
+                              contentPadding: const EdgeInsets.all(AppSpacing.lg),
+                              children: [
                                 Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
+                                  spacing: AppSpacing.sm,
+                                  runSpacing: AppSpacing.sm,
                                   children: _availableSkills.map((skill) {
                                     final isSelected = _selectedSkills.contains(skill);
                                     return FilterChip(
                                       label: Text(
                                         skill,
-                                        style: TextStyle(
-                                          color: isSelected ? (colors.isDark ? Colors.black : Colors.white) : colors.text,
-                                          fontSize: 12,
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                        ),
+                                        style: text.labelMedium?.copyWith(color: isSelected ? onPrimary : colors.text),
                                       ),
                                       selected: isSelected,
                                       onSelected: (val) {
@@ -328,36 +301,30 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                                           }
                                         });
                                       },
-                                      backgroundColor: colors.card,
+                                      backgroundColor: colors.surface,
                                       selectedColor: colors.primary,
-                                      checkmarkColor: colors.isDark ? Colors.black : Colors.white,
+                                      checkmarkColor: onPrimary,
                                       side: BorderSide(color: isSelected ? colors.primary : colors.border),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                     );
                                   }).toList(),
                                 ),
-                                const SizedBox(height: 24),
+                              ],
+                            ),
 
-                                // Weekly Hours Availability
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Weekly Availability',
-                                      style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-                                    ),
-                                    Text(
-                                      '$_hoursPerWeek Hours / week',
-                                      style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold, fontSize: 13),
-                                    ),
-                                  ],
-                                ),
+                            // ── Availability ───────────────────────────────
+                            WaraSectionCard(
+                              title: 'Availability',
+                              divided: false,
+                              contentPadding: const EdgeInsets.all(AppSpacing.lg),
+                              children: [
+                                _label('Weekly hours',
+                                    trailing: Text('$_hoursPerWeek h / week', style: text.labelLarge)),
                                 SliderTheme(
                                   data: SliderTheme.of(context).copyWith(
                                     activeTrackColor: colors.primary,
                                     inactiveTrackColor: colors.border,
                                     thumbColor: colors.primary,
-                                    overlayColor: colors.primary.withValues(alpha: 0.1),
+                                    overlayColor: colors.primaryTint,
                                     trackHeight: 4,
                                   ),
                                   child: Slider(
@@ -369,45 +336,43 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                                     onChanged: (v) => setState(() => _hoursPerWeek = v.round()),
                                   ),
                                 ),
-                                const SizedBox(height: 16),
-
-                                // Active Days
-                                Text(
-                                  'Active Working Days',
-                                  style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: AppSpacing.sm),
+                                _label('Active working days'),
                                 Row(
                                   children: _allDays.map((day) {
                                     final isSelected = _selectedDays.contains(day);
                                     return Expanded(
                                       child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 2.5),
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              if (isSelected) {
-                                                if (_selectedDays.length > 1) _selectedDays.remove(day);
-                                              } else {
-                                                _selectedDays.add(day);
-                                              }
-                                            });
-                                          },
-                                          child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 150),
-                                            height: 38,
-                                            decoration: BoxDecoration(
-                                              color: isSelected ? colors.primary : colors.card,
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(color: isSelected ? colors.primary : colors.border),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                day,
-                                                style: TextStyle(
-                                                  color: isSelected ? (colors.isDark ? Colors.black : Colors.white) : colors.text,
-                                                  fontSize: 11,
-                                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                                        child: Semantics(
+                                          button: true,
+                                          selected: isSelected,
+                                          child: InkWell(
+                                            borderRadius: AppRadius.brSm,
+                                            onTap: () {
+                                              setState(() {
+                                                if (isSelected) {
+                                                  if (_selectedDays.length > 1) _selectedDays.remove(day);
+                                                } else {
+                                                  _selectedDays.add(day);
+                                                }
+                                              });
+                                            },
+                                            child: AnimatedContainer(
+                                              duration: const Duration(milliseconds: 150),
+                                              height: 44,
+                                              decoration: BoxDecoration(
+                                                color: isSelected ? colors.primary : colors.surface,
+                                                borderRadius: AppRadius.brSm,
+                                                border: Border.all(color: isSelected ? colors.primary : colors.border),
+                                              ),
+                                              child: Center(
+                                                child: FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  child: Text(
+                                                    day,
+                                                    style: text.labelMedium?.copyWith(color: isSelected ? onPrimary : colors.text),
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -417,100 +382,55 @@ class _EditorProfileSetupScreenState extends ConsumerState<EditorProfileSetupScr
                                     );
                                   }).toList(),
                                 ),
-                                const SizedBox(height: 20),
+                              ],
+                            ),
 
-                                // Portfolio / Reel Link
-                                Text(
-                                  'Showreel / Portfolio Link (Optional)',
-                                  style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 8),
+                            // ── Portfolio ──────────────────────────────────
+                            WaraSectionCard(
+                              title: 'Portfolio',
+                              divided: false,
+                              contentPadding: const EdgeInsets.all(AppSpacing.lg),
+                              children: [
+                                _label('Showreel / portfolio link (optional)'),
                                 TextFormField(
                                   controller: _portfolioCtrl,
-                                  style: TextStyle(color: colors.text, fontSize: 14),
-                                  decoration: InputDecoration(
-                                    hintText: 'https://vimeo.com/... or Behance / Drive link',
-                                    hintStyle: TextStyle(color: colors.muted, fontSize: 13),
-                                    prefixIcon: Icon(Icons.link_rounded, color: colors.muted, size: 20),
-                                    fillColor: colors.card,
-                                    filled: true,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Profile Picture URL
-                                Text(
-                                  'Profile Picture URL (Optional)',
-                                  style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  controller: _photoCtrl,
-                                  onChanged: (_) => setState(() {}),
-                                  style: TextStyle(color: colors.text, fontSize: 14),
-                                  decoration: InputDecoration(
-                                    hintText: 'https://images.unsplash.com/... or image link',
-                                    hintStyle: TextStyle(color: colors.muted, fontSize: 13),
-                                    prefixIcon: Icon(Icons.image_outlined, color: colors.muted, size: 20),
-                                    fillColor: colors.card,
-                                    filled: true,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '💡 If left blank, your avatar displays two letters: surname initial + first name initial.',
-                                  style: TextStyle(color: colors.muted, fontSize: 11),
-                                ),
-                                const SizedBox(height: 28),
-
-                                // Submit Button
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: _isLoading ? null : _handleSave,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: colors.primary,
-                                      foregroundColor: colors.isDark ? Colors.black : Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                      elevation: 0,
-                                    ),
-                                    child: _isLoading
-                                        ? SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(color: colors.isDark ? Colors.black : Colors.white, strokeWidth: 2.5),
-                                          )
-                                        : Text(
-                                            'Save Profile & Enter Workspace',
-                                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colors.isDark ? Colors.black : Colors.white),
-                                          ),
+                                  style: text.bodyLarge,
+                                  keyboardType: TextInputType.url,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Vimeo, Behance or Drive link',
+                                    prefixIcon: Icon(Icons.link_rounded),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                top: 4,
-                left: 4,
-                child: Semantics(
-                  button: true,
-                  label: 'Back to login',
-                  excludeSemantics: true,
-                  child: IconButton(
-                    tooltip: 'Back to login',
-                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: colors.text, size: 18),
-                    onPressed: (_isLoading || _isLeaving) ? null : _backToLogin,
+                // ── Pinned save bar ────────────────────────────────────────
+                Container(
+                  decoration: BoxDecoration(color: colors.bg, border: Border(top: BorderSide(color: colors.border))),
+                  padding: EdgeInsets.fromLTRB(margin, AppSpacing.md, margin, AppSpacing.md),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSave,
+                          child: _isLoading
+                              ? SizedBox.square(dimension: 22, child: CircularProgressIndicator(color: onPrimary, strokeWidth: 2.5))
+                              : const Text('Save profile & enter workspace'),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
