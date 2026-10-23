@@ -135,6 +135,7 @@ class WaraBottomBar extends StatelessWidget {
                                     top: -2,
                                     right: -2,
                                     child: Container(
+                                      key: Key('tab_dot_${item.label}'),
                                       width: 7,
                                       height: 7,
                                       decoration: BoxDecoration(

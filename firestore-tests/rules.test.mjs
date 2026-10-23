@@ -1,7 +1,7 @@
 import { test, before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, getDocs, collection, writeBatch, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, getDocs, collection, writeBatch, serverTimestamp, deleteDoc, addDoc, query, orderBy, limit } from 'firebase/firestore';
 
 let env;
 before(async () => {
@@ -217,4 +217,26 @@ test('notifications: manager may send payment to own editor; editor may not', as
   const n = (from) => ({ type: 'payment', title: 'Payment received', body: 'x', fromUid: from, createdAt: serverTimestamp(), read: false });
   await assertSucceeds(setDoc(doc(as('mA'), 'users/eA/notifications/pay1'), n('mA')));
   await assertFails(setDoc(doc(as('eA'), 'users/mA/notifications/pay2'), n('eA')));
+});
+
+test('notifications: every type, both directions, as the app writes them (addDoc)', async () => {
+  for (const type of ['revision', 'approved', 'message', 'assigned', 'payment']) {
+    await assertSucceeds(addDoc(collection(as('mA'), 'users/eA/notifications'), notif('mA', { type })));
+  }
+  for (const type of ['message', 'submitted']) {
+    await assertSucceeds(addDoc(collection(as('eA'), 'users/mA/notifications'), notif('eA', { type })));
+  }
+  // agency-room message from editor to manager (chatId = channel)
+  await assertSucceeds(addDoc(collection(as('eA'), 'users/mA/notifications'),
+    { type: 'message', chatId: 'agency_general', title: 'Message from E', body: 'hi', fromUid: 'eA', createdAt: serverTimestamp(), read: false }));
+  // recipient's bell query (orderBy createdAt, limit 50) is allowed
+  await assertSucceeds(getDocs(query(collection(as('mA'), 'users/mA/notifications'), orderBy('createdAt', 'desc'), limit(50))));
+  await assertSucceeds(getDocs(query(collection(as('eA'), 'users/eA/notifications'), orderBy('createdAt', 'desc'), limit(50))));
+});
+
+test('notifications: manager logs own payment receipt; nothing else self-written', async () => {
+  await assertSucceeds(addDoc(collection(as('mA'), 'users/mA/notifications'), notif('mA', { type: 'payment', title: 'Paid · Reel' })));
+  await assertFails(addDoc(collection(as('mA'), 'users/mA/notifications'), notif('mA', { type: 'approved' })));
+  await assertFails(addDoc(collection(as('eA'), 'users/eA/notifications'), notif('eA', { type: 'payment' })));
+  await assertFails(addDoc(collection(as('mA'), 'users/mA/notifications'), notif('mB', { type: 'payment' })));
 });

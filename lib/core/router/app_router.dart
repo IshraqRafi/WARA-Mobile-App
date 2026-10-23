@@ -15,6 +15,7 @@ import '../../features/manager/presentation/screens/manager_settings_screen.dart
 import '../../features/chat/presentation/screens/chat_inbox_screen.dart';
 import '../../features/chat/presentation/screens/chat_room_screen.dart';
 import '../../features/chat/domain/chat_models.dart';
+import '../../features/chat/domain/chat_provider.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
 import '../../shared/widgets/wara_bottom_bar.dart';
@@ -164,10 +165,11 @@ class _EditorShell extends ConsumerWidget {
             selectedIcon: Icons.work_rounded,
             badgeCount: active,
           ),
-          const WaraNavItem(
+          WaraNavItem(
             icon: Icons.chat_bubble_outline_rounded,
             label: 'Messages',
             selectedIcon: Icons.chat_bubble_rounded,
+            hasBadge: ref.watch(unreadChatsProvider),
           ),
           const WaraNavItem(
             icon: Icons.person_outline_rounded,
@@ -249,18 +251,18 @@ class _ManagerShell extends ConsumerWidget {
         selectedIndex: shell.currentIndex,
         onItemSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
         onLongPress: () => showQuickActions(context, buildQuickActions(context, ref, shell, manager: true)),
-        items: const [
-          WaraNavItem(
+        items: [
+          const WaraNavItem(
             icon: Icons.dashboard_outlined,
             label: 'Workflow',
             selectedIcon: Icons.dashboard_rounded,
           ),
-          WaraNavItem(
+          const WaraNavItem(
             icon: Icons.hourglass_top_outlined,
             label: 'Pending',
             selectedIcon: Icons.hourglass_top_rounded,
           ),
-          WaraNavItem(
+          const WaraNavItem(
             icon: Icons.account_balance_outlined,
             label: 'Finance',
             selectedIcon: Icons.account_balance_rounded,
@@ -269,8 +271,9 @@ class _ManagerShell extends ConsumerWidget {
             icon: Icons.chat_bubble_outline_rounded,
             label: 'Messages',
             selectedIcon: Icons.chat_bubble_rounded,
+            hasBadge: ref.watch(unreadChatsProvider),
           ),
-          WaraNavItem(
+          const WaraNavItem(
             icon: Icons.admin_panel_settings_outlined,
             label: 'Settings',
             selectedIcon: Icons.admin_panel_settings_rounded,

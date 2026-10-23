@@ -411,6 +411,17 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
         ),
       );
     }
+    final total = projects.fold<double>(0, (s, p) => s + p.editorPayout);
+    await _firestoreService.logToSelf(
+      a.id,
+      AppNotification.draft(
+        type: NotificationType.payment,
+        title: projects.length == 1 ? 'Paid · ${projects.first.title}' : 'Paid ${projects.length} projects',
+        body: '${takaAmount(total)} · TrxID $trxId',
+        fromUid: a.id,
+        projectId: projects.length == 1 ? projects.first.id : null,
+      ),
+    );
   }
 
   void approveProject(String projectId, {bool notify = true}) {

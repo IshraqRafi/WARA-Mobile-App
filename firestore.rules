@@ -108,6 +108,12 @@ service cloud.firestore {
         && validNotif(request.resource.data)
         && myAgency() != '' && recipient().get('agencyId', '') == myAgency()
         && allowedPair(request.resource.data.type);
+      // Self log: a manager keeps a receipt of their own payout.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.fromUid == uid
+        && validNotif(request.resource.data)
+        && request.resource.data.type == 'payment'
+        && isManager();
     }
 
     match /agencies/{agencyId} {

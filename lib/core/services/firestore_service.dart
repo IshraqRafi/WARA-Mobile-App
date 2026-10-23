@@ -2,6 +2,7 @@ import '../../features/payments/domain/payout.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import '../constants/app_constants.dart';
 import '../../features/chat/domain/chat_models.dart';
 import '../../features/notifications/domain/notification_models.dart';
@@ -525,30 +526,31 @@ class FirestoreService {
 
     await batch.commit();
 
-    // In-app notification for DMs: manager -> editor, editor -> manager.
+    // In-app notification: DM -> the other participant; an editor's post in
+    // the agency room -> the manager. The rules decide who may notify whom,
+    // so no client-side role gate (a failed manager lookup used to drop it).
     String? to = recipientId;
-    if (to == null && isDirect) {
+    if ((to == null || to.isEmpty) && isDirect) {
       to = conversationId
           .replaceFirst('dm_', '')
           .split('_')
           .where((p) => p.isNotEmpty && p != message.senderId)
           .firstOrNull;
     }
-    if (to != null) {
-      final managerUid = await managerUidOf(agencyId);
-      final fromManager = message.senderRole == 'manager';
-      if (fromManager || to == managerUid) {
-        await notifyUser(
-          to,
-          AppNotification.draft(
-            type: NotificationType.message,
-            title: 'Message from ${message.senderName}',
-            body: message.text.isNotEmpty ? message.text : 'Sent an attachment',
-            fromUid: message.senderId,
-            chatId: conversationId,
-          ),
-        );
-      }
+    if ((to == null || to.isEmpty) && !isDirect && message.senderRole != 'manager') {
+      to = await managerUidOf(agencyId);
+    }
+    if (to != null && to.isNotEmpty) {
+      await notifyUser(
+        to,
+        AppNotification.draft(
+          type: NotificationType.message,
+          title: 'Message from ${message.senderName}',
+          body: message.text.isNotEmpty ? message.text : 'Sent an attachment',
+          fromUid: message.senderId,
+          chatId: conversationId,
+        ),
+      );
     }
   }
 
@@ -655,7 +657,19 @@ class FirestoreService {
     if (toUid.isEmpty || toUid == draft['fromUid']) return;
     try {
       await _inbox(toUid).add(draft);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('notifyUser(${draft['type']} -> $toUid) failed: $e');
+    }
+  }
+
+  /// A log entry in my own inbox (e.g. the manager's payout receipt).
+  Future<void> logToSelf(String uid, Map<String, dynamic> draft) async {
+    if (uid.isEmpty || uid != draft['fromUid']) return;
+    try {
+      await _inbox(uid).add(draft);
+    } catch (e) {
+      debugPrint('logToSelf(${draft['type']}) failed: $e');
+    }
   }
 
   Stream<List<AppNotification>> streamMyNotifications(String uid) => _inbox(uid)

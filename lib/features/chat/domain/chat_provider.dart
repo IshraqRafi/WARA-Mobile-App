@@ -315,3 +315,10 @@ final chatProvider = StateNotifierProvider<ChatNotifier, ChatState>((ref) {
   }));
   return ChatNotifier(firestore, ref.read(authProvider).user);
 });
+
+/// True when any conversation has an unread incoming message (tab dot).
+final unreadChatsProvider = Provider<bool>((ref) {
+  final uid = ref.watch(authProvider.select((s) => s.user?.id));
+  if (uid == null || uid.isEmpty) return false;
+  return ref.watch(chatProvider.select((s) => s.conversations.any((c) => c.isUnreadFor(uid))));
+});
