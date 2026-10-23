@@ -26,6 +26,10 @@ class AppNotification {
     this.read = false,
   });
 
+  AppNotification asRead() => AppNotification(
+      id: id, type: type, projectId: projectId, chatId: chatId, title: title,
+      body: body, fromUid: fromUid, createdAt: createdAt, read: true);
+
   /// Fields for a new doc; createdAt is the server time (required by rules).
   static Map<String, dynamic> draft({
     required NotificationType type,

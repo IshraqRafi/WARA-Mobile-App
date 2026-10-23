@@ -7,6 +7,8 @@ class WaraToast {
       required String message,
       IconData icon = Icons.check_circle_outline_rounded,
       Duration duration = const Duration(seconds: 4),
+      String? actionLabel,
+      VoidCallback? onAction,
     }) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
@@ -16,6 +18,8 @@ class WaraToast {
         message: message,
         icon: icon,
         duration: duration,
+        actionLabel: actionLabel,
+        onAction: onAction,
         onDismiss: () {
           if (entry.mounted) {
             entry.remove();
@@ -33,8 +37,12 @@ class _WaraToastWidget extends StatefulWidget {
   final IconData icon;
   final Duration duration;
   final VoidCallback onDismiss;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   const _WaraToastWidget({
+    this.actionLabel,
+    this.onAction,
     required this.message,
     required this.icon,
     required this.duration,
@@ -133,6 +141,15 @@ class _WaraToastWidgetState extends State<_WaraToastWidget>
                             ),
                           ),
                         ),
+                        if (widget.actionLabel != null)
+                          TextButton(
+                            key: const ValueKey('toast_action'),
+                            onPressed: () {
+                              widget.onAction?.call();
+                              widget.onDismiss();
+                            },
+                            child: Text(widget.actionLabel!),
+                          ),
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: widget.onDismiss,

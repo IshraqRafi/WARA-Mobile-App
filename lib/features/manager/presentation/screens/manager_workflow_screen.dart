@@ -821,8 +821,6 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                     : WaraEmptyState(
                         icon: Icons.post_add_rounded,
                         title: 'No projects',
-                        actionLabel: 'New project',
-                        onAction: () => _openCreate(context),
                       ),
               )
             else

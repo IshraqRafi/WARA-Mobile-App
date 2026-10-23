@@ -270,3 +270,20 @@ test('create: the exact app payload, project then finance (4th project)', async 
   const snap = await getDocs(query(collection(db, 'projects'), where('agencyId', '==', 'A')));
   assert.equal(snap.size, 5);
 });
+
+test('notifications: owner may delete own; others may not; update only read', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users/eA/notifications/n1'), { type: 'revision', title: 't', body: '', fromUid: 'mA', createdAt: new Date(), read: false });
+  });
+  await assertFails(deleteDoc(doc(as('mA'), 'users/eA/notifications/n1')));
+  await assertFails(deleteDoc(doc(as('eA2'), 'users/eA/notifications/n1')));
+  await assertFails(updateDoc(doc(as('mA'), 'users/eA/notifications/n1'), { read: true }));
+  await assertFails(updateDoc(doc(as('eA'), 'users/eA/notifications/n1'), { read: true, title: 'x' }));
+  await assertSucceeds(updateDoc(doc(as('eA'), 'users/eA/notifications/n1'), { read: true }));
+  // retention query used by the client purge
+  await assertSucceeds(getDocs(query(collection(as('eA'), 'users/eA/notifications'), where('createdAt', '<', new Date()), limit(400))));
+  const dbA = as('eA');
+  const b = writeBatch(dbA);
+  b.delete(doc(dbA, 'users/eA/notifications/n1'));
+  await assertSucceeds(b.commit());
+});

@@ -690,7 +690,34 @@ class FirestoreService {
     } catch (_) {}
   }
 
-  Future<void> markNotificationsRead(String uid, Iterable<String> ids) async {
+  /// Deletes the user's own notices, 400 per batch.
+  Future<void> deleteNotifications(String uid, List<String> ids) async {
+    try {
+      for (var i = 0; i < ids.length; i += 400) {
+        final b = _db.batch();
+        for (final id in ids.skip(i).take(400)) {
+          b.delete(_inbox(uid).doc(id));
+        }
+        await b.commit();
+      }
+    } catch (e) {
+      debugPrint('deleteNotifications failed: $e');
+    }
+  }
+
+  /// Retention without Cloud Functions: deletes read notices older than
+  /// [before]. Single-field range (no composite index); read filtered here.
+  Future<int> purgeReadNotificationsBefore(String uid, DateTime before) async {
+    final snap = await _inbox(uid)
+        .where('createdAt', isLessThan: Timestamp.fromDate(before))
+        .limit(400)
+        .get();
+    final ids = [for (final d in snap.docs) if (d.data()['read'] == true) d.id];
+    await deleteNotifications(uid, ids);
+    return ids.length;
+  }
+
+  Future<void> markNotificationsRead(String uid, List<String> ids) async {
     if (ids.isEmpty) return;
     try {
       final b = _db.batch();

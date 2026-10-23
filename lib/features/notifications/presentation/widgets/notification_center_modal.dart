@@ -10,6 +10,7 @@ import '../../../auth/domain/auth_provider.dart';
 import '../../../projects/domain/project_provider.dart';
 import '../../domain/notification_models.dart';
 import '../../domain/notification_provider.dart';
+import '../../../../shared/widgets/wara_toast.dart';
 
 void showNotificationCenter(BuildContext context) {
   showModalBottomSheet(
@@ -125,8 +126,30 @@ IconData notificationIcon(NotificationType t) => switch (t) {
       NotificationType.payment => Icons.account_balance_wallet_outlined,
     };
 
-class NotificationSheet extends ConsumerWidget {
+class NotificationSheet extends ConsumerStatefulWidget {
   const NotificationSheet({super.key});
+
+  @override
+  ConsumerState<NotificationSheet> createState() => _NotificationSheetState();
+}
+
+class _NotificationSheetState extends ConsumerState<NotificationSheet> {
+  @override
+  void initState() {
+    super.initState();
+    // Retention: read notices older than 30 days, once per session.
+    Future.microtask(() => ref.read(notificationActionsProvider).purgeOld());
+  }
+
+  void _dismiss(BuildContext context, List<String> ids, String message) {
+    final undo = ref.read(notificationActionsProvider).dismiss(ids);
+    WaraToast.show(context,
+        message: message,
+        icon: Icons.delete_outline_rounded,
+        duration: notificationUndoWindow,
+        actionLabel: 'Undo',
+        onAction: undo);
+  }
 
   Future<void> _open(BuildContext context, WidgetRef ref, AppNotification n) async {
     if (!n.read) ref.read(notificationActionsProvider).markRead(n.id);
@@ -158,10 +181,11 @@ class NotificationSheet extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final c = context.colors;
-    final items = ref.watch(notificationsProvider).valueOrNull ?? const <AppNotification>[];
+    final items = ref.watch(visibleNotificationsProvider);
     final unread = items.where((n) => !n.read).length;
+    final readIds = [for (final n in items) if (n.read) n.id];
     return SafeArea(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.7),
@@ -174,6 +198,12 @@ class NotificationSheet extends ConsumerWidget {
                 children: [
                   Text('Notifications', style: TextStyle(color: c.text, fontSize: 17, fontWeight: FontWeight.w700)),
                   const Spacer(),
+                  if (readIds.isNotEmpty)
+                    TextButton(
+                      key: const ValueKey('clear_read'),
+                      onPressed: () => _dismiss(context, readIds, readIds.length == 1 ? 'Cleared 1' : 'Cleared ${readIds.length}'),
+                      child: Text('Clear read', style: TextStyle(color: c.muted)),
+                    ),
                   if (unread > 0)
                     TextButton(
                       key: const ValueKey('mark_all_read'),
@@ -197,8 +227,14 @@ class NotificationSheet extends ConsumerWidget {
                   separatorBuilder: (_, _) => Divider(height: 1, indent: 56, color: c.border),
                   itemBuilder: (context, i) {
                     final n = items[i];
-                    return ListTile(
+                    return Dismissible(
                       key: ValueKey('notif_${n.id}'),
+                      onDismissed: (_) => _dismiss(this.context, [n.id], 'Notification removed'),
+                      background: ColoredBox(color: c.surface),
+                      child: AnimatedOpacity(
+                      duration: Motion.of(context, const Duration(milliseconds: 200)),
+                      opacity: n.read ? 0.55 : 1,
+                      child: ListTile(
                       onTap: () => _open(context, ref, n),
                       leading: Icon(notificationIcon(n.type), color: n.read ? c.muted : c.text, size: 22),
                       title: Text(n.title,
@@ -218,7 +254,7 @@ class NotificationSheet extends ConsumerWidget {
                           ],
                         ],
                       ),
-                    );
+                    )));
                   },
                 ),
               ),
