@@ -133,7 +133,8 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     super.dispose();
   }
 
-  void createNewProject({
+  /// Returns null on success, else a short user-facing error.
+  Future<String?> createNewProject({
     required String title,
     required String clientName,
     double? clientPrice,
@@ -142,7 +143,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     required int deadlineDays,
     required String description,
     required List<String> skills,
-  }) {
+  }) async {
     final newId = 'p_${DateTime.now().millisecondsSinceEpoch}';
     final deadlineHours = deadlineDays * 24;
     final newItem = ProjectItem(
@@ -163,8 +164,28 @@ class ProjectsNotifier extends StateNotifier<List<ProjectItem>> {
     // Optimistic local update
     state = [newItem, ...state];
 
-    // Cloud Firestore write
-    _firestoreService.createProject(newItem, clientPrice: clientPrice, updatedBy: createdBy);
+    try {
+      final priced = await _firestoreService.createProject(newItem, clientPrice: clientPrice, updatedBy: createdBy);
+      return priced ? null : 'Client price not saved';
+    } catch (e) {
+      debugPrint('createProject failed: $e');
+      // Roll back so the list never shows a ghost that vanishes later.
+      if (mounted) state = state.where((p) => p.id != newId).toList();
+      return 'Couldn\'t publish project';
+    }
+  }
+
+  Future<bool> setArchived(String projectId, bool archived) async {
+    final before = state;
+    state = [for (final p in state) p.id == projectId ? p.copyWith(archived: archived) : p];
+    try {
+      await _firestoreService.setProjectArchived(projectId, archived);
+      return true;
+    } catch (e) {
+      debugPrint('archive failed: $e');
+      if (mounted) state = before;
+      return false;
+    }
   }
 
   void deleteProject(String projectId) {

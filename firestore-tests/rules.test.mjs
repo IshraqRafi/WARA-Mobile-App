@@ -1,7 +1,8 @@
 import { test, before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, getDocs, collection, writeBatch, serverTimestamp, deleteDoc, addDoc, query, orderBy, limit } from 'firebase/firestore';
+import assert from 'node:assert/strict';
+import { doc, getDoc, setDoc, updateDoc, getDocs, collection, writeBatch, serverTimestamp, deleteDoc, addDoc, query, orderBy, limit, where } from 'firebase/firestore';
 
 let env;
 before(async () => {
@@ -239,4 +240,33 @@ test('notifications: manager logs own payment receipt; nothing else self-written
   await assertFails(addDoc(collection(as('mA'), 'users/mA/notifications'), notif('mA', { type: 'approved' })));
   await assertFails(addDoc(collection(as('eA'), 'users/eA/notifications'), notif('eA', { type: 'payment' })));
   await assertFails(addDoc(collection(as('mA'), 'users/mA/notifications'), notif('mB', { type: 'payment' })));
+});
+
+test('archive: only the agency manager may set the archived flag', async () => {
+  const arch = { archived: true, archivedAt: serverTimestamp() };
+  await assertFails(updateDoc(doc(as('eA'), 'projects/p1'), arch));
+  await assertFails(updateDoc(doc(as('mB'), 'projects/p1'), arch));
+  await assertFails(updateDoc(doc(as('mA'), 'projects/p1'), { archived: 'yes' }));
+  await assertSucceeds(updateDoc(doc(as('mA'), 'projects/p1'), arch));
+  await assertFails(updateDoc(doc(as('eA'), 'projects/p1'), { archived: false }));
+  await assertSucceeds(getDoc(doc(as('mA'), 'projects/p1'))); // data kept
+});
+
+test('create: the exact app payload, project then finance (4th project)', async () => {
+  const db = as('mA');
+  for (let i = 0; i < 4; i++) {
+    const id = `p_${1760000000000 + i}`;
+    await assertSucceeds(setDoc(doc(db, `projects/${id}`), {
+      agencyId: 'A', title: `T${i}`, clientName: 'Direct client', editorPayout: 1500,
+      deadlineStr: '5 Days Left (120 Hours)', deadlineHoursLeft: 120, description: '',
+      requiredSkills: ['Video Editing'], claimedByEditorId: null, claimedByEditorName: null,
+      claimedAt: null, status: 'open', submissionLink: null, submissionNote: null,
+      submittedAt: null, isOverdue: false, deadlineAt: new Date().toISOString(), postedAt: new Date().toISOString(),
+    }));
+    await assertSucceeds(setDoc(doc(db, `projects/${id}/private/finance`),
+      { clientPrice: 5000, currency: 'BDT', updatedAt: serverTimestamp(), updatedBy: 'mA' }));
+  }
+  await assertFails(setDoc(doc(db, 'projects/p_arch'), { agencyId: 'A', title: 'x', archived: true }));
+  const snap = await getDocs(query(collection(db, 'projects'), where('agencyId', '==', 'A')));
+  assert.equal(snap.size, 5);
 });

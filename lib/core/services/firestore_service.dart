@@ -193,14 +193,20 @@ class FirestoreService {
   }
 
   /// Create a new project in Firestore
-  Future<void> createProject(ProjectItem item, {double? clientPrice, String? updatedBy}) async {
-    final batch = _db.batch();
-    batch.set(_projectsRef.doc(item.id), item.toMap());
-    if (clientPrice != null && clientPrice > 0) {
-      batch.set(_financeRef(item.id), _financeData(clientPrice, updatedBy));
-    }
-    await batch.commit();
-  }
+  /// Two writes, not one batch: the project lands even when the finance
+  /// write is refused (e.g. server rules without `private/finance`).
+  /// Throws if the project write fails; returns false if only the price failed.
+  Future<bool> createProject(ProjectItem item, {double? clientPrice, String? updatedBy}) =>
+      createProjectWrites(
+        writeProject: () => _projectsRef.doc(item.id).set(item.toMap()),
+        writeFinance: clientPrice != null && clientPrice > 0
+            ? () => _financeRef(item.id).set(_financeData(clientPrice, updatedBy))
+            : null,
+      );
+
+  /// Soft delete: managers only (enforced by rules). Never removes data.
+  Future<void> setProjectArchived(String projectId, bool archived) =>
+      _projectsRef.doc(projectId).update({'archived': archived, 'archivedAt': FieldValue.serverTimestamp()});
 
   /// Delete a project (and its manager-only finance doc) from Cloud Firestore
   Future<void> deleteProject(String projectId) async {
@@ -701,4 +707,21 @@ class AlreadyTakenException implements Exception {
   const AlreadyTakenException();
   @override
   String toString() => 'Already taken';
+}
+
+/// Project first, then the optional price. Throws on project failure;
+/// returns false when only the price write failed.
+Future<bool> createProjectWrites({
+  required Future<void> Function() writeProject,
+  Future<void> Function()? writeFinance,
+}) async {
+  await writeProject();
+  if (writeFinance == null) return true;
+  try {
+    await writeFinance();
+    return true;
+  } catch (e) {
+    debugPrint('createProject: finance write failed: $e');
+    return false;
+  }
 }

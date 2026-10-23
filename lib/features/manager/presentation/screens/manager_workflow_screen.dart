@@ -30,13 +30,22 @@ final List<bool Function(ProjectItem)> _filterTests = [
   (p) => p.status == ProjectStatus.claimed,
   (p) => p.status == ProjectStatus.submitted,
   (p) => p.isOverdue,
+  (p) => p.status == ProjectStatus.approved,
 ];
+
+/// Workflow list: active work by default; approved only under "Done";
+/// archived never. Exposed for tests.
+List<ProjectItem> workflowVisible(List<ProjectItem> projects, int? filter) {
+  final live = projects.where((p) => !p.archived);
+  if (filter == null) return live.where((p) => p.status != ProjectStatus.approved).toList(growable: false);
+  return live.where(_filterTests[filter]).toList(growable: false);
+}
 
 /// Filtered list, recomputed only when projects or the filter change.
 final _visibleProjectsProvider = Provider.autoDispose<List<ProjectItem>>((ref) {
   final projects = ref.watch(projectsProvider);
   final filter = ref.watch(_workflowFilterProvider);
-  return filter == null ? projects : projects.where(_filterTests[filter]).toList(growable: false);
+  return workflowVisible(projects, filter);
 });
 
 /// Bumped by the quick actions palette to open the create sheet.
@@ -707,6 +716,16 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             label: const Text('Assign'),
           ),
         ];
+      case ProjectStatus.approved:
+        return [
+          OutlinedButton.icon(
+            key: ValueKey('archive_${project.id}'),
+            onPressed: () => confirmArchive(context, ref, project),
+            style: waraCompactButton(),
+            icon: const Icon(Icons.archive_outlined, size: 18),
+            label: const Text('Archive'),
+          ),
+        ];
       default:
         return const [];
     }
@@ -755,6 +774,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                       WaraStat(label: 'Active', value: counts.claimed, tone: WaraTone.warning),
                       WaraStat(label: 'Review', value: counts.submitted, tone: WaraTone.success),
                       WaraStat(label: 'Overdue', value: counts.overdue, tone: WaraTone.error),
+                      WaraStat(
+                        label: 'Done',
+                        value: projects.where((p) => p.status == ProjectStatus.approved && !p.archived).length,
+                        tone: WaraTone.neutral,
+                      ),
                     ],
                     selected: filter,
                     onSelect: (i) => ref.read(_workflowFilterProvider.notifier).state = i,
@@ -1180,11 +1204,11 @@ class _CreateProjectSheetState extends ConsumerState<_CreateProjectSheet> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
                     if (titleCtrl.text.trim().isEmpty) return;
                     final firstEver = ref.read(projectsLoadedProvider) && ref.read(projectsProvider).isEmpty;
                     final payout = double.tryParse(payoutCtrl.text) ?? 1400;
-                    ref
+                    final result = ref
                         .read(projectsProvider.notifier)
                         .createNewProject(
                           title: titleCtrl.text.trim(),
@@ -1200,6 +1224,10 @@ class _CreateProjectSheetState extends ConsumerState<_CreateProjectSheet> {
                     final host = widget.toastContext ?? context;
                     WaraToast.show(host, message: 'Project published', icon: Icons.rocket_launch_rounded);
                     if (firstEver) _celebrateFirst(host, ref.read(authProvider).user?.agencyId);
+                    final err = await result;
+                    if (err != null && host.mounted) {
+                      WaraToast.show(host, message: err, icon: Icons.error_outline_rounded);
+                    }
                   },
                   icon: Icon(Icons.send_rounded, size: 16, color: colors.onPrimary),
                   label: Text(
@@ -1220,4 +1248,24 @@ class _CreateProjectSheetState extends ConsumerState<_CreateProjectSheet> {
       ),
     );
   }
+}
+
+/// Confirm, then soft-archive a finished project (no data removed).
+Future<void> confirmArchive(BuildContext context, WidgetRef ref, ProjectItem project) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+      title: const Text('Archive project?'),
+      content: Text('"${project.title}" leaves Workflow. Payment history is kept.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        TextButton(key: const ValueKey('archive_confirm'), onPressed: () => Navigator.pop(ctx, true), child: const Text('Archive')),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  final saved = await ref.read(projectsProvider.notifier).setArchived(project.id, true);
+  if (!context.mounted) return;
+  WaraToast.show(context, message: saved ? 'Archived' : 'Couldn\'t archive', icon: saved ? Icons.archive_outlined : Icons.error_outline_rounded);
 }

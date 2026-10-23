@@ -210,6 +210,7 @@ service cloud.firestore {
       // it is in private/finance. A legacy clientBudget may only be removed.
       allow read: if inAgency(resource.data.agencyId);
       allow create: if isManager() && inAgency(request.resource.data.agencyId)
+        && !('archived' in request.resource.data && request.resource.data.archived != false)
         && !('clientBudget' in request.resource.data);
       // submissionVersion only moves +1, on a submit, by the claimed editor.
       function versionOk() {
@@ -241,8 +242,16 @@ service cloud.firestore {
         && (!('clientBudget' in request.resource.data)
             || request.resource.data.clientBudget == resource.data.get('clientBudget', null))
         && versionOk()
-        && checksOk();
+        && checksOk()
+        && archiveOk();
       allow delete: if isManager() && inAgency(resource.data.agencyId);
+
+      // Soft delete: only the agency's manager may set or clear `archived`
+      // (and its timestamp); it must stay a bool.
+      function archiveOk() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['archived', 'archivedAt'])
+          || (isManager() && request.resource.data.get('archived', false) is bool);
+      }
 
       // projects/{id}/private/finance: clientPrice, currency, updatedAt,
       // updatedBy. Managers of the project's agency only. getAfter() lets the

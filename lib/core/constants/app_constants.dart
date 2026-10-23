@@ -87,6 +87,8 @@ class ProjectItem {
   /// Latest manager revision notes and the indices the editor has ticked.
   final String? revisionNotes;
   final List<int> revisionChecks;
+  /// Soft-deleted by the manager: hidden from Workflow, data kept.
+  final bool archived;
 
   const ProjectItem({
     required this.id,
@@ -114,6 +116,7 @@ class ProjectItem {
     this.submittedLate = false,
     this.revisionNotes,
     this.revisionChecks = const [],
+    this.archived = false,
   });
 
   bool get canReturn => status == ProjectStatus.claimed && deadlineHoursLeft > 72;
@@ -138,6 +141,7 @@ class ProjectItem {
     bool? submittedLate,
     String? revisionNotes,
     List<int>? revisionChecks,
+    bool? archived,
   }) {
     return ProjectItem(
       id: id,
@@ -165,6 +169,7 @@ class ProjectItem {
       submittedLate: submittedLate ?? this.submittedLate,
       revisionNotes: revisionNotes ?? this.revisionNotes,
       revisionChecks: revisionChecks ?? this.revisionChecks,
+      archived: archived ?? this.archived,
     );
   }
 
@@ -193,6 +198,7 @@ class ProjectItem {
       if (submittedLate) 'submittedLate': true,
       if (revisionNotes != null) 'revisionNotes': revisionNotes,
       if (revisionChecks.isNotEmpty) 'revisionChecks': revisionChecks,
+      if (archived) 'archived': true,
     };
   }
 
@@ -226,6 +232,7 @@ class ProjectItem {
       submittedLate: map['submittedLate'] as bool? ?? false,
       revisionNotes: map['revisionNotes'] as String?,
       revisionChecks: [for (final v in (map['revisionChecks'] as List? ?? const [])) if (v is num) v.toInt()],
+      archived: map['archived'] as bool? ?? false,
     );
   }
 }
