@@ -33,6 +33,8 @@ final List<bool Function(ProjectItem)> _filterTests = [
   (p) => p.status == ProjectStatus.approved,
 ];
 
+const _doneFilter = 4;
+
 /// Workflow list: active work by default; approved only under "Done";
 /// archived never. Exposed for tests.
 List<ProjectItem> workflowVisible(List<ProjectItem> projects, int? filter) {
@@ -758,7 +760,16 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             CollapsingHeader(
               title: 'Workflow',
               subtitle: ref.watch(authProvider.select((s) => s.user?.agencyName)),
-              trailing: const NotificationBellButton(),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _DoneToggle(
+                    active: filter == _doneFilter,
+                    onTap: () => ref.read(_workflowFilterProvider.notifier).state = filter == _doneFilter ? null : _doneFilter,
+                  ),
+                  const NotificationBellButton(),
+                ],
+              ),
               background: colors.bg,
               divider: colors.border,
               padding: EdgeInsets.symmetric(horizontal: margin),
@@ -774,13 +785,8 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                       WaraStat(label: 'Active', value: counts.claimed, tone: WaraTone.warning),
                       WaraStat(label: 'Review', value: counts.submitted, tone: WaraTone.success),
                       WaraStat(label: 'Overdue', value: counts.overdue, tone: WaraTone.error),
-                      WaraStat(
-                        label: 'Done',
-                        value: projects.where((p) => p.status == ProjectStatus.approved && !p.archived).length,
-                        tone: WaraTone.neutral,
-                      ),
                     ],
-                    selected: filter,
+                    selected: filter == _doneFilter ? null : filter,
                     onSelect: (i) => ref.read(_workflowFilterProvider.notifier).state = i,
                   ),
                   const ReviewQueueButton(),
@@ -1268,4 +1274,37 @@ Future<void> confirmArchive(BuildContext context, WidgetRef ref, ProjectItem pro
   final saved = await ref.read(projectsProvider.notifier).setArchived(project.id, true);
   if (!context.mounted) return;
   WaraToast.show(context, message: saved ? 'Archived' : 'Couldn\'t archive', icon: saved ? Icons.archive_outlined : Icons.error_outline_rounded);
+}
+
+/// Header toggle for the Done filter; active state uses the strip's fill.
+class _DoneToggle extends StatelessWidget {
+  final bool active;
+  final VoidCallback onTap;
+  const _DoneToggle({required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fill = dark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05);
+    return Semantics(
+      button: true,
+      selected: active,
+      label: 'Done projects',
+      excludeSemantics: true,
+      child: GestureDetector(
+        key: const ValueKey('done_toggle'),
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: Motion.of(context, const Duration(milliseconds: 200)),
+          curve: Curves.easeOutCubic,
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(color: active ? fill : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+          child: Icon(Icons.task_alt_rounded, size: 22, color: c.text),
+        ),
+      ),
+    );
+  }
 }

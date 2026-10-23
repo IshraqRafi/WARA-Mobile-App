@@ -10,7 +10,7 @@ class WaraStat {
   const WaraStat({required this.label, required this.value, required this.tone});
 }
 
-/// One compact row of equal, tappable metric segments. The selected segment
+/// One row of equal, tappable count-over-label segments (zero counts fade). The selected segment
 /// sits on a small-radius (8px) neutral highlight that slides between items:
 /// low-opacity white on dark, light gray on light. Text never changes
 /// colour. Tapping the selected segment again clears. No ink.
@@ -41,14 +41,9 @@ class _WaraStatStripState extends State<WaraStatStrip> {
     final fill = dark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05);
     final x = n <= 1 ? 0.0 : -1 + 2 * _last / (n - 1);
 
-    return Container(
-      height: 64,
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: c.border),
-      ),
+    // No box or border: segments separated by spacing only.
+    return SizedBox(
+      height: 56,
       child: Stack(
         children: [
           Positioned.fill(
@@ -87,8 +82,6 @@ class _WaraStatStripState extends State<WaraStatStrip> {
   Widget _segment(BuildContext context, AppColors c, TextTheme text, int i) {
     final s = widget.stats[i];
     final isSel = widget.selected == i;
-    final fg = s.tone.fg(c);
-    final dot = s.value > 0 ? fg : c.muted;
     final baseNum = text.titleLarge?.copyWith(fontWeight: FontWeight.w700, height: 1.1) ?? const TextStyle();
     return Semantics(
       button: true,
@@ -102,7 +95,11 @@ class _WaraStatStripState extends State<WaraStatStrip> {
           Haptics.tick();
           widget.onSelect(isSel ? null : i);
         },
-        child: Padding(
+        child: AnimatedOpacity(
+          key: ValueKey('stat_fade_${s.label}'),
+          duration: Motion.of(context, const Duration(milliseconds: 200)),
+          opacity: s.value == 0 ? 0.4 : 1,
+          child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
           child: Center(
             child: FittedBox(
@@ -112,17 +109,11 @@ class _WaraStatStripState extends State<WaraStatStrip> {
                 children: [
                   RollingCounter(value: s.value, style: baseNum.copyWith(color: c.text)),
                   const SizedBox(height: 2),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(width: 6, height: 6, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
-                      const SizedBox(width: 4),
-                      Text(s.label, style: text.labelMedium?.copyWith(color: c.muted)),
-                    ],
-                  ),
+                  Text(s.label, style: text.labelMedium?.copyWith(color: c.muted)),
                 ],
               ),
             ),
+          ),
           ),
         ),
       ),

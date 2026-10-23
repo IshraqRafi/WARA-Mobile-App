@@ -76,6 +76,10 @@ void main() {
     expect((content.center.dx - cell.center.dx).abs(), lessThan(1.0));
     final pillBox = tester.widget<DecoratedBox>(find.byKey(const ValueKey('stat_pill'))).decoration as BoxDecoration;
     expect(pillBox.borderRadius, BorderRadius.circular(8));
+    // No box/border around the strip; zero counts fade but stay tappable.
+    expect(find.descendant(of: find.byType(WaraStatStrip), matching: find.byType(Container)), findsNothing);
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('stat_fade_Review'))).opacity, lessThan(1));
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('stat_fade_Open'))).opacity, 1);
     await tester.tap(find.text('Overdue'));
     await tester.pumpAndSettle();
     expect(selected, isNull);
