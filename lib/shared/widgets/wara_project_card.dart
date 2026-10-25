@@ -150,7 +150,17 @@ class _WaraProjectCardState extends ConsumerState<WaraProjectCard> {
                 turns: expanded ? 0.5 : 0,
                 duration: Motion.of(context),
                 curve: Motion.curve,
-                child: Icon(Icons.expand_more_rounded, size: 18, color: c.muted),
+                // The glyph sits ~5.5px inside its 18px box; clip that side
+                // bearing so the chevron's right edge meets the price's.
+                child: SizedBox(
+                  width: 13,
+                  height: 18,
+                  child: OverflowBox(
+                    maxWidth: 18,
+                    alignment: Alignment.centerLeft,
+                    child: Icon(Icons.expand_more_rounded, size: 18, color: c.muted),
+                  ),
+                ),
               ),
             ],
           ),
