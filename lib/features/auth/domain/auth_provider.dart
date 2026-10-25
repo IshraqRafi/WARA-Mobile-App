@@ -297,6 +297,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return role;
   }
 
+  /// Editor without a working agency joins one by key from Settings.
+  /// Returns null on success or a terse error.
+  Future<String?> joinAgencyWithKey(String key) async {
+    final user = state.user;
+    if (user == null) return 'Sign in again';
+    try {
+      final agency = await _firestoreService.validateAndGetAgencyByKey(key);
+      if (agency == null) return 'Invalid key';
+      await _firestoreService.joinAgency(user.id, agency.id, agency.name, agency.joinKey);
+      final updated = user.copyWith(agencyId: agency.id, agencyName: agency.name, agencyJoinKey: agency.joinKey);
+      await _setSession(updated);
+      return null;
+    } on FirebaseException catch (e) {
+      debugPrint('joinAgencyWithKey failed: ${e.code}');
+      return e.code == 'permission-denied' ? 'Already in an agency' : 'Could not join';
+    } catch (e) {
+      debugPrint('joinAgencyWithKey failed: $e');
+      return 'Could not join';
+    }
+  }
+
   /// Retry after a failed profile read (see [AuthState.loadError]).
   Future<void> retryProfileLoad() async {
     final fbUser = _auth.currentUser;

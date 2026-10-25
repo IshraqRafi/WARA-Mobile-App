@@ -332,3 +332,31 @@ test('truly new manager: app create-agency flow succeeds (no doc, and role-less 
   await assertSucceeds(createAgencyAsApp(dbR, 'mR', 'R1', 'ROLE-0001', 'Rolo'));
   await assertSucceeds(setDoc(doc(dbR, 'users/mR'), appProfile('R1', 'ROLE-0001', 'Rolo'), { merge: true }));
 });
+
+// Editor rejoin from Settings: allowed from no agency or a deleted (stale)
+// agency, with the current key, once; valid members stay locked.
+test('editor rejoin: no/stale agencyId may join once with a valid key; members locked', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'users/eOld'), { role: 'editor', name: 'Old', isProfileComplete: true });
+    await setDoc(doc(db, 'users/eStale'), { role: 'editor', agencyId: 'GONE', agencyJoinKey: 'GONE-0000' });
+    await setDoc(doc(db, 'users/mStale'), { role: 'manager', agencyId: 'GONE' });
+  });
+  const join = (agencyId, agencyJoinKey) => ({ agencyId, agencyName: 'Alpha', agencyJoinKey, updatedAt: serverTimestamp() });
+  const o = as('eOld');
+  await assertFails(setDoc(doc(o, 'users/eOld'), join('A', 'WRONG-KEY'), { merge: true }));
+  await assertSucceeds(getDoc(doc(o, 'joinKeys/ALPHA-1234')));
+  await assertSucceeds(setDoc(doc(o, 'users/eOld'), join('A', 'ALPHA-1234'), { merge: true }));
+  await assertSucceeds(getDocs(query(collection(o, 'projects'), where('agencyId', '==', 'A'))));
+  await assertFails(setDoc(doc(o, 'users/eOld'), { ...join('B', 'BETA-5678'), agencyName: 'Beta' }, { merge: true }));
+
+  const s = as('eStale');
+  await assertFails(setDoc(doc(s, 'users/eStale'), join('A', 'WRONG-KEY'), { merge: true }));
+  await assertFails(setDoc(doc(s, 'users/eStale'), { agencyId: '' }, { merge: true }));
+  await assertSucceeds(setDoc(doc(s, 'users/eStale'), join('A', 'ALPHA-1234'), { merge: true }));
+  await assertFails(setDoc(doc(s, 'users/eStale'), join('B', 'BETA-5678'), { merge: true }));
+
+  // valid member and stale manager stay locked
+  await assertFails(setDoc(doc(as('eA'), 'users/eA'), join('B', 'BETA-5678'), { merge: true }));
+  await assertFails(setDoc(doc(as('mStale'), 'users/mStale'), { agencyId: 'A', agencyJoinKey: 'ALPHA-1234' }, { merge: true }));
+});

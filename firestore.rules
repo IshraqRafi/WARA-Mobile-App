@@ -54,13 +54,17 @@ service cloud.firestore {
         && validMembership(uid, request.resource.data)
         && !request.resource.data.keys().hasAny(ratingKeys());
       // Self update: role is locked once set; agencyId can only go from
-      // empty to a proven agency, never change after; ratings are managers'.
+      // empty (or, for an editor, a deleted/stale agency) to a proven agency,
+      // never change after; ratings are managers'.
       allow update: if signedIn() && request.auth.uid == uid
         && (request.resource.data.get('role', null) == resource.data.get('role', null)
             || (resource.data.get('role', null) == null
                 && request.resource.data.get('role', '') in ['editor', 'manager']))
         && (request.resource.data.get('agencyId', '') == resource.data.get('agencyId', '')
-            || (resource.data.get('agencyId', '') == ''
+            || ((resource.data.get('agencyId', '') == ''
+                 || (resource.data.get('role', '') == 'editor'
+                     && !exists(agencyPath(resource.data.agencyId))))
+                && request.resource.data.get('agencyId', '') != ''
                 && validMembership(uid, request.resource.data)))
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(ratingKeys())
         // availability: editors only, 'available' or 'busy'.

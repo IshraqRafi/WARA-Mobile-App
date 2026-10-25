@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/profile_scorecard.dart';
+import '../widgets/join_agency_dialog.dart';
+import '../../../chat/domain/chat_provider.dart';
+import '../../../notifications/domain/notification_provider.dart';
+import '../../../payments/domain/payout.dart';
 import '../widgets/availability_toggle.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import '../../../../shared/widgets/availability_badge.dart';
@@ -22,6 +26,23 @@ class EditorSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
+  bool _reloading = false;
+
+  /// After a join: slim reload bar, refetch the profile, and rebuild the
+  /// agency-scoped providers so data appears without an app restart.
+  Future<void> _reloadAfterJoin() async {
+    setState(() => _reloading = true);
+    final started = DateTime.now();
+    await ref.read(authProvider.notifier).retryProfileLoad();
+    ref.invalidate(projectsProvider);
+    ref.invalidate(myProfileProvider);
+    ref.invalidate(chatProvider);
+    ref.invalidate(notificationsProvider);
+    ref.invalidate(payoutsProvider);
+    final left = const Duration(milliseconds: 900) - DateTime.now().difference(started);
+    if (left > Duration.zero) await Future<void>.delayed(left);
+    if (mounted) setState(() => _reloading = false);
+  }
   static const _allSkills = [
     'Video Editing',
     'Color Grading',
@@ -220,7 +241,8 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Stack(children: [
+        SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(AppSpacing.screenMargin(context), AppSpacing.lg, AppSpacing.screenMargin(context), AppSpacing.bottomInset(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,57 +334,14 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
               ),
 
               // Connected Agency Workspace Room Badge
-              Container(
-                margin: const EdgeInsets.only(top: 14),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colors.primary.withValues(alpha: 0.25)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: colors.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.meeting_room_rounded, color: colors.primary, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.agencyName.isNotEmpty == true ? user!.agencyName : 'No agency connected',
-                            style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Connected Agency Room • Key: ${user?.agencyJoinKey ?? "—"}',
-                            style: TextStyle(color: colors.muted, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: colors.successTint,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(width: 6, height: 6, decoration: BoxDecoration(color: colors.success, shape: BoxShape.circle)),
-                          const SizedBox(width: 4),
-                          Text('Joined', style: TextStyle(color: colors.success, fontSize: 12, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ],
+              Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: AgencyRoomCard(
+                  agencyName: user?.agencyName ?? '',
+                  joinKey: user?.agencyJoinKey,
+                  connected: (user?.agencyId ?? '').isNotEmpty && (user?.agencyName ?? '').isNotEmpty,
+                  onJoin: (key) => ref.read(authProvider.notifier).joinAgencyWithKey(key),
+                  onJoined: _reloadAfterJoin,
                 ),
               ),
               const SizedBox(height: 14),
@@ -523,6 +502,8 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
             ],
           ),
         ),
+        if (_reloading) const Positioned(top: 0, left: 0, right: 0, child: WaraReloadBar()),
+        ]),
       ),
     );
   }

@@ -75,6 +75,15 @@ class FirestoreService {
     } catch (_) {}
   }
 
+  /// Editor joins [agencyId] with its current key (rules check the key).
+  Future<void> joinAgency(String uid, String agencyId, String agencyName, String joinKey) =>
+      _usersRef.doc(uid).set({
+        'agencyId': agencyId,
+        'agencyName': agencyName,
+        'agencyJoinKey': joinKey,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
   /// Rename the agency (manager only).
   Future<void> renameAgency(String agencyId, String oldKey, String name) async {
     final batch = _db.batch();
