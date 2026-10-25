@@ -45,6 +45,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     });
   }
 
+  Future<void> _retry() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    await ref.read(authProvider.notifier).retryProfileLoad();
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -52,13 +61,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final pending = ref.watch(authProvider.select((s) => s.pendingUser));
     final firstName = (pending?.name ?? '').split(' ').first;
     final margin = AppSpacing.screenMargin(context);
-    final isManager = pending?.role == UserRole.manager;
+    final loadError = ref.watch(authProvider.select((s) => s.loadError));
+    final isManager = pending?.role == UserRole.manager && loadError == null;
 
     return Scaffold(
       backgroundColor: colors.bg,
       body: SafeArea(
         child: Column(
           children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: AppSpacing.xs, top: AppSpacing.xs),
+                child: IconButton(
+                  key: const Key('onboarding_back'),
+                  tooltip: 'Back to sign in',
+                  icon: Icon(Icons.arrow_back_rounded, color: colors.muted),
+                  onPressed: _isLoading ? null : () => ref.read(authProvider.notifier).logout(),
+                ),
+              ),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(margin, AppSpacing.xxl, margin, AppSpacing.xl),
@@ -92,6 +114,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               ),
                             ],
                           ),
+                        if (loadError != null) ...[
+                          const SizedBox(height: AppSpacing.lg),
+                          WaraBanner(message: loadError),
+                        ],
                         if (_errorMessage != null) ...[
                           const SizedBox(height: AppSpacing.lg),
                           WaraBanner(message: _errorMessage!),
@@ -116,13 +142,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       SizedBox(
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _continue,
+                          key: const Key('onboarding_primary'),
+                          onPressed: _isLoading ? null : (loadError != null ? _retry : _continue),
                           child: _isLoading
                               ? SizedBox.square(
                                   dimension: 22,
                                   child: CircularProgressIndicator(color: Theme.of(context).colorScheme.onPrimary, strokeWidth: 2.5),
                                 )
-                              : Text(isManager ? 'Create agency' : 'Continue'),
+                              : Text(loadError != null ? 'Retry' : (isManager ? 'Create agency' : 'Continue')),
                         ),
                       ),
                       TextButton(

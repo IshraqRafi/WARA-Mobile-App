@@ -287,3 +287,48 @@ test('notifications: owner may delete own; others may not; update only read', as
   b.delete(doc(dbA, 'users/eA/notifications/n1'));
   await assertSucceeds(b.commit());
 });
+
+// Repro: existing manager (fixture mX with agency X) whose profile read failed
+// on the device was routed to onboarding as "new"; re-creating an agency then
+// failed because agencyId is locked. Truly new managers must still succeed.
+const appProfile = (agencyId, joinKey, name) => ({
+  email: 'm@x.io', name: 'M', role: 'manager', skills: [], hoursPerWeek: 40,
+  activeDays: ['Mon'], isProfileComplete: true, specialization: null, portfolioLink: null,
+  updatedAt: serverTimestamp(), agencyId, agencyName: name, agencyJoinKey: joinKey,
+});
+const createAgencyAsApp = async (db, uid, id, key, name) => {
+  const b = writeBatch(db);
+  b.set(doc(db, `agencies/${id}`), { name, managerUid: uid, managerName: 'M', joinKey: key, createdAt: new Date() });
+  b.set(doc(db, `joinKeys/${key}`), { agencyId: id, agencyName: name, createdAt: serverTimestamp() });
+  await b.commit();
+};
+
+test('existing manager: own profile and agency are readable (recognised on sign-in)', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'agencies/X'), { name: 'Xeno', managerUid: 'mX', managerName: 'M', joinKey: 'XENO-0001' });
+    await setDoc(doc(db, 'joinKeys/XENO-0001'), { agencyId: 'X', agencyName: 'Xeno' });
+    await setDoc(doc(db, 'users/mX'), appProfile('X', 'XENO-0001', 'Xeno'));
+  });
+  const db = as('mX');
+  const snap = await assertSucceeds(getDoc(doc(db, 'users/mX')));
+  assert.equal(snap.data().agencyId, 'X');
+  await assertSucceeds(getDoc(doc(db, 'agencies/X')));
+  await assertSucceeds(getDoc(doc(db, 'joinKeys/XENO-0001')));
+  // The old onboarding path: second agency is allowed to be written, but the
+  // profile can't move to it (agencyId lock) -> "Could not create your agency".
+  await createAgencyAsApp(db, 'mX', 'X2', 'XENO-0002', 'Xeno');
+  await assertFails(setDoc(doc(db, 'users/mX'), appProfile('X2', 'XENO-0002', 'Xeno'), { merge: true }));
+  // Re-saving the existing membership is fine.
+  await assertSucceeds(setDoc(doc(db, 'users/mX'), appProfile('X', 'XENO-0001', 'Xeno'), { merge: true }));
+});
+
+test('truly new manager: app create-agency flow succeeds (no doc, and role-less doc)', async () => {
+  const db = as('mN');
+  await assertSucceeds(createAgencyAsApp(db, 'mN', 'N1', 'NEWA-0001', 'Newa'));
+  await assertSucceeds(setDoc(doc(db, 'users/mN'), appProfile('N1', 'NEWA-0001', 'Newa'), { merge: true }));
+  await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), 'users/mR'), { email: 'r@x.io' }));
+  const dbR = as('mR');
+  await assertSucceeds(createAgencyAsApp(dbR, 'mR', 'R1', 'ROLE-0001', 'Rolo'));
+  await assertSucceeds(setDoc(doc(dbR, 'users/mR'), appProfile('R1', 'ROLE-0001', 'Rolo'), { merge: true }));
+});

@@ -137,10 +137,16 @@ class AuthState {
   final UserSession? user;
   final PendingGoogleUser? pendingUser;
 
+  /// Set when the signed-in user's profile could not be read (offline,
+  /// timeout, permission). Onboarding shows a retry instead of the form so
+  /// an existing account is never treated as new.
+  final String? loadError;
+
   const AuthState({
     required this.isAuthenticated,
     this.user,
     this.pendingUser,
+    this.loadError,
   });
 
   bool get needsOnboarding => !isAuthenticated && pendingUser != null;
@@ -230,7 +236,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// [requestedRole] only applies to accounts without a stored role; an
   /// existing profile always keeps its role. Returns the resolved role.
   Future<UserRole?> _resolveSignedInUser(User fbUser, {UserRole? requestedRole}) async {
-    final profile = await _firestoreService.getUserProfile(fbUser.uid);
+    final Map<String, dynamic>? profile;
+    try {
+      profile = await _firestoreService.getUserProfile(fbUser.uid);
+    } catch (e) {
+      debugPrint('Profile read failed: $e');
+      state = AuthState(
+        isAuthenticated: false,
+        pendingUser: _pendingFrom(fbUser, role: requestedRole ?? UserRole.editor),
+        loadError: "Couldn't load your account. Check your connection and try again.",
+      );
+      return null;
+    }
     if (profile == null || profile['role'] == null) {
       state = AuthState(
         isAuthenticated: false,
@@ -280,6 +297,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return role;
   }
 
+  /// Retry after a failed profile read (see [AuthState.loadError]).
+  Future<void> retryProfileLoad() async {
+    final fbUser = _auth.currentUser;
+    if (fbUser == null) {
+      state = const AuthState(isAuthenticated: false);
+      return;
+    }
+    await _resolveSignedInUser(fbUser, requestedRole: state.pendingUser?.role);
+  }
+
   /// Google is the only sign-in method. [role] is the role selected on the
   /// login screen; it is used for new accounts only.
   Future<SignInResult> signInWithGoogle({UserRole role = UserRole.editor}) async {
@@ -318,6 +345,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final cleanAgency = agencyName.trim();
     if (cleanAgency.length < 2) {
       return (success: false, error: 'Please enter your agency name.');
+    }
+
+    // Re-check the stored profile first: an account that already has a
+    // role or agency must never get a second agency (the rules lock
+    // agencyId and role once set, which is what made this fail before).
+    try {
+      final existing = await _firestoreService.getUserProfile(pending.uid);
+      if (existing != null && existing['role'] != null) {
+        final fbUser = _auth.currentUser;
+        if (fbUser != null) await _resolveSignedInUser(fbUser);
+        if (state.isAuthenticated) return (success: true, error: null);
+        if (existing['role'] != 'manager') {
+          return (success: false, error: 'This account is registered as an editor.');
+        }
+        if ((existing['agencyId'] as String? ?? '').isNotEmpty) {
+          return (success: false, error: "Couldn't load your agency. Please try again.");
+        }
+      }
+    } catch (e) {
+      debugPrint('createAgencyAsManager profile check failed: $e');
+      return (success: false, error: "Couldn't reach the server. Check your connection and try again.");
     }
 
     try {

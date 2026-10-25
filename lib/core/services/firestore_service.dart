@@ -422,16 +422,15 @@ class FirestoreService {
     await _usersRef.doc(uid).set(updateData, SetOptions(merge: true));
   }
 
+  /// The caller's profile, or null only when the doc truly does not exist.
+  /// Read, permission and timeout errors are thrown so callers never mistake
+  /// a failed read for "no profile / no agency".
   Future<Map<String, dynamic>?> getUserProfile(String uid) async {
-    try {
-      final doc = await _usersRef.doc(uid).get().timeout(
-        const Duration(seconds: 3),
-        onTimeout: () => throw Exception('Firestore timeout'),
-      );
-      return doc.data();
-    } catch (_) {
-      return null;
-    }
+    final doc = await _usersRef.doc(uid).get().timeout(
+      const Duration(seconds: 12),
+      onTimeout: () => throw Exception('Firestore timeout'),
+    );
+    return doc.exists ? doc.data() : null;
   }
 
   // ── Messenger & Conversations ──────────────────────────────────────────
