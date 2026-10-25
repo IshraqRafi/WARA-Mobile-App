@@ -65,10 +65,9 @@ class ManagerPendingScreen extends ConsumerWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: RollingCounter(
+                child: AnimatedCount(
                   key: const ValueKey('owed_total'),
-                  prefix: '৳',
-                  grouped: true,
+                  format: takaFormat,
                   value: ledger.total.round(),
                   style: text.displaySmall?.copyWith(color: colors.text, fontWeight: FontWeight.w700, letterSpacing: -0.8),
                 ),
@@ -77,7 +76,9 @@ class ManagerPendingScreen extends ConsumerWidget {
               UrgencyBar(byUrgency: ledger.byUrgency),
               const ReviewQueueButton(),
               const SizedBox(height: AppSpacing.xl),
-              if (ledger.editors.isEmpty)
+              if (ledger.editors.isEmpty && !ref.watch(projectsLoadedProvider))
+                const CardSkeletonColumn(count: 3, height: 76)
+              else if (ledger.editors.isEmpty)
                 const WaraEmptyState(compact: true, icon: Icons.check_circle_outline_rounded, title: 'All paid up')
               else ...[
                 Text('Editors', style: text.labelMedium?.copyWith(color: colors.muted)),

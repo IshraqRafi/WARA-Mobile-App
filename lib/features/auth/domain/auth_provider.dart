@@ -142,11 +142,16 @@ class AuthState {
   /// an existing account is never treated as new.
   final String? loadError;
 
+  /// True only while the cold-start restore (cached session / profile read)
+  /// is still running. The launch splash stays up until it clears.
+  final bool restoring;
+
   const AuthState({
     required this.isAuthenticated,
     this.user,
     this.pendingUser,
     this.loadError,
+    this.restoring = false,
   });
 
   bool get needsOnboarding => !isAuthenticated && pendingUser != null;
@@ -169,7 +174,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   );
   final FirestoreService _firestoreService = FirestoreService();
 
-  AuthNotifier() : super(const AuthState(isAuthenticated: false)) {
+  AuthNotifier() : super(const AuthState(isAuthenticated: false, restoring: true)) {
     _loadInitialState();
   }
 
@@ -200,9 +205,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
     } catch (e) {
       debugPrint('Auth restore failed: $e');
+    } finally {
+      if (mounted && state.restoring) state = const AuthState(isAuthenticated: false);
     }
-
-    state = const AuthState(isAuthenticated: false);
   }
 
   Future<void> _persistSession(UserSession session) async {
@@ -638,6 +643,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(isAuthenticated: false);
   }
 }
+
+/// False until the cold-start auth/profile restore has finished.
+final authRestoredProvider = Provider<bool>((ref) => !ref.watch(authProvider.select((s) => s.restoring)));
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier();

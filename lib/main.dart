@@ -9,7 +9,7 @@ import 'core/router/app_router.dart';
 import 'shared/motion/agency_switch.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
-import 'shared/motion/launch_reveal.dart';
+import 'shared/motion/launch_splash.dart';
 import 'shared/motion/theme_reveal.dart';
 
 void main() async {
@@ -60,7 +60,7 @@ class WaraIoApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         // Theme flips instantly; ThemeReveal animates the change from the toggle.
-        return ThemeReveal(child: AgencySwitchHost(child: LaunchReveal(child: child ?? const SizedBox.shrink())));
+        return ThemeReveal(child: AgencySwitchHost(child: LaunchSplash(child: child ?? const SizedBox.shrink())));
       },
     );
   }

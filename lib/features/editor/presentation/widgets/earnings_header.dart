@@ -22,10 +22,9 @@ class EarningsHeader extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: RollingCounter(
+            child: AnimatedCount(
               key: const ValueKey('earned_month'),
-              prefix: '৳',
-              grouped: true,
+              format: takaFormat,
               value: earnings.thisMonth,
               style: text.displaySmall?.copyWith(color: c.text, fontWeight: FontWeight.w700, letterSpacing: -0.8),
             ),
@@ -38,10 +37,9 @@ class EarningsHeader extends StatelessWidget {
       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
         Text('Pending', style: text.labelMedium?.copyWith(color: c.muted)),
         const SizedBox(height: AppSpacing.xs),
-        RollingCounter(
+        AnimatedCount(
           key: const ValueKey('earned_pending'),
-          prefix: '৳',
-          grouped: true,
+          format: takaFormat,
           value: earnings.pending,
           style: text.titleMedium?.copyWith(color: c.text, fontWeight: FontWeight.w600),
         ),

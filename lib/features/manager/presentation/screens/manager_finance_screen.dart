@@ -4,7 +4,7 @@ import '../../../payments/presentation/payout_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/motion/rolling_counter.dart';
+import '../../../../shared/motion/motion.dart';
 import '../../../../shared/widgets/wara_empty_state.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import '../../../../shared/widgets/wara_status_chip.dart';
@@ -52,10 +52,10 @@ class ManagerFinanceScreen extends ConsumerWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: RollingCounter(
-                prefix: '৳',
-                grouped: true,
-                value: totalPipelineVolume.toInt(),
+              child: AnimatedCount(
+                key: const ValueKey('finance_pipeline'),
+                format: takaFormat,
+                value: totalPipelineVolume,
                 style: text.displaySmall?.copyWith(color: colors.text, fontWeight: FontWeight.w700, letterSpacing: -0.5),
               ),
             ),
@@ -63,18 +63,20 @@ class ManagerFinanceScreen extends ConsumerWidget {
 
             // ── Secondary metrics strip ─────────────────────────────────
             FinanceMetricStrip(metrics: [
-              FinanceMetric('Revenue', s.revenue == null ? '—' : '৳${formatTaka(s.revenue!)}'),
-              FinanceMetric('Paid', '৳${formatTaka(s.paid)}'),
-              FinanceMetric('Committed', '৳${formatTaka(s.committed)}', color: colors.primary),
+              FinanceMetric('Revenue', s.revenue == null ? '—' : '৳${formatTaka(s.revenue!)}', amount: s.revenue),
+              FinanceMetric('Paid', '৳${formatTaka(s.paid)}', amount: s.paid),
+              FinanceMetric('Committed', '৳${formatTaka(s.committed)}', amount: s.committed, color: colors.primary),
               FinanceMetric('Margin', s.marginPercent == null ? '—' : '${s.marginPercent!.toStringAsFixed(0)}%',
-                  color: colors.success),
+                  amount: s.marginPercent, format: (v) => '${v.toStringAsFixed(0)}%', color: colors.success),
             ]),
             const SizedBox(height: AppSpacing.xl),
 
             // ── Ledger ──────────────────────────────────────────────────
             Text('Ledger', style: text.labelMedium?.copyWith(color: colors.muted)),
             const SizedBox(height: AppSpacing.sm),
-            if (claimedOrDoneProjects.isEmpty)
+            if (claimedOrDoneProjects.isEmpty && !ref.watch(projectsLoadedProvider))
+              const CardSkeletonColumn(height: 56)
+            else if (claimedOrDoneProjects.isEmpty)
               const WaraEmptyState(compact: true, icon: Icons.receipt_long_outlined, title: 'No payouts')
             else
               for (final p in claimedOrDoneProjects) _LedgerRow(project: p),
@@ -135,7 +137,12 @@ class FinanceMetric {
   final String label;
   final String value;
   final Color? color;
-  const FinanceMetric(this.label, this.value, {this.color});
+
+  /// When set, the value tweens to this number, formatted with [format]
+  /// (taka by default).
+  final num? amount;
+  final String Function(num v) format;
+  const FinanceMetric(this.label, this.value, {this.color, this.amount, this.format = takaFormat});
 }
 
 /// Single row of equal-height metric tiles. Labels and values never wrap.
@@ -176,10 +183,16 @@ class FinanceMetricStrip extends StatelessWidget {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Text(metrics[i].value,
-                          maxLines: 1,
-                          softWrap: false,
-                          style: text.titleSmall?.copyWith(color: metrics[i].color ?? colors.text, fontWeight: FontWeight.w700)),
+                      child: metrics[i].amount == null
+                          ? Text(metrics[i].value,
+                              maxLines: 1,
+                              softWrap: false,
+                              style: text.titleSmall?.copyWith(color: metrics[i].color ?? colors.text, fontWeight: FontWeight.w700))
+                          : AnimatedCount(
+                              key: ValueKey('metric_count_${metrics[i].label}'),
+                              value: metrics[i].amount!,
+                              format: metrics[i].format,
+                              style: text.titleSmall?.copyWith(color: metrics[i].color ?? colors.text, fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ),

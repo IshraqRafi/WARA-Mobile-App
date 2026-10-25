@@ -107,7 +107,7 @@ class _WaraStatStripState extends State<WaraStatStrip> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  RollingCounter(value: s.value, style: baseNum.copyWith(color: c.text)),
+                  AnimatedCount(key: ValueKey('stat_count_${s.label}'), value: s.value, style: baseNum.copyWith(color: c.text)),
                   const SizedBox(height: 2),
                   Text(s.label, style: text.labelMedium?.copyWith(color: c.muted)),
                 ],

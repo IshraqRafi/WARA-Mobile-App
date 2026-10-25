@@ -100,8 +100,9 @@ class EditorWorkspaceScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    RollingCounter(
-                      prefix: 'Earned: ৳',
+                    AnimatedCount(
+                      key: const ValueKey('workspace_earned'),
+                      format: (v) => 'Earned: ${takaFormat(v)}',
                       value: workspace.earned,
                       style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold),
                     ),

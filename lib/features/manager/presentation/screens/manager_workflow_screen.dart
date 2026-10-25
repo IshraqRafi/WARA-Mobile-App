@@ -491,8 +491,8 @@ class ManagerWorkflowScreen extends ConsumerWidget {
 
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator()),
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: CardSkeletonColumn(count: 3, height: 64),
                   );
                 }
 

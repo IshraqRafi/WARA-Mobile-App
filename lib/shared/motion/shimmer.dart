@@ -152,3 +152,51 @@ class SkeletonList extends StatelessWidget {
         ),
       );
 }
+
+/// Slim neutral card placeholder of a given [height], matching a real card
+/// (8px radius, border, two text lines).
+class CardSkeleton extends StatelessWidget {
+  final double height;
+  const CardSkeleton({super.key, this.height = 72});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Container(
+        height: height,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.border)),
+        child: const Row(children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                FractionallySizedBox(widthFactor: 0.55, child: SkeletonBox(height: 14)),
+                FractionallySizedBox(widthFactor: 0.35, child: SkeletonBox(height: 10)),
+              ],
+            ),
+          ),
+          SizedBox(width: AppSpacing.lg),
+          SkeletonBox(width: 56, height: 14),
+        ]),
+      ),
+    );
+  }
+}
+
+/// [count] shimmering [CardSkeleton]s in a plain column (for use inside an
+/// existing scroll view; pull-to-refresh is untouched).
+class CardSkeletonColumn extends StatelessWidget {
+  final int count;
+  final double height;
+  const CardSkeletonColumn({super.key, this.count = 4, this.height = 72});
+
+  @override
+  Widget build(BuildContext context) => Shimmer(
+        key: const Key('skeleton_column'),
+        child: Column(children: [for (var i = 0; i < count; i++) CardSkeleton(height: height)]),
+      );
+}

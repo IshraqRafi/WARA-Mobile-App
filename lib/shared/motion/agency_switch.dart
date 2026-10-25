@@ -120,69 +120,82 @@ class _AgencySwitchHostState extends ConsumerState<AgencySwitchHost> with Ticker
         _run(role);
       }
     });
-    final reduced = Motion.reduced(context);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final bg = dark ? Colors.black : Colors.white;
-    final fg = dark ? Colors.white : Colors.black;
     return Stack(
       textDirection: TextDirection.ltr,
       children: [
         AbsorbPointer(absorbing: _running, child: widget.child),
         if (_running)
           Positioned.fill(
-            child: AnimatedBuilder(
-              key: const Key('agency_switch_overlay'),
-              animation: Listenable.merge([_fade, _bar]),
-              builder: (_, _) {
-                final f = Curves.easeOut.transform(_fade.value);
-                final logoT = Curves.easeOutCubic.transform(_fade.value);
-                return Opacity(
-                  opacity: f,
-                  child: ColoredBox(
-                    color: bg,
-                    child: Center(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Opacity(
-                          opacity: logoT,
-                          child: Transform.scale(
-                            scale: reduced ? 1 : 0.96 + 0.04 * logoT,
-                            child: const WaraLogo(size: 64),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        Opacity(
-                          opacity: f,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: SizedBox(
-                              width: 140,
-                              height: 3,
-                              child: Stack(children: [
-                                Positioned.fill(child: ColoredBox(color: fg.withValues(alpha: 0.10))),
-                                FractionallySizedBox(
-                                  key: const Key('agency_switch_bar'),
-                                  widthFactor: _bar.value,
-                                  heightFactor: 1,
-                                  alignment: Alignment.centerLeft,
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      color: fg.withValues(alpha: 0.55),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                              ]),
-                            ),
-                          ),
-                        ),
-                      ]),
-                    ),
-                  ),
-                );
-              },
-            ),
+            child: WaraSwitchOverlay(key: const Key('agency_switch_overlay'), fade: _fade, bar: _bar),
           ),
       ],
+    );
+  }
+}
+
+
+/// Shared full-screen brand overlay: theme background (black/white), the
+/// logo fading and scaling 0.96→1.0 with [fade], and a slim 140×3 neutral
+/// bar filled to [bar]. Used by the agency switch and the launch splash.
+class WaraSwitchOverlay extends StatelessWidget {
+  final Animation<double> fade;
+  final Animation<double> bar;
+  final Animation<double>? logo;
+  const WaraSwitchOverlay({super.key, required this.fade, required this.bar, this.logo});
+
+  @override
+  Widget build(BuildContext context) {
+    final reduced = Motion.reduced(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final bg = dark ? Colors.black : Colors.white;
+    final fg = dark ? Colors.white : Colors.black;
+    final logoAnim = logo ?? fade;
+    return AnimatedBuilder(
+      animation: Listenable.merge([fade, bar, logoAnim]),
+      builder: (_, _) {
+        final f = Curves.easeOut.transform(fade.value);
+        final logoT = Curves.easeOutCubic.transform(logoAnim.value);
+        return Opacity(
+          opacity: f,
+          child: ColoredBox(
+            color: bg,
+            child: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Opacity(
+                  opacity: logoT,
+                  child: Transform.scale(
+                    scale: reduced ? 1 : 0.96 + 0.04 * logoT,
+                    child: const WaraLogo(size: 64),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 140,
+                    height: 3,
+                    child: Stack(children: [
+                      Positioned.fill(child: ColoredBox(color: fg.withValues(alpha: 0.10))),
+                      FractionallySizedBox(
+                        key: const Key('agency_switch_bar'),
+                        widthFactor: bar.value,
+                        heightFactor: 1,
+                        alignment: Alignment.centerLeft,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: fg.withValues(alpha: 0.55),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        );
+      },
     );
   }
 }
