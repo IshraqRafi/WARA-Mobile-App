@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/profile_scorecard.dart';
 import '../widgets/join_agency_dialog.dart';
-import '../../../chat/domain/chat_provider.dart';
-import '../../../notifications/domain/notification_provider.dart';
-import '../../../payments/domain/payout.dart';
 import '../widgets/availability_toggle.dart';
 import '../../../../shared/widgets/wara_error_state.dart';
 import '../../../../shared/widgets/availability_badge.dart';
@@ -26,23 +23,6 @@ class EditorSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
-  bool _reloading = false;
-
-  /// After a join: slim reload bar, refetch the profile, and rebuild the
-  /// agency-scoped providers so data appears without an app restart.
-  Future<void> _reloadAfterJoin() async {
-    setState(() => _reloading = true);
-    final started = DateTime.now();
-    await ref.read(authProvider.notifier).retryProfileLoad();
-    ref.invalidate(projectsProvider);
-    ref.invalidate(myProfileProvider);
-    ref.invalidate(chatProvider);
-    ref.invalidate(notificationsProvider);
-    ref.invalidate(payoutsProvider);
-    final left = const Duration(milliseconds: 900) - DateTime.now().difference(started);
-    if (left > Duration.zero) await Future<void>.delayed(left);
-    if (mounted) setState(() => _reloading = false);
-  }
   static const _allSkills = [
     'Video Editing',
     'Color Grading',
@@ -341,7 +321,6 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
                   joinKey: user?.agencyJoinKey,
                   connected: (user?.agencyId ?? '').isNotEmpty && (user?.agencyName ?? '').isNotEmpty,
                   onJoin: (key) => ref.read(authProvider.notifier).joinAgencyWithKey(key),
-                  onJoined: _reloadAfterJoin,
                 ),
               ),
               const SizedBox(height: 14),
@@ -502,7 +481,6 @@ class _EditorSettingsScreenState extends ConsumerState<EditorSettingsScreen> {
             ],
           ),
         ),
-        if (_reloading) const Positioned(top: 0, left: 0, right: 0, child: WaraReloadBar()),
         ]),
       ),
     );

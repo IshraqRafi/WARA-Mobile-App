@@ -43,14 +43,4 @@ void main() {
     expect(tried, ['NOPE', 'ALPHA-1234']);
     expect(joined, 1);
   });
-
-  testWidgets('reload bar renders and is static under reduce-motion', (t) async {
-    await t.pumpWidget(MaterialApp(
-      theme: AppTheme.light,
-      builder: (c, child) => MediaQuery(data: MediaQuery.of(c).copyWith(disableAnimations: true), child: child!),
-      home: const Scaffold(body: WaraReloadBar()),
-    ));
-    expect(find.byKey(const Key('wara_reload_bar')), findsOneWidget);
-    expect(find.descendant(of: find.byKey(const Key('wara_reload_bar')), matching: find.byType(Positioned)), findsNothing);
-  });
 }
