@@ -105,61 +105,84 @@ class _WaraProjectCardState extends ConsumerState<WaraProjectCard> {
 
     final header = Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          // Left: title + meta, ellipsized; never affects the trailing column.
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(p.title, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: AppSpacing.xs + 2),
+                Row(
+                  children: [
+                    if (p.deadlineStr.isNotEmpty) Flexible(child: meta(Icons.schedule_rounded, p.deadlineStr, color: urgent)),
+                    if (widget.showAssignee) ...[
+                      const SizedBox(width: AppSpacing.md),
+                      Flexible(
+                        child: meta(
+                          p.claimedByEditorName != null ? Icons.person_rounded : Icons.person_outline_rounded,
+                          p.claimedByEditorName ?? 'Unassigned',
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          // Right: price over dot + chevron, right edges flush.
+          Column(
+            key: const Key('card_trailing'),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Expanded(child: Text(p.title, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis)),
-              const SizedBox(width: AppSpacing.md),
               GlowPulse(
                 active: p.status == ProjectStatus.approved,
                 color: c.success,
                 child: Text(widget.amountMissing ? '—' : '৳$amount', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xs + 2),
-          Row(
-            children: [
-              if (p.deadlineStr.isNotEmpty) Flexible(child: meta(Icons.schedule_rounded, p.deadlineStr, color: urgent)),
-              if (widget.showAssignee) ...[
-                const SizedBox(width: AppSpacing.md),
-                Flexible(
-                  child: meta(
-                    p.claimedByEditorName != null ? Icons.person_rounded : Icons.person_outline_rounded,
-                    p.claimedByEditorName ?? 'Unassigned',
-                  ),
-                ),
-              ],
-              const Spacer(),
-              if (widget.showStatus)
-                Tooltip(
-                  message: statusLabel,
-                  child: Semantics(
-                    label: statusLabel,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(color: tone.fg(c), shape: BoxShape.circle),
+              const SizedBox(height: AppSpacing.xs + 2),
+              SizedBox(
+                height: 18,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.showStatus) ...[
+                      Tooltip(
+                        message: statusLabel,
+                        child: Semantics(
+                          label: statusLabel,
+                          child: Container(
+                            key: const Key('card_status_dot'),
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(color: tone.fg(c), shape: BoxShape.circle),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    AnimatedRotation(
+                      key: const Key('card_chevron'),
+                      turns: expanded ? 0.5 : 0,
+                      duration: Motion.of(context),
+                      curve: Motion.curve,
+                      // Glyph has ~5.5px side bearing in its 18px box; clip
+                      // the right one so the arrow tip meets the price edge.
+                      child: SizedBox(
+                        width: 13,
+                        height: 18,
+                        child: OverflowBox(
+                          maxWidth: 18,
+                          alignment: Alignment.centerLeft,
+                          child: Icon(Icons.expand_more_rounded, size: 18, color: c.muted),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              const SizedBox(width: AppSpacing.sm),
-              AnimatedRotation(
-                turns: expanded ? 0.5 : 0,
-                duration: Motion.of(context),
-                curve: Motion.curve,
-                // The glyph sits ~5.5px inside its 18px box; clip that side
-                // bearing so the chevron's right edge meets the price's.
-                child: SizedBox(
-                  width: 13,
-                  height: 18,
-                  child: OverflowBox(
-                    maxWidth: 18,
-                    alignment: Alignment.centerLeft,
-                    child: Icon(Icons.expand_more_rounded, size: 18, color: c.muted),
-                  ),
+                  ],
                 ),
               ),
             ],
