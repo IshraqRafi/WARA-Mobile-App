@@ -456,8 +456,11 @@ class ManagerWorkflowScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.card,
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
+      builder: (ctx) => SafeArea(
+        child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -479,7 +482,7 @@ class ManagerWorkflowScreen extends ConsumerWidget {
             Text(project.title, style: TextStyle(color: colors.muted, fontSize: 12)),
             const SizedBox(height: 20),
 
-            Consumer(
+            Flexible(child: Consumer(
   builder: (context, ref, _) {
   final snapshot = asSnapshot(ref.watch(editorsProvider(ref.read(authProvider).user?.agencyId)));
                 final cloudEditors = snapshot.data ?? [];
@@ -527,7 +530,9 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                   );
                 }
 
-                return Column(
+                return ListView(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
                   children: [
                     for (int i = 0; i < activeEditors.length; i++) ...[
                       if (i > 0) Divider(color: colors.border),
@@ -561,6 +566,8 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                         subtitle: Text(
                           '${activeEditors[i]['specialization'] ?? 'Video Editor'} • Skills: ${(activeEditors[i]['skills'] as List?)?.join(', ') ?? 'Editing'}',
                           style: TextStyle(color: colors.muted, fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         trailing: Icon(Icons.arrow_forward_ios_rounded, color: colors.muted, size: 14),
                       ),
@@ -568,9 +575,10 @@ class ManagerWorkflowScreen extends ConsumerWidget {
                   ],
                 );
               },
-            ),
+            )),
           ],
         ),
+      ),
       ),
     );
   }
